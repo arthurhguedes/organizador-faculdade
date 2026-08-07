@@ -112,15 +112,6 @@
   color: var(--accent);
 }
 
-.sidebar__theme-toggle {
-  width: 100%;
-  border: none;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
 /* ---------- Top bar ---------- */
 
 .topbar {
@@ -1372,6 +1363,8 @@
 .grade-builder {
   position: sticky;
   top: 88px;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
   padding: var(--space-4);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1660,6 +1653,8 @@
 
   .grade-builder {
     position: static;
+    max-height: none;
+    overflow-y: visible;
   }
 
   .import-panel {

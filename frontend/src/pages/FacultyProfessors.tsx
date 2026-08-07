@@ -12,7 +12,7 @@ import { GradeBuilderPanel } from "./faculty/GradeBuilderPanel";
 import { EnrollmentImportButton } from "./faculty/EnrollmentImportButton";
 
 export function FacultyProfessors() {
-  usePageTitle("Professores da Faculdade");
+  usePageTitle("Montar Grade");
   const { offerings, loading, error, importing, importOfferings } = useOfferings();
   const { selectedIds, isSelected, toggle, clear } = useGradeBuilder();
 
@@ -22,7 +22,7 @@ export function FacultyProfessors() {
   return (
     <div>
       <PageHeader
-        title="Professores da Faculdade"
+        title="Montar Grade"
         description="Catálogo de turmas ofertadas pela faculdade — busque por professor ou disciplina e monte sua grade sem conflito de horário."
       />
 
