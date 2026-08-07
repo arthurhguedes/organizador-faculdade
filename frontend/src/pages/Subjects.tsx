@@ -1,0 +1,124 @@
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { BookOpen, Plus, X } from "lucide-react";
+import { usePageTitle } from "../context/PageTitleContext";
+import { usePeriods } from "../context/PeriodContext";
+import { subjectsApi, professorsApi } from "../api/client";
+import { useEntityList } from "../hooks/useEntityList";
+import { PageHeader } from "../components/ui/PageHeader";
+import { EmptyState } from "../components/ui/EmptyState";
+import { SkeletonCards } from "../components/ui/Skeleton";
+import { Button } from "../components/ui/Button";
+import { Field } from "../components/ui/Field";
+import { ConfirmDelete } from "../components/ui/ConfirmDelete";
+import { ErrorBanner } from "../components/ui/ErrorBanner";
+
+export function Subjects() {
+  usePageTitle("Matérias");
+  const { selectedPeriod, selectedPeriodId } = usePeriods();
+  const { items: subjects, loading, error, create, remove } = useEntityList(subjectsApi);
+  const { items: professors } = useEntityList(professorsApi);
+  const [formOpen, setFormOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [workload, setWorkload] = useState("");
+  const [professorId, setProfessorId] = useState("");
+
+  const periodSubjects = subjects.filter((s) => s.periodId === selectedPeriodId);
+
+  const professorName = (id: number) => professors.find((p) => p.id === id)?.name ?? "—";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPeriodId || !professorId || !name || !workload) return;
+    const ok = await create(
+      {
+        name,
+        workload: Number(workload),
+        periodId: selectedPeriodId,
+        professorId: Number(professorId),
+      },
+      "Matéria criada",
+    );
+    if (ok) {
+      setName("");
+      setWorkload("");
+      setProfessorId("");
+      setFormOpen(false);
+    }
+  };
+
+  return (
+    <div>
+      <PageHeader
+        title={`Matérias de ${selectedPeriod?.label ?? "..."}`}
+        description="Toda matéria concentra seus horários, atividades e provas em um só lugar."
+        action={
+          selectedPeriodId && (
+            <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
+              {formOpen ? "Cancelar" : "Nova matéria"}
+            </Button>
+          )
+        }
+      />
+
+      {error && <ErrorBanner message={error} />}
+
+      {formOpen && (
+        <form className="inline-form" onSubmit={handleSubmit}>
+          <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Field
+            label="Carga horária"
+            type="number"
+            min="0"
+            value={workload}
+            onChange={(e) => setWorkload(e.target.value)}
+            required
+          />
+          <label className="field">
+            <span className="field__label">Professor</span>
+            <select
+              className="field__input"
+              value={professorId}
+              onChange={(e) => setProfessorId(e.target.value)}
+              required
+            >
+              <option value="" disabled>
+                Selecione
+              </option>
+              {professors.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button type="submit" variant="primary">
+            Salvar
+          </Button>
+        </form>
+      )}
+
+      {loading ? (
+        <SkeletonCards cards={4} />
+      ) : periodSubjects.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          title="Nenhuma matéria neste período"
+          description="Cadastre a primeira matéria para começar a organizar este semestre."
+        />
+      ) : (
+        <div className="subject-grid">
+          {periodSubjects.map((subject) => (
+            <div key={subject.id} className="subject-card subject-card--list">
+              <Link to={`/materias/${subject.id}`} className="subject-card__link">
+                <span className="subject-card__name">{subject.name}</span>
+                <span className="subject-card__meta">{professorName(subject.professorId)} · {subject.workload}h</span>
+              </Link>
+              <ConfirmDelete onConfirm={() => remove(subject.id, "Matéria removida")} label="Remover matéria" />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

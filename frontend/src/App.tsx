@@ -1,93 +1,39 @@
-import { useState } from "react";
-import { EntityPanel, type Field } from "./EntityPanel";
-import { SubjectDetails } from "./SubjectDetails";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { PeriodProvider } from "./context/PeriodContext";
+import { ToastProvider } from "./context/ToastContext";
+import { PageTitleProvider } from "./context/PageTitleContext";
+import { AppShell } from "./components/layout/AppShell";
+import { Dashboard } from "./pages/Dashboard";
+import { Subjects } from "./pages/Subjects";
+import { SubjectDetail } from "./pages/SubjectDetail";
+import { Periods } from "./pages/Periods";
+import { Professors } from "./pages/Professors";
+import { Profile } from "./pages/Profile";
+import { Terms } from "./pages/Terms";
+import { Settings } from "./pages/Settings";
 import "./App.css";
 
-const tabs: { key: string; title: string; fields: Field[] }[] = [
-  {
-    key: "periods",
-    title: "Períodos",
-    fields: [
-      { key: "label", label: "Label", type: "text" },
-      { key: "startDate", label: "Início", type: "date" },
-      { key: "endDate", label: "Fim", type: "date" },
-    ],
-  },
-  {
-    key: "professors",
-    title: "Professores",
-    fields: [
-      { key: "name", label: "Nome", type: "text" },
-      { key: "email", label: "Email", type: "text" },
-    ],
-  },
-  {
-    key: "subjects",
-    title: "Matérias",
-    fields: [
-      { key: "name", label: "Nome", type: "text" },
-      { key: "workload", label: "Carga horária", type: "number" },
-      { key: "periodId", label: "ID do período", type: "number" },
-      { key: "professorId", label: "ID do professor", type: "number" },
-    ],
-  },
-  {
-    key: "schedules",
-    title: "Horários",
-    fields: [
-      { key: "subjectId", label: "ID da matéria", type: "number" },
-      { key: "weekday", label: "Dia da semana", type: "text" },
-      { key: "startTime", label: "Início", type: "text" },
-      { key: "endTime", label: "Fim", type: "text" },
-    ],
-  },
-  {
-    key: "assignments",
-    title: "Atividades",
-    fields: [
-      { key: "subjectId", label: "ID da matéria", type: "number" },
-      { key: "title", label: "Título", type: "text" },
-      { key: "dueDate", label: "Entrega", type: "date" },
-      { key: "weight", label: "Peso", type: "number" },
-      { key: "grade", label: "Nota", type: "number", optional: true },
-    ],
-  },
-  {
-    key: "exams",
-    title: "Provas",
-    fields: [
-      { key: "subjectId", label: "ID da matéria", type: "number" },
-      { key: "title", label: "Título", type: "text" },
-      { key: "date", label: "Data", type: "date" },
-      { key: "weight", label: "Peso", type: "number" },
-      { key: "grade", label: "Nota", type: "number", optional: true },
-    ],
-  },
-];
-
 export default function App() {
-  const [active, setActive] = useState(tabs[0]!.key);
-  const current = tabs.find((t) => t.key === active)!;
-
   return (
-    <div className="app">
-      <h1>Organizador Acadêmico</h1>
-
-      <nav>
-        {tabs.map((t) => (
-          <button
-            key={t.key}
-            className={t.key === active ? "active" : ""}
-            onClick={() => setActive(t.key)}
-          >
-            {t.title}
-          </button>
-        ))}
-      </nav>
-
-      <EntityPanel entity={current.key} title={current.title} fields={current.fields} />
-
-      {active === "subjects" && <SubjectDetails />}
-    </div>
+    <ToastProvider>
+      <PeriodProvider>
+        <PageTitleProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route index element={<Dashboard />} />
+                <Route path="materias" element={<Subjects />} />
+                <Route path="materias/:id" element={<SubjectDetail />} />
+                <Route path="periodos" element={<Periods />} />
+                <Route path="professores" element={<Professors />} />
+                <Route path="perfil" element={<Profile />} />
+                <Route path="termos" element={<Terms />} />
+                <Route path="configuracoes" element={<Settings />} />
+              </Route>
+            </Routes>
+          </BrowserRouter>
+        </PageTitleProvider>
+      </PeriodProvider>
+    </ToastProvider>
   );
 }
