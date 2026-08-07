@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Plus, X } from "lucide-react";
+import { BookOpen, CheckSquare, Plus, Square, Trash2, X } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
-import { subjectsApi, professorsApi } from "../api/client";
+import { subjectsApi, professorsApi, ApiError } from "../api/client";
 import { useEntityList } from "../hooks/useEntityList";
+import { useToast } from "../context/ToastContext";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCards } from "../components/ui/Skeleton";
@@ -16,13 +17,17 @@ import { ErrorBanner } from "../components/ui/ErrorBanner";
 export function Subjects() {
   usePageTitle("Matérias");
   const { selectedPeriod, selectedPeriodId } = usePeriods();
-  const { items: subjects, loading, error, create, remove } = useEntityList(subjectsApi);
+  const { items: subjects, loading, error, create, remove, reload } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
+  const { notify } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [workload, setWorkload] = useState("");
   const [professorId, setProfessorId] = useState("");
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const periodSubjects = subjects.filter((s) => s.periodId === selectedPeriodId);
 
@@ -50,6 +55,38 @@ export function Subjects() {
     }
   };
 
+  const toggleSelectMode = () => {
+    setSelectMode((v) => !v);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (id: number) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    let succeeded = 0;
+    for (const id of selectedIds) {
+      try {
+        await subjectsApi.remove(id);
+        succeeded++;
+      } catch (err) {
+        notify(err instanceof ApiError ? err.message : `Erro ao remover matéria #${id}`, "error");
+      }
+    }
+    notify(`${succeeded} matéria(s) removida(s)`, "success");
+    setSelectedIds(new Set());
+    setSelectMode(false);
+    setBulkDeleting(false);
+    reload();
+  };
+
   return (
     <div>
       <PageHeader
@@ -57,14 +94,36 @@ export function Subjects() {
         description="Toda matéria concentra seus horários, atividades e provas em um só lugar."
         action={
           selectedPeriodId && (
-            <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
-              {formOpen ? "Cancelar" : "Nova matéria"}
-            </Button>
+            <div className="page-header__actions">
+              {periodSubjects.length > 0 && (
+                <Button variant="secondary" icon={selectMode ? X : CheckSquare} onClick={toggleSelectMode}>
+                  {selectMode ? "Cancelar seleção" : "Selecionar"}
+                </Button>
+              )}
+              <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
+                {formOpen ? "Cancelar" : "Nova matéria"}
+              </Button>
+            </div>
           )
         }
       />
 
       {error && <ErrorBanner message={error} />}
+
+      {selectMode && (
+        <div className="bulk-bar">
+          <span>{selectedIds.size} selecionada(s)</span>
+          <Button
+            variant="danger"
+            icon={Trash2}
+            disabled={selectedIds.size === 0}
+            loading={bulkDeleting}
+            onClick={handleBulkDelete}
+          >
+            Remover selecionadas
+          </Button>
+        </div>
+      )}
 
       {formOpen && (
         <form className="inline-form" onSubmit={handleSubmit}>
@@ -112,18 +171,34 @@ export function Subjects() {
         />
       ) : (
         <div className="subject-grid">
-          {periodSubjects.map((subject) => (
-            <div key={subject.id} className="subject-card subject-card--list">
-              <Link to={`/materias/${subject.id}`} className="subject-card__link">
+          {periodSubjects.map((subject) => {
+            const selected = selectedIds.has(subject.id);
+            const cardContent = (
+              <>
                 <span className="subject-card__name">
                   {subject.code && <span className="subject-card__code">{subject.code}</span>}
                   {subject.name}
                 </span>
                 <span className="subject-card__meta">{professorName(subject.professorId)} · {subject.workload}h</span>
-              </Link>
-              <ConfirmDelete onConfirm={() => remove(subject.id, "Matéria removida")} label="Remover matéria" />
-            </div>
-          ))}
+              </>
+            );
+
+            return (
+              <div key={subject.id} className={`subject-card subject-card--list${selected ? " subject-card--selected" : ""}`}>
+                {selectMode ? (
+                  <button type="button" className="subject-card__link subject-card__select" onClick={() => toggleSelected(subject.id)}>
+                    {selected ? <CheckSquare size={17} strokeWidth={2} /> : <Square size={17} strokeWidth={2} />}
+                    <span className="subject-card__select-text">{cardContent}</span>
+                  </button>
+                ) : (
+                  <Link to={`/materias/${subject.id}`} className="subject-card__link">
+                    {cardContent}
+                  </Link>
+                )}
+                {!selectMode && <ConfirmDelete onConfirm={() => remove(subject.id, "Matéria removida")} label="Remover matéria" />}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

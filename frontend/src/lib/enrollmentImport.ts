@@ -9,11 +9,11 @@ const TRAILING_LANGUAGE = /\s+(PORTUGUES|INGLES|ESPANHOL|FRANCES|ALEMAO)$/;
 
 async function extractLines(file: File): Promise<string[]> {
   const pdfjsLib = await import("pdfjs-dist");
-  const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-  pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  const PdfWorker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?worker")).default;
+  pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
 
   const buffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: buffer }).promise;
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
 
   const lines: string[] = [];
 

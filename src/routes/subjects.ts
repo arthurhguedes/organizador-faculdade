@@ -126,16 +126,19 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db.delete(schema.subjects).where(eq(schema.subjects.id, id)).returning();
+    const deleted = await db.transaction(async (tx) => {
+      await tx.delete(schema.schedules).where(eq(schema.schedules.subjectId, id));
+      await tx.delete(schema.assignments).where(eq(schema.assignments.subjectId, id));
+      await tx.delete(schema.exams).where(eq(schema.exams.subjectId, id));
+      return tx.delete(schema.subjects).where(eq(schema.subjects.id, id)).returning();
+    });
+
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Matéria não encontrada" });
     }
     res.json({ message: "Matéria removida com sucesso" });
   } catch (err) {
     console.error(err);
-    if (isForeignKeyViolation(err)) {
-      return res.status(400).json({ message: "Não é possível remover: existem horários, atividades ou provas vinculados a esta matéria" });
-    }
     res.status(500).json({ message: "Erro ao remover matéria" });
   }
 });

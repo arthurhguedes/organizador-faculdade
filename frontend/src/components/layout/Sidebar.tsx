@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
+  CalendarDays,
   CalendarRange,
   Users,
   Building2,
@@ -15,6 +16,7 @@ import { useTheme } from "../../context/ThemeContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/calendario", label: "Calendário", icon: CalendarDays },
   { to: "/materias", label: "Matérias", icon: BookOpen },
   { to: "/periodos", label: "Períodos", icon: CalendarRange },
   { to: "/professores", label: "Meus Professores", icon: Users },

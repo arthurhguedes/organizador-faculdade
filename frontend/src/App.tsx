@@ -6,6 +6,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { GradeBuilderProvider } from "./context/GradeBuilderContext";
 import { AppShell } from "./components/layout/AppShell";
 import { Dashboard } from "./pages/Dashboard";
+import { Calendar } from "./pages/Calendar";
 import { Subjects } from "./pages/Subjects";
 import { SubjectDetail } from "./pages/SubjectDetail";
 import { Periods } from "./pages/Periods";
@@ -27,6 +28,7 @@ export default function App() {
                 <Routes>
                   <Route element={<AppShell />}>
                     <Route index element={<Dashboard />} />
+                    <Route path="calendario" element={<Calendar />} />
                     <Route path="materias" element={<Subjects />} />
                     <Route path="materias/:id" element={<SubjectDetail />} />
                     <Route path="periodos" element={<Periods />} />

@@ -38,7 +38,7 @@ export function WeeklyGrid({
   const hourMarks = Array.from({ length: GRID_SPAN_MIN / 60 + 1 }, (_, i) => 7 + i);
 
   return (
-    <div className="weekly-grid" style={{ gridTemplateColumns: `44px repeat(${weekdays.length}, 1fr)` }}>
+    <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
       <div className="weekly-grid__corner" />
       {weekdays.map((day) => (
         <div key={day} className="weekly-grid__day-header">
