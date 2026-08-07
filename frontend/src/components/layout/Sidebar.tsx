@@ -9,7 +9,10 @@ import {
   UserRound,
   Settings,
   NotebookPen,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -26,6 +29,8 @@ const footerLinks = [
 ];
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -52,6 +57,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </nav>
 
       <nav className="sidebar__nav sidebar__nav--footer">
+        <button type="button" className="sidebar__link sidebar__theme-toggle" onClick={toggleTheme}>
+          {theme === "dark" ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
+          {theme === "dark" ? "Tema claro" : "Tema escuro"}
+        </button>
+
         {footerLinks.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

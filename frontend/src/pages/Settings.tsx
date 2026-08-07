@@ -1,44 +1,59 @@
-import { Sun, Moon } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Bell, Download, GraduationCap, ScrollText } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
-import { useTheme } from "../context/ThemeContext";
-import { ComingSoon } from "../components/ui/ComingSoon";
 import { PageHeader } from "../components/ui/PageHeader";
+import { FeatureRow } from "../components/ui/FeatureRow";
+import { Badge } from "../components/ui/Badge";
 
 export function Settings() {
   usePageTitle("Configurações");
-  const { theme, setTheme } = useTheme();
 
   return (
     <div>
-      <PageHeader title="Configurações" description="Preferências do app." />
+      <PageHeader title="Configurações" description="Preferências e informações do app." />
 
       <section className="hub-section">
-        <h3>Aparência</h3>
-        <div className="theme-picker">
-          <button
-            type="button"
-            className={`theme-option${theme === "dark" ? " theme-option--active" : ""}`}
-            onClick={() => setTheme("dark")}
-          >
-            <Moon size={16} strokeWidth={2} />
-            Preto e vinho
-          </button>
-          <button
-            type="button"
-            className={`theme-option${theme === "light" ? " theme-option--active" : ""}`}
-            onClick={() => setTheme("light")}
-          >
-            <Sun size={16} strokeWidth={2} />
-            Branco e vinho
-          </button>
+        <h3>Sobre</h3>
+        <div className="about-card">
+          <div>
+            <p className="about-card__name">Organizador Acadêmico</p>
+            <p className="about-card__description">
+              App pessoal para organizar matérias, horários, atividades, provas e notas — com importação da
+              planilha de ofertas e do histórico da faculdade.
+            </p>
+          </div>
+          <Badge tone="warning">Em desenvolvimento</Badge>
         </div>
+        <Link to="/termos" className="link-with-icon">
+          Ver termos de uso
+        </Link>
       </section>
 
-      <ComingSoon
-        title="Mais configurações"
-        description="O resto ainda não está implementado."
-        items={["Notificações de provas e atividades", "Exportar dados", "Coeficiente de rendimento geral"]}
-      />
+      <section className="hub-section">
+        <h3>Preferências</h3>
+        <div className="feature-row-list">
+          <FeatureRow
+            icon={Bell}
+            title="Notificações"
+            description="Avisos de provas e atividades chegando perto do prazo."
+          />
+          <FeatureRow
+            icon={Download}
+            title="Exportar dados"
+            description="Baixar suas matérias, notas e horários em um arquivo."
+          />
+          <FeatureRow
+            icon={GraduationCap}
+            title="Coeficiente de rendimento geral"
+            description="Média entre todas as matérias, ponderada pela carga horária."
+          />
+          <FeatureRow
+            icon={ScrollText}
+            title="Boletim / histórico automático"
+            description="Importar notas e coeficiente de semestres passados a partir de outros documentos."
+          />
+        </div>
+      </section>
     </div>
   );
 }

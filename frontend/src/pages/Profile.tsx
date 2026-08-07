@@ -1,9 +1,13 @@
 import { useState, type FormEvent } from "react";
-import { UserRound, Lock } from "lucide-react";
+import { Pencil, X, Lock, BookOpen, CalendarRange, Users } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
+import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
+import { useEntityList } from "../hooks/useEntityList";
+import { subjectsApi, professorsApi } from "../api/client";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
+import { FeatureRow } from "../components/ui/FeatureRow";
 
 const STORAGE_KEY = "organizador:profile";
 
@@ -25,57 +29,89 @@ function loadProfile(): LocalProfile {
 export function Profile() {
   usePageTitle("Perfil");
   const { notify } = useToast();
-  const [profile, setProfile] = useState<LocalProfile>(loadProfile);
+  const { periods } = usePeriods();
+  const { items: subjects } = useEntityList(subjectsApi);
+  const { items: professors } = useEntityList(professorsApi);
 
-  const initials = profile.name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "?";
+  const [profile, setProfile] = useState<LocalProfile>(loadProfile);
+  const [draft, setDraft] = useState<LocalProfile>(profile);
+  const [editing, setEditing] = useState(false);
+
+  const initials =
+    profile.name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "?";
+
+  const startEditing = () => {
+    setDraft(profile);
+    setEditing(true);
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
+    setProfile(draft);
+    setEditing(false);
     notify("Perfil salvo", "success");
   };
 
   return (
     <div className="profile-page">
-      <div className="profile-card">
-        <div className="profile-avatar">{initials}</div>
-        <div>
-          <p className="profile-card__name">{profile.name || "Sem nome"}</p>
-          <p className="profile-card__course">{profile.course || "Curso não informado"}</p>
+      {editing ? (
+        <form className="inline-form" onSubmit={handleSubmit}>
+          <Field label="Nome" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <Field label="Curso" value={draft.course} onChange={(e) => setDraft({ ...draft, course: e.target.value })} />
+          <Button type="submit" variant="primary">
+            Salvar
+          </Button>
+          <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)}>
+            Cancelar
+          </Button>
+        </form>
+      ) : (
+        <div className="profile-card">
+          <div className="profile-avatar">{initials}</div>
+          <div className="profile-card__info">
+            <p className="profile-card__name">{profile.name || "Sem nome"}</p>
+            <p className="profile-card__course">{profile.course || "Curso não informado"}</p>
+          </div>
+          <Button variant="ghost" icon={Pencil} onClick={startEditing}>
+            Editar
+          </Button>
+        </div>
+      )}
+
+      <div className="profile-stats">
+        <div className="profile-stat">
+          <CalendarRange size={18} strokeWidth={1.75} />
+          <span className="profile-stat__value">{periods.length}</span>
+          <span className="profile-stat__label">período{periods.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div className="profile-stat">
+          <BookOpen size={18} strokeWidth={1.75} />
+          <span className="profile-stat__value">{subjects.length}</span>
+          <span className="profile-stat__label">matéria{subjects.length !== 1 ? "s" : ""}</span>
+        </div>
+        <div className="profile-stat">
+          <Users size={18} strokeWidth={1.75} />
+          <span className="profile-stat__value">{professors.length}</span>
+          <span className="profile-stat__label">professor{professors.length !== 1 ? "es" : ""}</span>
         </div>
       </div>
 
-      <form className="inline-form inline-form--stack" onSubmit={handleSubmit}>
-        <Field
-          label="Nome"
-          value={profile.name}
-          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-        />
-        <Field
-          label="Curso"
-          value={profile.course}
-          onChange={(e) => setProfile({ ...profile, course: e.target.value })}
-        />
-        <Button type="submit" variant="primary" icon={UserRound}>
-          Salvar perfil
-        </Button>
-      </form>
-
-      <div className="coming-soon coming-soon--inline">
-        <div className="coming-soon__icon">
-          <Lock size={20} strokeWidth={1.75} />
+      <section className="hub-section">
+        <h3>Conta</h3>
+        <div className="feature-row-list">
+          <FeatureRow
+            icon={Lock}
+            title="Login e sincronização"
+            description="Por enquanto o perfil fica salvo só neste navegador. Autenticação de verdade está planejada."
+          />
         </div>
-        <div>
-          <h3>Login e sincronização</h3>
-          <p>Por enquanto o perfil fica salvo só neste navegador. Autenticação de verdade está planejada.</p>
-        </div>
-        <span className="badge badge--muted">Em breve</span>
-      </div>
+      </section>
     </div>
   );
 }
