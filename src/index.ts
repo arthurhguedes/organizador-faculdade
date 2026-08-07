@@ -14,7 +14,7 @@ app.use(express.json({ limit: "2mb" }));
 const port = 3000;
 
 app.get("/", (req, res) => {
-  res.send("API do organizador de faculdade rodando!");
+  res.send("API do Notary rodando!");
 });
 
 app.use("/periods", periodsRouter);

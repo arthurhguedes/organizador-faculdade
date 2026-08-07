@@ -1,15 +1,17 @@
 import { useState, type FormEvent } from "react";
-import { Pencil, X, Lock, BookOpen, CalendarRange, Users } from "lucide-react";
+import { Pencil, X, Lock, BookOpen, CalendarRange, Flame, Users } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
 import { useEntityList } from "../hooks/useEntityList";
+import { useGamification } from "../hooks/useGamification";
 import { subjectsApi, professorsApi } from "../api/client";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
+import { Badge } from "../components/ui/Badge";
 import { FeatureRow } from "../components/ui/FeatureRow";
 
-const STORAGE_KEY = "organizador:profile";
+const STORAGE_KEY = "notary:profile";
 
 type LocalProfile = {
   name: string;
@@ -32,6 +34,8 @@ export function Profile() {
   const { periods } = usePeriods();
   const { items: subjects } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
+  const { streak, xp, level, achievements, loading: gamificationLoading, premium } = useGamification();
+  const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   const [profile, setProfile] = useState<LocalProfile>(loadProfile);
   const [draft, setDraft] = useState<LocalProfile>(profile);
@@ -101,6 +105,57 @@ export function Profile() {
           <span className="profile-stat__label">professor{professors.length !== 1 ? "es" : ""}</span>
         </div>
       </div>
+
+      {!gamificationLoading && (
+        <section className="hub-section">
+          <div className="hub-section__header">
+            <h3>Progresso</h3>
+            {premium && <Badge tone="accent">Premium: XP em dobro</Badge>}
+          </div>
+          <div className="progress-panel">
+            <div className="progress-panel__top">
+              <span className="progress-panel__level-name">{level.name}</span>
+              <span className="progress-panel__xp">
+                {xp} XP{level.nextThreshold !== null ? ` · ${level.nextThreshold - xp} para o próximo nível` : ""}
+              </span>
+            </div>
+            <div className="xp-bar">
+              <div className="xp-bar__fill" style={{ width: `${level.progressPct}%` }} />
+            </div>
+            <div className="progress-panel__streak">
+              <span className="progress-panel__streak-current" data-active={streak.current > 0}>
+                <Flame size={14} strokeWidth={2} />
+                {streak.current} {streak.current === 1 ? "dia seguido" : "dias seguidos"}
+              </span>
+              <span>Recorde: {streak.best} {streak.best === 1 ? "dia" : "dias"}</span>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {!gamificationLoading && (
+        <section className="hub-section">
+          <div className="hub-section__header">
+            <h3>Conquistas</h3>
+            <Badge tone="muted">{unlockedCount}/{achievements.length}</Badge>
+          </div>
+          <div className="feature-row-list">
+            {achievements.map((achievement) => (
+              <FeatureRow
+                key={achievement.id}
+                icon={achievement.icon}
+                title={achievement.title}
+                description={achievement.description}
+                action={
+                  <Badge tone={achievement.unlocked ? "accent" : "muted"}>
+                    {achievement.unlocked ? "Desbloqueada" : "Bloqueada"}
+                  </Badge>
+                }
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="hub-section">
         <h3>Conta</h3>

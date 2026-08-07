@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { periodsApi } from "../api/client";
 import type { Period } from "../api/types";
 
-const STORAGE_KEY = "organizador:selectedPeriodId";
+const STORAGE_KEY = "notary:selectedPeriodId";
 
 type PeriodContextValue = {
   periods: Period[];

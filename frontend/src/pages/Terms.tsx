@@ -9,7 +9,7 @@ export function Terms() {
 
       <h3>1. Sobre este app</h3>
       <p>
-        O Organizador Acadêmico é um projeto pessoal para organizar matérias, horários, atividades e provas.
+        O Notary é um projeto pessoal para organizar matérias, horários, atividades e provas.
         Os dados são inseridos manualmente por você e ficam armazenados no banco de dados do projeto.
       </p>
 

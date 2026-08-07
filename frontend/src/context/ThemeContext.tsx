@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 
 type Theme = "dark" | "light";
 
-const STORAGE_KEY = "organizador:theme";
+const STORAGE_KEY = "notary:theme";
 
 type ThemeContextValue = {
   theme: Theme;

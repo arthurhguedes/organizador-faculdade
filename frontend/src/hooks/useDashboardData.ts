@@ -9,6 +9,7 @@ export type UpcomingItem = {
   subjectName: string;
   title: string;
   date: string;
+  grade: number | null;
 };
 
 export function useDashboardData(periodId: number | null) {
@@ -55,6 +56,7 @@ export function useDashboardData(periodId: number | null) {
         subjectName: subject.name,
         title: a.title,
         date: a.dueDate,
+        grade: a.grade,
       })),
       ...subject.exams.map((e) => ({
         kind: "exam" as const,
@@ -63,6 +65,7 @@ export function useDashboardData(periodId: number | null) {
         subjectName: subject.name,
         title: e.title,
         date: e.date,
+        grade: e.grade,
       })),
     ])
     .sort((a, b) => a.date.localeCompare(b.date));

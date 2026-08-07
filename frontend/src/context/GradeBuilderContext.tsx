@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-const STORAGE_KEY = "organizador:gradeBuilder";
+const STORAGE_KEY = "notary:gradeBuilder";
 
 type GradeBuilderContextValue = {
   selectedIds: Set<number>;

@@ -1,4 +1,4 @@
-# Organizador Acadêmico
+# Notary
 
 App para organizar a vida acadêmica: matérias, professores, horários de aula, atividades, provas e notas. Os dados são inseridos manualmente, já que o site da faculdade não oferece exportação — mas o app importa a planilha de oferta de disciplinas que a faculdade disponibiliza por semestre e ajuda a montar a grade horária a partir dela.
 

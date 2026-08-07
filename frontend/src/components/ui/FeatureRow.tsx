@@ -1,14 +1,17 @@
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "./Badge";
 
 export function FeatureRow({
   icon: Icon,
   title,
   description,
+  action,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
+  action?: ReactNode;
 }) {
   return (
     <div className="feature-row">
@@ -19,7 +22,7 @@ export function FeatureRow({
         <p className="feature-row__title">{title}</p>
         <p className="feature-row__description">{description}</p>
       </div>
-      <Badge tone="muted">Em breve</Badge>
+      {action ?? <Badge tone="muted">Em breve</Badge>}
     </div>
   );
 }

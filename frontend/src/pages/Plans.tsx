@@ -3,6 +3,7 @@ import { Check, Crown, Sparkles } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { useToast } from "../context/ToastContext";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
+import { useGamification } from "../hooks/useGamification";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
@@ -56,6 +57,8 @@ const plans: Plan[] = [
       "Notificações de provas e atividades chegando perto do prazo",
       "Exportar dados em PDF e CSV",
       "Boletim automático a partir do histórico escolar",
+      "Proteção de sequência: um dia sem abrir o app não zera seu streak",
+      "XP em dobro em todas as conquistas",
       "Suporte prioritário",
     ],
   },
@@ -63,9 +66,22 @@ const plans: Plan[] = [
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-function PlanCard({ plan, billing, index }: { plan: Plan; billing: Billing; index: number }) {
+function PlanCard({
+  plan,
+  billing,
+  index,
+  premiumActive,
+  onTogglePremium,
+}: {
+  plan: Plan;
+  billing: Billing;
+  index: number;
+  premiumActive: boolean;
+  onTogglePremium: () => void;
+}) {
   const { notify } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
+  const isPremiumPlan = plan.id === "premium";
 
   const monthlyEquivalent = billing === "monthly" ? plan.priceMonthly : plan.priceYearly / 12;
   const displayedPrice = useAnimatedNumber(monthlyEquivalent);
@@ -92,7 +108,19 @@ function PlanCard({ plan, billing, index }: { plan: Plan; billing: Billing; inde
   }
 
   function handleSubscribe() {
-    notify("Assinaturas ainda não estão disponíveis — essa é só a base visual, pagamento vem depois.", "success");
+    if (!isPremiumPlan) {
+      notify("Assinaturas ainda não estão disponíveis — essa é só a base visual, pagamento vem depois.", "success");
+      return;
+    }
+
+    const willActivate = !premiumActive;
+    onTogglePremium();
+    notify(
+      willActivate
+        ? "Prévia do Premium ativada — proteção de sequência e XP em dobro já valendo neste navegador."
+        : "Prévia do Premium desativada.",
+      "success",
+    );
   }
 
   return (
@@ -135,13 +163,19 @@ function PlanCard({ plan, billing, index }: { plan: Plan; billing: Billing; inde
             : "Cobrado mensalmente"}
       </p>
 
+      {isPremiumPlan && premiumActive && (
+        <span className="plan-card__preview-badge">
+          <Badge tone="accent">Prévia ativa neste navegador</Badge>
+        </span>
+      )}
+
       <Button
-        variant={plan.featured ? "primary" : "secondary"}
+        variant={isPremiumPlan && premiumActive ? "secondary" : plan.featured ? "primary" : "secondary"}
         className="plan-card__cta"
         disabled={plan.ctaDisabled}
         onClick={handleSubscribe}
       >
-        {plan.ctaLabel}
+        {isPremiumPlan && premiumActive ? "Cancelar prévia Premium" : plan.ctaLabel}
       </Button>
 
       <ul className="plan-card__features">
@@ -161,6 +195,7 @@ function PlanCard({ plan, billing, index }: { plan: Plan; billing: Billing; inde
 export function Plans() {
   usePageTitle("Planos");
   const [billing, setBilling] = useState<Billing>("monthly");
+  const { premium, togglePremiumPreview } = useGamification();
 
   return (
     <div className="plans-page">
@@ -197,12 +232,20 @@ export function Plans() {
 
       <div className="plans-grid">
         {plans.map((plan, index) => (
-          <PlanCard plan={plan} billing={billing} index={index} key={plan.id} />
+          <PlanCard
+            plan={plan}
+            billing={billing}
+            index={index}
+            premiumActive={premium}
+            onTogglePremium={togglePremiumPreview}
+            key={plan.id}
+          />
         ))}
       </div>
 
       <p className="plans-page__disclaimer">
-        Valores ilustrativos, só pra ver a página funcionando — nenhuma cobrança real acontece por aqui.
+        Valores ilustrativos — nenhuma cobrança real acontece por aqui. Assinar o Premium já libera de verdade a
+        proteção de sequência e o XP em dobro neste navegador, pra você sentir o efeito antes do pagamento existir.
       </p>
     </div>
   );

@@ -8,7 +8,7 @@ import {
   Building2,
   UserRound,
   Settings,
-  NotebookPen,
+  Stamp,
   Sun,
   Moon,
   Crown,
@@ -37,9 +37,9 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <aside className="sidebar">
       <div className="sidebar__brand">
         <span className="sidebar__brand-mark">
-          <NotebookPen size={18} strokeWidth={2} />
+          <Stamp size={18} strokeWidth={2} />
         </span>
-        <span className="sidebar__brand-name">Organizador Acadêmico</span>
+        <span className="sidebar__brand-name">Notary</span>
       </div>
 
       <nav className="sidebar__nav">
