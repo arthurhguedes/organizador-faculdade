@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import periodsRouter from "./routes/periods.js";
 import professorsRouter from "./routes/professors.js";
 import subjectsRouter from "./routes/subjects.js";
@@ -7,6 +8,7 @@ import assignmentsRouter from "./routes/assignments.js";
 import examsRouter from "./routes/exams.js";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 const port = 3000;
 
