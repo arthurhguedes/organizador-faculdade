@@ -271,9 +271,27 @@
 }
 
 .btn--primary {
+  position: relative;
+  overflow: hidden;
   background: var(--accent-strong);
   color: var(--text-on-accent);
   box-shadow: var(--shadow-sm);
+}
+
+.btn--primary::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(115deg, transparent, color-mix(in srgb, var(--text-on-accent) 45%, transparent), transparent);
+  transform: skewX(-20deg);
+  transition: left 550ms ease;
+}
+
+.btn--primary:hover:not(:disabled)::after {
+  left: 130%;
 }
 
 .btn--primary:hover:not(:disabled) {
@@ -353,6 +371,27 @@
 .icon-btn--danger:hover {
   background: var(--danger-soft);
   color: var(--danger);
+}
+
+/* ---------- Motion utilities ----------
+   A restrained echo of the Planos page's entrance choreography, reused
+   wherever a list of cards/rows first appears — capped so a long list
+   never takes noticeably longer to settle than a short one. */
+
+.stagger-in {
+  animation: stagger-fade-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: min(calc(var(--i, 0) * 45ms), 450ms);
+}
+
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .confirm-delete {
@@ -2076,24 +2115,6 @@
 .plan-card__cta {
   width: 100%;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.plan-card__cta:not(:disabled)::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -60%;
-  width: 40%;
-  height: 100%;
-  background: linear-gradient(115deg, transparent, color-mix(in srgb, var(--text-on-accent) 55%, transparent), transparent);
-  transform: skewX(-20deg);
-  transition: left 550ms ease;
-}
-
-.plan-card__cta:not(:disabled):hover::after {
-  left: 130%;
 }
 
 .plan-card__features {
@@ -2152,12 +2173,16 @@
   .plan-card--featured,
   .plan-card__ribbon,
   .plan-card__feature,
-  .plan-card__cta:not(:disabled)::after {
+  .stagger-in {
     animation: none;
   }
 
   .plan-card {
     transform: none;
+  }
+
+  .btn--primary::after {
+    display: none;
   }
 }
 

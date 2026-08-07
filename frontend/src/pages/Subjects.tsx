@@ -171,7 +171,7 @@ export function Subjects() {
         />
       ) : (
         <div className="subject-grid">
-          {periodSubjects.map((subject) => {
+          {periodSubjects.map((subject, index) => {
             const selected = selectedIds.has(subject.id);
             const cardContent = (
               <>
@@ -184,7 +184,11 @@ export function Subjects() {
             );
 
             return (
-              <div key={subject.id} className={`subject-card subject-card--list${selected ? " subject-card--selected" : ""}`}>
+              <div
+                key={subject.id}
+                className={`subject-card subject-card--list stagger-in${selected ? " subject-card--selected" : ""}`}
+                style={{ "--i": index } as React.CSSProperties}
+              >
                 {selectMode ? (
                   <button type="button" className="subject-card__link subject-card__select" onClick={() => toggleSelected(subject.id)}>
                     {selected ? <CheckSquare size={17} strokeWidth={2} /> : <Square size={17} strokeWidth={2} />}

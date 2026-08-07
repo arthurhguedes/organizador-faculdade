@@ -6,6 +6,7 @@ import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
 import { useSubjectDetails } from "../hooks/useSubjectDetails";
 import { useEntityList } from "../hooks/useEntityList";
+import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import { assignmentsApi, examsApi, subjectsApi, professorsApi, ApiError } from "../api/client";
 import { subjectAverage, formatGrade } from "../lib/grades";
 import { ScheduleSection } from "./subject-detail/ScheduleSection";
@@ -43,6 +44,9 @@ export function SubjectDetail() {
     }
   }, [details]);
 
+  const average = details ? subjectAverage(details.assignments, details.exams) : null;
+  const displayedAverage = useAnimatedNumber(average);
+
   if (loading) {
     return <SkeletonRows rows={6} />;
   }
@@ -66,7 +70,6 @@ export function SubjectDetail() {
     return <EmptyState icon={SearchX} title="Matéria não encontrada" />;
   }
 
-  const average = subjectAverage(details.assignments, details.exams);
   const period = periods.find((p) => p.id === details.periodId);
   const professor = professors.find((p) => p.id === details.professorId);
 
@@ -147,7 +150,7 @@ export function SubjectDetail() {
           <div className="subject-hub-header__average">
             <span className="subject-hub-header__average-label">Média</span>
             <span className="subject-hub-header__average-value" data-empty={average === null}>
-              {formatGrade(average)}
+              {formatGrade(displayedAverage)}
             </span>
           </div>
           <div className="subject-hub-header__actions">

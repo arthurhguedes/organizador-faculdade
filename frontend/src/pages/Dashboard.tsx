@@ -3,13 +3,44 @@ import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight } from "lucide
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
+import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import { subjectAverage, formatGrade, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
+import type { SubjectDetails } from "../api/types";
+import type { CSSProperties } from "react";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCards, SkeletonRows } from "../components/ui/Skeleton";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
+
+function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; index: number }) {
+  const average = subjectAverage(subject.assignments, subject.exams);
+  const displayedAverage = useAnimatedNumber(average);
+
+  return (
+    <Link
+      to={`/materias/${subject.id}`}
+      className="subject-card stagger-in"
+      style={{ "--i": index } as CSSProperties}
+    >
+      <div className="subject-card__header">
+        <span className="subject-card__name">
+          {subject.code && <span className="subject-card__code">{subject.code}</span>}
+          {subject.name}
+        </span>
+        <span className="subject-card__average" data-empty={average === null}>
+          {formatGrade(displayedAverage)}
+        </span>
+      </div>
+      <div className="subject-card__meta">
+        <span>{subject.schedules.length} horário{subject.schedules.length !== 1 ? "s" : ""}</span>
+        <span aria-hidden="true">·</span>
+        <span>{subject.assignments.length + subject.exams.length} avaliaç{subject.assignments.length + subject.exams.length !== 1 ? "ões" : "ão"}</span>
+      </div>
+    </Link>
+  );
+}
 
 export function Dashboard() {
   usePageTitle("Dashboard");
@@ -82,27 +113,9 @@ export function Dashboard() {
           />
         ) : (
           <div className="subject-grid">
-            {subjects.map((subject) => {
-              const average = subjectAverage(subject.assignments, subject.exams);
-              return (
-                <Link key={subject.id} to={`/materias/${subject.id}`} className="subject-card">
-                  <div className="subject-card__header">
-                    <span className="subject-card__name">
-                      {subject.code && <span className="subject-card__code">{subject.code}</span>}
-                      {subject.name}
-                    </span>
-                    <span className="subject-card__average" data-empty={average === null}>
-                      {formatGrade(average)}
-                    </span>
-                  </div>
-                  <div className="subject-card__meta">
-                    <span>{subject.schedules.length} horário{subject.schedules.length !== 1 ? "s" : ""}</span>
-                    <span aria-hidden="true">·</span>
-                    <span>{subject.assignments.length + subject.exams.length} avaliaç{subject.assignments.length + subject.exams.length !== 1 ? "ões" : "ão"}</span>
-                  </div>
-                </Link>
-              );
-            })}
+            {subjects.map((subject, index) => (
+              <DashboardSubjectCard subject={subject} index={index} key={subject.id} />
+            ))}
           </div>
         )}
       </section>
@@ -122,8 +135,12 @@ export function Dashboard() {
           />
         ) : (
           <ul className="upcoming-list">
-            {upcoming.map((item) => (
-              <li key={`${item.kind}-${item.id}`} className="upcoming-item">
+            {upcoming.map((item, index) => (
+              <li
+                key={`${item.kind}-${item.id}`}
+                className="upcoming-item stagger-in"
+                style={{ "--i": index } as CSSProperties}
+              >
                 <span className={`upcoming-item__kind upcoming-item__kind--${item.kind}`}>
                   {item.kind === "exam" ? "Prova" : "Atividade"}
                 </span>
