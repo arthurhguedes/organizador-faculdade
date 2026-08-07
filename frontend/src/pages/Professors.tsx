@@ -12,7 +12,7 @@ import { ConfirmDelete } from "../components/ui/ConfirmDelete";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 
 export function Professors() {
-  usePageTitle("Professores");
+  usePageTitle("Meus Professores");
   const { items: professors, loading, error, create, remove } = useEntityList(professorsApi);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
@@ -32,7 +32,7 @@ export function Professors() {
   return (
     <div>
       <PageHeader
-        title="Professores"
+        title="Meus Professores"
         description="Cadastre os professores para vincular às matérias."
         action={
           <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>

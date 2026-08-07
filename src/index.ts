@@ -6,10 +6,11 @@ import subjectsRouter from "./routes/subjects.js";
 import schedulesRouter from "./routes/schedules.js";
 import assignmentsRouter from "./routes/assignments.js";
 import examsRouter from "./routes/exams.js";
+import offeringsRouter from "./routes/offerings.js";
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 const port = 3000;
 
 app.get("/", (req, res) => {
@@ -22,6 +23,7 @@ app.use("/subjects", subjectsRouter);
 app.use("/schedules", schedulesRouter);
 app.use("/assignments", assignmentsRouter);
 app.use("/exams", examsRouter);
+app.use("/offerings", offeringsRouter);
 
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

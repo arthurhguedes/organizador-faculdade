@@ -51,6 +51,31 @@ export type SubjectDetails = Subject & {
   exams: Exam[];
 };
 
+export type OfferingScheduleSlot = {
+  id: number;
+  offeringId: number;
+  weekday: string;
+  startTime: string;
+  endTime: string;
+  kind: "T" | "P";
+};
+
+export type Offering = {
+  id: number;
+  professorName: string | null;
+  subjectCode: string;
+  subjectName: string;
+  turma: string;
+  curso: string | null;
+  vagas: number | null;
+  depto: string | null;
+  workloadHours: number | null;
+  theoryHours: number | null;
+  practiceHours: number | null;
+  importedAt: string;
+  schedules: OfferingScheduleSlot[];
+};
+
 export const WEEKDAYS = [
   "segunda",
   "terça",

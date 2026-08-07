@@ -4,16 +4,21 @@ import {
   BookOpen,
   CalendarRange,
   Users,
+  Building2,
   UserRound,
   Settings,
   NotebookPen,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../../context/ThemeContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/materias", label: "Matérias", icon: BookOpen },
   { to: "/periodos", label: "Períodos", icon: CalendarRange },
-  { to: "/professores", label: "Professores", icon: Users },
+  { to: "/professores", label: "Meus Professores", icon: Users },
+  { to: "/faculdade", label: "Professores da Faculdade", icon: Building2 },
 ];
 
 const footerLinks = [
@@ -22,6 +27,8 @@ const footerLinks = [
 ];
 
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
@@ -59,6 +66,11 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             {label}
           </NavLink>
         ))}
+
+        <button type="button" className="sidebar__link sidebar__theme-toggle" onClick={toggleTheme}>
+          {theme === "dark" ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
+          {theme === "dark" ? "Tema claro" : "Tema escuro"}
+        </button>
       </nav>
     </aside>
   );

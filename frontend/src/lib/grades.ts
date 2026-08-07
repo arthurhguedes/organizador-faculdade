@@ -30,3 +30,15 @@ export function formatDate(value: string): string {
 export function isOverdue(dateStr: string): boolean {
   return new Date(dateStr) < new Date(new Date().toDateString());
 }
+
+export function relativeDayLabel(dateStr: string): string | null {
+  const target = new Date(dateStr);
+  const today = new Date(new Date().toDateString());
+  const diffDays = Math.round((target.getTime() - today.getTime()) / 86_400_000);
+
+  if (diffDays < 0) return null;
+  if (diffDays === 0) return "hoje";
+  if (diffDays === 1) return "amanhã";
+  if (diffDays <= 7) return `em ${diffDays} dias`;
+  return null;
+}

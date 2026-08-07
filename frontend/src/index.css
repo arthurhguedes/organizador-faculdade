@@ -1,35 +1,44 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
   /* Surface */
-  --bg: #f5f6f3;
-  --bg-elevated: #ffffff;
-  --bg-inset: #eef0eb;
-  --bg-hover: #e9ebe5;
+  --bg: #120d0e;
+  --bg-elevated: #1c1517;
+  --bg-inset: #201819;
+  --bg-hover: #2a1c1f;
 
   /* Borders */
-  --border: #dde1d7;
-  --border-strong: #c7cdbe;
+  --border: #332225;
+  --border-strong: #4a2f33;
 
   /* Text */
-  --text: #1a2119;
-  --text-secondary: #566153;
-  --text-tertiary: #64705f;
-  --text-on-accent: #f4f7f1;
+  --text: #f3e9ea;
+  --text-secondary: #c9a8ae;
+  --text-tertiary: #a3818a;
+  --text-on-accent: #fdf3f4;
 
-  /* Accent (ledger green) */
-  --accent: #1f5d3a;
-  --accent-hover: #164a2c;
-  --accent-soft: #e2ece2;
-  --accent-soft-strong: #c9decb;
+  /* Accent (bordô) — dark mode needs two shades: --accent for text/links
+     (bright enough against the near-black bg), --accent-strong for solid
+     button fills (dark enough for light text on top). A single hex can't
+     satisfy both when the bg and the button label are this far apart. */
+  --accent: #da5878;
+  --accent-hover: #e97891;
+  --accent-strong: #8c2a42;
+  --accent-strong-hover: #a3324c;
+  --accent-soft: #2e161c;
+  --accent-soft-strong: #3f1d25;
 
   /* Semantic states */
-  --danger: #a3342b;
-  --danger-soft: #f7e6e3;
-  --warning: #8a5a0c;
-  --warning-soft: #f6ecd7;
-  --info: #33578f;
-  --info-soft: #e4ebf4;
+  --danger: #d8776c;
+  --danger-soft: #3a2320;
+  --warning: #d9ab5b;
+  --warning-soft: #362c17;
+  --info: #7fa2d8;
+  --info-soft: #202b3c;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
 
   /* Type */
   --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
@@ -60,49 +69,46 @@
   --radius-md: 7px;
   --radius-lg: 11px;
 
-  /* Shadow */
-  --shadow-sm: 0 1px 2px rgba(20, 30, 18, 0.07);
-  --shadow-md: 0 4px 14px rgba(20, 30, 18, 0.09);
-  --shadow-lg: 0 16px 36px rgba(20, 30, 18, 0.14);
-
   font: var(--text-base) / 1.5 var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
+:root[data-theme="light"] {
+  color-scheme: light;
 
-    --bg: #10140f;
-    --bg-elevated: #171d15;
-    --bg-inset: #1c231a;
-    --bg-hover: #232b20;
+  --bg: #faf6f6;
+  --bg-elevated: #ffffff;
+  --bg-inset: #f4e9ea;
+  --bg-hover: #ede0e1;
 
-    --border: #2b3327;
-    --border-strong: #3b4636;
+  --border: #e6d5d7;
+  --border-strong: #ccb3b6;
 
-    --text: #eaf0e6;
-    --text-secondary: #a8b3a2;
-    --text-tertiary: #78826f;
-    --text-on-accent: #eaf3ea;
+  --text: #1c1213;
+  --text-secondary: #5c3a3f;
+  --text-tertiary: #7a5c60;
+  --text-on-accent: #fdf3f4;
 
-    --accent: #4f9a6e;
-    --accent-hover: #63b280;
-    --accent-soft: #1d2e22;
-    --accent-soft-strong: #29402f;
+  /* Light mode doesn't need the dark-mode split: a single dark wine works
+     as both button fill and text/link color against a light bg. */
+  --accent: #7a1f2e;
+  --accent-hover: #661827;
+  --accent-strong: #7a1f2e;
+  --accent-strong-hover: #661827;
+  --accent-soft: #f5e3e5;
+  --accent-soft-strong: #e6c3c8;
 
-    --danger: #d8776c;
-    --danger-soft: #3a2320;
-    --warning: #d9ab5b;
-    --warning-soft: #362c17;
-    --info: #7fa2d8;
-    --info-soft: #202b3c;
+  --danger: #a3342b;
+  --danger-soft: #f7e6e3;
+  --warning: #8a5a0c;
+  --warning-soft: #f6ecd7;
+  --info: #33578f;
+  --info-soft: #e4ebf4;
 
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
-  }
+  --shadow-sm: 0 1px 2px rgba(20, 15, 15, 0.07);
+  --shadow-md: 0 4px 14px rgba(20, 15, 15, 0.09);
+  --shadow-lg: 0 16px 36px rgba(20, 15, 15, 0.14);
 }
 
 *,

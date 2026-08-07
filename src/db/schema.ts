@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, integer, real } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, integer, real, timestamp } from "drizzle-orm/pg-core";
 
 export const periods = pgTable("periods", {
   id: serial("id").primaryKey(),
@@ -45,4 +45,31 @@ export const exams = pgTable("exams", {
   date: date("date").notNull(),
   weight: real("weight").notNull(),
   grade: real("grade"),
+});
+
+// Catálogo de ofertas da faculdade (importado de planilha por semestre) —
+// separado das tabelas pessoais acima: é o universo de turmas disponíveis,
+// não o que o usuário de fato cursa.
+export const courseOfferings = pgTable("course_offerings", {
+  id: serial("id").primaryKey(),
+  professorName: text("professor_name"),
+  subjectCode: text("subject_code").notNull(),
+  subjectName: text("subject_name").notNull(),
+  turma: text("turma").notNull(),
+  curso: text("curso"),
+  vagas: integer("vagas"),
+  depto: text("depto"),
+  workloadHours: real("workload_hours"),
+  theoryHours: real("theory_hours"),
+  practiceHours: real("practice_hours"),
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+});
+
+export const offeringSchedules = pgTable("offering_schedules", {
+  id: serial("id").primaryKey(),
+  offeringId: integer("offering_id").references(() => courseOfferings.id).notNull(),
+  weekday: text("weekday").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  kind: text("kind").notNull(),
 });

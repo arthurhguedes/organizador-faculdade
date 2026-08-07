@@ -3,12 +3,13 @@ import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight } from "lucide
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
-import { subjectAverage, formatGrade, formatDate, isOverdue } from "../lib/grades";
+import { subjectAverage, formatGrade, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCards, SkeletonRows } from "../components/ui/Skeleton";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 
 export function Dashboard() {
   usePageTitle("Dashboard");
@@ -32,9 +33,29 @@ export function Dashboard() {
     );
   }
 
+  const weekBlocks: WeeklyGridBlock[] = subjects.flatMap((subject) =>
+    subject.schedules.map((slot) => ({
+      id: `${subject.id}-${slot.id}`,
+      label: subject.name,
+      weekday: slot.weekday,
+      startTime: slot.startTime,
+      endTime: slot.endTime,
+      tone: "accent" as const,
+    })),
+  );
+
   return (
     <div className="dashboard">
       {error && <ErrorBanner message={error} />}
+
+      {!loading && weekBlocks.length > 0 && (
+        <section className="dashboard__section">
+          <div className="dashboard__section-header">
+            <h3>Sua semana</h3>
+          </div>
+          <WeeklyGrid blocks={weekBlocks} />
+        </section>
+      )}
 
       <section className="dashboard__section">
         <div className="dashboard__section-header">
@@ -109,7 +130,11 @@ export function Dashboard() {
                 <span className="upcoming-item__subject">{item.subjectName}</span>
                 <span className="upcoming-item__date">
                   {formatDate(item.date)}
-                  {isOverdue(item.date) && <Badge tone="warning">atrasada</Badge>}
+                  {isOverdue(item.date) ? (
+                    <Badge tone="warning">atrasada</Badge>
+                  ) : (
+                    relativeDayLabel(item.date) && <Badge tone="accent">{relativeDayLabel(item.date)}</Badge>
+                  )}
                 </span>
               </li>
             ))}

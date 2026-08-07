@@ -1,12 +1,14 @@
 import type {
   Assignment,
   Exam,
+  Offering,
   Period,
   Professor,
   Schedule,
   Subject,
   SubjectDetails,
 } from "./types";
+import type { ParsedOffering } from "../lib/offeringsImport";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -45,3 +47,12 @@ export const examsApi = crud<Exam, Omit<Exam, "id">>("exams");
 
 export const getSubjectDetails = (id: number) =>
   request<SubjectDetails>(`/subjects/${id}/details`);
+
+export const offeringsApi = {
+  list: () => request<Offering[]>("/offerings"),
+  import: (offerings: ParsedOffering[]) =>
+    request<{ message: string }>("/offerings/import", {
+      method: "POST",
+      body: JSON.stringify({ offerings }),
+    }),
+};
