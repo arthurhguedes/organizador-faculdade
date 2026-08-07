@@ -21,6 +21,17 @@ app.use("/schedules", schedulesRouter);
 app.use("/assignments", assignmentsRouter);
 app.use("/exams", examsRouter);
 
+app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err);
+
+  const isJsonParseError = err instanceof SyntaxError && "status" in err && err.status === 400;
+  if (isJsonParseError) {
+    return res.status(400).json({ message: "JSON inválido no corpo da requisição" });
+  }
+
+  res.status(500).json({ message: "Erro interno do servidor" });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando em http://localhost:${port}`);
 });
