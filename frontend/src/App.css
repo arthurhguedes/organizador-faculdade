@@ -1,4 +1,9 @@
-/* ---------- App shell ---------- */
+/* ---------- App shell ----------
+   Sidebar and topbar are `position: fixed`, not `sticky` — sticky depends on
+   the exact height of ancestor boxes (flex stretch, content growth) to have
+   room to "stick", and that kept breaking as page content grew, making the
+   whole shell scroll as one block instead of staying pinned. Fixed pins to
+   the viewport unconditionally, so it doesn't matter how tall any page is. */
 
 .app-shell {
   display: flex;
@@ -6,7 +11,8 @@
 }
 
 .sidebar-wrap {
-  flex: 0 0 auto;
+  flex: none;
+  width: 232px;
 }
 
 .sidebar-scrim {
@@ -18,11 +24,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 100vh;
 }
 
 .app-shell__content {
   flex: 1 1 auto;
   padding: var(--space-8) var(--space-10);
+  padding-top: calc(64px + var(--space-8));
   max-width: 1180px;
   width: 100%;
   margin: 0 auto;
@@ -33,13 +41,15 @@
 .sidebar {
   width: 232px;
   height: 100vh;
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg-inset);
   border-right: 1px solid var(--border);
   padding: var(--space-5) var(--space-3);
+  z-index: 15;
 }
 
 .sidebar__brand {
@@ -127,12 +137,15 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-10);
+  height: 64px;
+  padding: 0 var(--space-10);
   border-bottom: 1px solid var(--border);
   background: var(--bg-elevated);
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 5;
+  left: 232px;
+  right: 0;
+  z-index: 10;
 }
 
 .topbar__menu-btn {
@@ -1626,10 +1639,12 @@
 @media (max-width: 880px) {
   .app-shell__content {
     padding: var(--space-6) var(--space-4);
+    padding-top: calc(64px + var(--space-6));
   }
 
   .topbar {
-    padding: var(--space-3) var(--space-4);
+    left: 0;
+    padding: 0 var(--space-4);
   }
 
   .topbar__menu-btn {
@@ -1640,19 +1655,18 @@
   }
 
   .sidebar-wrap {
-    position: fixed;
-    inset: 0 auto 0 0;
-    z-index: 30;
-    transform: translateX(-100%);
-    transition: transform 200ms ease;
-  }
-
-  .sidebar-wrap--open {
-    transform: translateX(0);
+    width: 0;
   }
 
   .sidebar {
+    transform: translateX(-100%);
+    transition: transform 200ms ease;
     box-shadow: var(--shadow-lg);
+    z-index: 30;
+  }
+
+  .sidebar-wrap--open .sidebar {
+    transform: translateX(0);
   }
 
   .sidebar-scrim {
