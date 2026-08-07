@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const professors = await db.select().from(schema.professors);
+    const professors = await db.select().from(schema.professors).where(eq(schema.professors.userId, req.userId!));
     res.json(professors);
   } catch (err) {
     console.error(err);
@@ -23,7 +23,10 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const [professor] = await db.select().from(schema.professors).where(eq(schema.professors.id, id));
+    const [professor] = await db
+      .select()
+      .from(schema.professors)
+      .where(and(eq(schema.professors.id, id), eq(schema.professors.userId, req.userId!)));
     if (!professor) {
       return res.status(404).json({ message: "Professor não encontrado" });
     }
@@ -44,6 +47,7 @@ router.post("/", async (req, res) => {
     const newProfessor = await db.insert(schema.professors).values({
       name,
       email,
+      userId: req.userId!,
     }).returning();
     res.json(newProfessor);
   } catch (err) {
@@ -64,10 +68,11 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updated = await db.update(schema.professors).set({
-      name,
-      email,
-    }).where(eq(schema.professors.id, id)).returning();
+    const updated = await db
+      .update(schema.professors)
+      .set({ name, email })
+      .where(and(eq(schema.professors.id, id), eq(schema.professors.userId, req.userId!)))
+      .returning();
 
     if (updated.length === 0) {
       return res.status(404).json({ message: "Professor não encontrado" });
@@ -86,7 +91,10 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db.delete(schema.professors).where(eq(schema.professors.id, id)).returning();
+    const deleted = await db
+      .delete(schema.professors)
+      .where(and(eq(schema.professors.id, id), eq(schema.professors.userId, req.userId!)))
+      .returning();
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Professor não encontrado" });
     }

@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const periods = await db.select().from(schema.periods);
+    const periods = await db.select().from(schema.periods).where(eq(schema.periods.userId, req.userId!));
     res.json(periods);
   } catch (err) {
     console.error(err);
@@ -23,7 +23,10 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const [period] = await db.select().from(schema.periods).where(eq(schema.periods.id, id));
+    const [period] = await db
+      .select()
+      .from(schema.periods)
+      .where(and(eq(schema.periods.id, id), eq(schema.periods.userId, req.userId!)));
     if (!period) {
       return res.status(404).json({ message: "Período não encontrado" });
     }
@@ -45,6 +48,7 @@ router.post("/", async (req, res) => {
       label,
       startDate,
       endDate,
+      userId: req.userId!,
     }).returning();
     res.json(newPeriod);
   } catch (err) {
@@ -65,11 +69,11 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updated = await db.update(schema.periods).set({
-      label,
-      startDate,
-      endDate,
-    }).where(eq(schema.periods.id, id)).returning();
+    const updated = await db
+      .update(schema.periods)
+      .set({ label, startDate, endDate })
+      .where(and(eq(schema.periods.id, id), eq(schema.periods.userId, req.userId!)))
+      .returning();
 
     if (updated.length === 0) {
       return res.status(404).json({ message: "Período não encontrado" });
@@ -88,7 +92,10 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db.delete(schema.periods).where(eq(schema.periods.id, id)).returning();
+    const deleted = await db
+      .delete(schema.periods)
+      .where(and(eq(schema.periods.id, id), eq(schema.periods.userId, req.userId!)))
+      .returning();
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Período não encontrado" });
     }

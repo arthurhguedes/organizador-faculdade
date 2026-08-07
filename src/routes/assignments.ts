@@ -1,14 +1,22 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
 
 const router = Router();
 
+async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
+  const [subject] = await db
+    .select({ id: schema.subjects.id })
+    .from(schema.subjects)
+    .where(and(eq(schema.subjects.id, subjectId), eq(schema.subjects.userId, userId)));
+  return Boolean(subject);
+}
+
 router.get("/", async (req, res) => {
   try {
-    const assignments = await db.select().from(schema.assignments);
+    const assignments = await db.select().from(schema.assignments).where(eq(schema.assignments.userId, req.userId!));
     res.json(assignments);
   } catch (err) {
     console.error(err);
@@ -23,7 +31,10 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const [assignment] = await db.select().from(schema.assignments).where(eq(schema.assignments.id, id));
+    const [assignment] = await db
+      .select()
+      .from(schema.assignments)
+      .where(and(eq(schema.assignments.id, id), eq(schema.assignments.userId, req.userId!)));
     if (!assignment) {
       return res.status(404).json({ message: "Atividade não encontrada" });
     }
@@ -41,12 +52,17 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    if (!(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
     const newAssignment = await db.insert(schema.assignments).values({
       subjectId,
       title,
       dueDate,
       weight,
       grade,
+      userId: req.userId!,
     }).returning();
     res.json(newAssignment);
   } catch (err) {
@@ -70,13 +86,15 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updated = await db.update(schema.assignments).set({
-      subjectId,
-      title,
-      dueDate,
-      weight,
-      grade,
-    }).where(eq(schema.assignments.id, id)).returning();
+    if (!(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
+    const updated = await db
+      .update(schema.assignments)
+      .set({ subjectId, title, dueDate, weight, grade })
+      .where(and(eq(schema.assignments.id, id), eq(schema.assignments.userId, req.userId!)))
+      .returning();
 
     if (updated.length === 0) {
       return res.status(404).json({ message: "Atividade não encontrada" });
@@ -98,7 +116,10 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db.delete(schema.assignments).where(eq(schema.assignments.id, id)).returning();
+    const deleted = await db
+      .delete(schema.assignments)
+      .where(and(eq(schema.assignments.id, id), eq(schema.assignments.userId, req.userId!)))
+      .returning();
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Atividade não encontrada" });
     }

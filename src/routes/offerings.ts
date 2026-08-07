@@ -1,13 +1,14 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
+import { eq } from "drizzle-orm";
 
 const router = Router();
 
 router.get("/", async (req, res) => {
   try {
-    const offerings = await db.select().from(schema.courseOfferings);
-    const slots = await db.select().from(schema.offeringSchedules);
+    const offerings = await db.select().from(schema.courseOfferings).where(eq(schema.courseOfferings.userId, req.userId!));
+    const slots = await db.select().from(schema.offeringSchedules).where(eq(schema.offeringSchedules.userId, req.userId!));
 
     const slotsByOffering = new Map<number, typeof slots>();
     for (const slot of slots) {
@@ -63,9 +64,11 @@ router.post("/import", async (req, res) => {
   }
 
   try {
+    const userId = req.userId!;
+
     await db.transaction(async (tx) => {
-      await tx.delete(schema.offeringSchedules);
-      await tx.delete(schema.courseOfferings);
+      await tx.delete(schema.offeringSchedules).where(eq(schema.offeringSchedules.userId, userId));
+      await tx.delete(schema.courseOfferings).where(eq(schema.courseOfferings.userId, userId));
 
       for (const offering of offerings as ImportOffering[]) {
         const [inserted] = await tx
@@ -81,6 +84,7 @@ router.post("/import", async (req, res) => {
             workloadHours: offering.workloadHours,
             theoryHours: offering.theoryHours,
             practiceHours: offering.practiceHours,
+            userId,
           })
           .returning();
 
@@ -92,6 +96,7 @@ router.post("/import", async (req, res) => {
               startTime: slot.startTime,
               endTime: slot.endTime,
               kind: slot.kind,
+              userId,
             })),
           );
         }

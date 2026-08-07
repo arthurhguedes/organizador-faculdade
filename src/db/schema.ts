@@ -13,14 +13,14 @@ export const periods = pgTable("periods", {
   label: text("label").notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const professors = pgTable("professors", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const subjects = pgTable("subjects", {
@@ -30,7 +30,7 @@ export const subjects = pgTable("subjects", {
   workload: integer("workload").notNull(),
   periodId: integer("period_id").references(() => periods.id).notNull(),
   professorId: integer("professor_id").references(() => professors.id).notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const schedules = pgTable("schedules", {
@@ -39,7 +39,7 @@ export const schedules = pgTable("schedules", {
   weekday: text("weekday").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const assignments = pgTable("assignments", {
@@ -49,7 +49,7 @@ export const assignments = pgTable("assignments", {
   dueDate: date("due_date").notNull(),
   weight: real("weight").notNull(),
   grade: real("grade"),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const exams = pgTable("exams", {
@@ -59,7 +59,7 @@ export const exams = pgTable("exams", {
   date: date("date").notNull(),
   weight: real("weight").notNull(),
   grade: real("grade"),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 // Catálogo de ofertas da faculdade (importado de planilha por semestre) —
@@ -78,7 +78,7 @@ export const courseOfferings = pgTable("course_offerings", {
   theoryHours: real("theory_hours"),
   practiceHours: real("practice_hours"),
   importedAt: timestamp("imported_at").defaultNow().notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
 export const offeringSchedules = pgTable("offering_schedules", {
@@ -88,5 +88,5 @@ export const offeringSchedules = pgTable("offering_schedules", {
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
   kind: text("kind").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });

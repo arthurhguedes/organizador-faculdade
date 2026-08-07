@@ -1,14 +1,22 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
 
 const router = Router();
 
+async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
+  const [subject] = await db
+    .select({ id: schema.subjects.id })
+    .from(schema.subjects)
+    .where(and(eq(schema.subjects.id, subjectId), eq(schema.subjects.userId, userId)));
+  return Boolean(subject);
+}
+
 router.get("/", async (req, res) => {
   try {
-    const exams = await db.select().from(schema.exams);
+    const exams = await db.select().from(schema.exams).where(eq(schema.exams.userId, req.userId!));
     res.json(exams);
   } catch (err) {
     console.error(err);
@@ -23,7 +31,10 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const [exam] = await db.select().from(schema.exams).where(eq(schema.exams.id, id));
+    const [exam] = await db
+      .select()
+      .from(schema.exams)
+      .where(and(eq(schema.exams.id, id), eq(schema.exams.userId, req.userId!)));
     if (!exam) {
       return res.status(404).json({ message: "Prova não encontrada" });
     }
@@ -41,12 +52,17 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    if (!(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
     const newExam = await db.insert(schema.exams).values({
       subjectId,
       title,
       date,
       weight,
       grade,
+      userId: req.userId!,
     }).returning();
     res.json(newExam);
   } catch (err) {
@@ -70,13 +86,15 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updated = await db.update(schema.exams).set({
-      subjectId,
-      title,
-      date,
-      weight,
-      grade,
-    }).where(eq(schema.exams.id, id)).returning();
+    if (!(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
+    const updated = await db
+      .update(schema.exams)
+      .set({ subjectId, title, date, weight, grade })
+      .where(and(eq(schema.exams.id, id), eq(schema.exams.userId, req.userId!)))
+      .returning();
 
     if (updated.length === 0) {
       return res.status(404).json({ message: "Prova não encontrada" });
@@ -98,7 +116,10 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db.delete(schema.exams).where(eq(schema.exams.id, id)).returning();
+    const deleted = await db
+      .delete(schema.exams)
+      .where(and(eq(schema.exams.id, id), eq(schema.exams.userId, req.userId!)))
+      .returning();
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Prova não encontrada" });
     }
