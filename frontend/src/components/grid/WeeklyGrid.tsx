@@ -1,3 +1,5 @@
+import { useEffect, useMemo, useState } from "react";
+
 const DAY_LABELS: Record<string, string> = {
   segunda: "Seg",
   terça: "Ter",
@@ -5,6 +7,16 @@ const DAY_LABELS: Record<string, string> = {
   quinta: "Qui",
   sexta: "Sex",
   sábado: "Sáb",
+};
+
+const WEEKDAY_BY_JS_DAY: Record<number, string> = {
+  0: "domingo",
+  1: "segunda",
+  2: "terça",
+  3: "quarta",
+  4: "quinta",
+  5: "sexta",
+  6: "sábado",
 };
 
 const DEFAULT_WEEKDAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -23,9 +35,63 @@ export type WeeklyGridBlock = {
   tone?: "accent" | "danger" | "neutral";
 };
 
+type LaidOutBlock = WeeklyGridBlock & { col: number; cols: number };
+
 function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function formatTimeRange(startTime: string, endTime: string): string {
+  return `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`;
+}
+
+// Sweeps each day's blocks left-to-right in time order, packing overlapping
+// ones into side-by-side columns (classic calendar layout) instead of
+// letting them render stacked directly on top of each other.
+function layoutDay(blocks: WeeklyGridBlock[]): LaidOutBlock[] {
+  const sorted = [...blocks].sort(
+    (a, b) => toMinutes(a.startTime) - toMinutes(b.startTime) || toMinutes(a.endTime) - toMinutes(b.endTime),
+  );
+
+  const result: LaidOutBlock[] = [];
+  let cluster: { block: WeeklyGridBlock; col: number }[] = [];
+  let columnEnds: number[] = [];
+  let clusterEnd = -Infinity;
+
+  const flushCluster = () => {
+    if (cluster.length === 0) return;
+    const cols = Math.max(...cluster.map((c) => c.col)) + 1;
+    for (const { block, col } of cluster) {
+      result.push({ ...block, col, cols });
+    }
+    cluster = [];
+  };
+
+  for (const block of sorted) {
+    const start = toMinutes(block.startTime);
+    const end = toMinutes(block.endTime);
+
+    if (start >= clusterEnd) {
+      flushCluster();
+      columnEnds = [];
+      clusterEnd = -Infinity;
+    }
+
+    let col = columnEnds.findIndex((endMin) => endMin <= start);
+    if (col === -1) {
+      col = columnEnds.length;
+      columnEnds.push(end);
+    } else {
+      columnEnds[col] = end;
+    }
+
+    cluster.push({ block, col });
+    clusterEnd = Math.max(clusterEnd, end);
+  }
+  flushCluster();
+
+  return result;
 }
 
 export function WeeklyGrid({
@@ -37,11 +103,33 @@ export function WeeklyGrid({
 }) {
   const hourMarks = Array.from({ length: GRID_SPAN_MIN / 60 + 1 }, (_, i) => 7 + i);
 
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const todayWeekday = WEEKDAY_BY_JS_DAY[now.getDay()];
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const showNowLine = weekdays.includes(todayWeekday) && nowMinutes >= GRID_START_MIN && nowMinutes <= GRID_END_MIN;
+  const nowTop = ((nowMinutes - GRID_START_MIN) / GRID_SPAN_MIN) * 100;
+
+  const blocksByDay = useMemo(() => {
+    const map = new Map<string, LaidOutBlock[]>();
+    for (const day of weekdays) {
+      map.set(day, layoutDay(blocks.filter((block) => block.weekday === day)));
+    }
+    return map;
+  }, [blocks, weekdays]);
+
   return (
     <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
       <div className="weekly-grid__corner" />
       {weekdays.map((day) => (
-        <div key={day} className="weekly-grid__day-header">
+        <div
+          key={day}
+          className={`weekly-grid__day-header${day === todayWeekday ? " weekly-grid__day-header--today" : ""}`}
+        >
           {DAY_LABELS[day] ?? day}
         </div>
       ))}
@@ -59,24 +147,43 @@ export function WeeklyGrid({
       </div>
 
       {weekdays.map((day) => (
-        <div key={day} className="weekly-grid__day-body">
-          {blocks
-            .filter((block) => block.weekday === day)
-            .map((block) => {
-              const top = ((toMinutes(block.startTime) - GRID_START_MIN) / GRID_SPAN_MIN) * 100;
-              const height = ((toMinutes(block.endTime) - toMinutes(block.startTime)) / GRID_SPAN_MIN) * 100;
-              return (
-                <div
-                  key={block.id}
-                  className={`weekly-grid__block weekly-grid__block--${block.tone ?? "accent"}`}
-                  style={{ top: `${top}%`, height: `${Math.max(height, 3)}%` }}
-                  title={`${block.label} · ${block.startTime}–${block.endTime}`}
-                >
-                  <span className="weekly-grid__block-label">{block.label}</span>
-                  {block.sublabel && <span className="weekly-grid__block-sublabel">{block.sublabel}</span>}
-                </div>
-              );
-            })}
+        <div
+          key={day}
+          className={`weekly-grid__day-body${day === todayWeekday ? " weekly-grid__day-body--today" : ""}`}
+        >
+          {(blocksByDay.get(day) ?? []).map((block) => {
+            const top = ((toMinutes(block.startTime) - GRID_START_MIN) / GRID_SPAN_MIN) * 100;
+            const height = ((toMinutes(block.endTime) - toMinutes(block.startTime)) / GRID_SPAN_MIN) * 100;
+            const width = 100 / block.cols;
+            const left = block.col * width;
+            const timeRange = formatTimeRange(block.startTime, block.endTime);
+
+            return (
+              <div
+                key={block.id}
+                className={`weekly-grid__block weekly-grid__block--${block.tone ?? "accent"}`}
+                style={{
+                  top: `${top}%`,
+                  height: `${Math.max(height, 3)}%`,
+                  left: `calc(${left}% + 2px)`,
+                  width: `calc(${width}% - 4px)`,
+                }}
+                title={`${block.label} · ${timeRange}`}
+              >
+                <span className="weekly-grid__block-label">{block.label}</span>
+                <span className="weekly-grid__block-meta">
+                  {timeRange}
+                  {block.sublabel ? ` · ${block.sublabel}` : ""}
+                </span>
+              </div>
+            );
+          })}
+
+          {day === todayWeekday && showNowLine && (
+            <div className="weekly-grid__now-line" style={{ top: `${nowTop}%` }}>
+              <span className="weekly-grid__now-dot" />
+            </div>
+          )}
         </div>
       ))}
     </div>
