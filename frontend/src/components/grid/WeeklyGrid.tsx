@@ -94,6 +94,38 @@ function layoutDay(blocks: WeeklyGridBlock[]): LaidOutBlock[] {
   return result;
 }
 
+// Minimum vertical gap (in % of the grid's time span) between two side labels
+// before the later one is dropped, so two classes starting a few minutes
+// apart don't render overlapping text in the gutter.
+const MIN_LABEL_GAP_PERCENT = 2.2;
+
+// The gutter labels the exact start time of every scheduled block instead of
+// a generic 07h/08h/09h ruler, so "starts at 8:20" reads as "8:20" on the
+// side, not as a guess at where 8:20 falls between two round hours.
+function getStartTimeMarks(blocks: WeeklyGridBlock[]): { minutes: number; label: string }[] {
+  const uniqueMinutes = new Map<number, string>();
+  for (const block of blocks) {
+    const minutes = toMinutes(block.startTime);
+    if (minutes < GRID_START_MIN || minutes > GRID_END_MIN) continue;
+    if (!uniqueMinutes.has(minutes)) uniqueMinutes.set(minutes, block.startTime.slice(0, 5));
+  }
+
+  const sorted = [...uniqueMinutes.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([minutes, label]) => ({ minutes, label }));
+
+  const spaced: { minutes: number; label: string }[] = [];
+  let lastPercent = -Infinity;
+  for (const mark of sorted) {
+    const percent = ((mark.minutes - GRID_START_MIN) / GRID_SPAN_MIN) * 100;
+    if (percent - lastPercent < MIN_LABEL_GAP_PERCENT) continue;
+    spaced.push(mark);
+    lastPercent = percent;
+  }
+
+  return spaced;
+}
+
 export function WeeklyGrid({
   blocks,
   weekdays = DEFAULT_WEEKDAYS,
@@ -101,7 +133,7 @@ export function WeeklyGrid({
   blocks: WeeklyGridBlock[];
   weekdays?: string[];
 }) {
-  const hourMarks = Array.from({ length: GRID_SPAN_MIN / 60 + 1 }, (_, i) => 7 + i);
+  const sideMarks = useMemo(() => getStartTimeMarks(blocks), [blocks]);
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -123,7 +155,7 @@ export function WeeklyGrid({
   }, [blocks, weekdays]);
 
   return (
-    <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
+    <div className="weekly-grid" style={{ gridTemplateColumns: `58px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
       <div className="weekly-grid__corner" />
       {weekdays.map((day) => (
         <div
@@ -135,13 +167,13 @@ export function WeeklyGrid({
       ))}
 
       <div className="weekly-grid__gutter">
-        {hourMarks.map((hour) => (
+        {sideMarks.map((mark) => (
           <span
-            key={hour}
+            key={mark.minutes}
             className="weekly-grid__hour-label"
-            style={{ top: `${((hour * 60 - GRID_START_MIN) / GRID_SPAN_MIN) * 100}%` }}
+            style={{ top: `${((mark.minutes - GRID_START_MIN) / GRID_SPAN_MIN) * 100}%` }}
           >
-            {String(hour).padStart(2, "0")}h
+            {mark.label}
           </span>
         ))}
       </div>

@@ -1511,14 +1511,15 @@
 
 .weekly-grid__hour-label {
   position: absolute;
-  right: var(--space-2);
+  right: var(--space-1);
   transform: translateY(-50%);
   padding: 0 2px;
-  font-size: 11px;
+  font-size: 10.5px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--text-secondary);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .weekly-grid__day-body {
