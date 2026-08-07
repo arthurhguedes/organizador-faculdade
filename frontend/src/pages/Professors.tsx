@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Users, Plus, X } from "lucide-react";
+import { Users, Plus, X, Pencil } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { professorsApi } from "../api/client";
 import { useEntityList } from "../hooks/useEntityList";
@@ -13,10 +13,14 @@ import { ErrorBanner } from "../components/ui/ErrorBanner";
 
 export function Professors() {
   usePageTitle("Meus Professores");
-  const { items: professors, loading, error, create, remove } = useEntityList(professorsApi);
+  const { items: professors, loading, error, create, update, remove } = useEntityList(professorsApi);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +30,21 @@ export function Professors() {
       setName("");
       setEmail("");
       setFormOpen(false);
+    }
+  };
+
+  const startEdit = (professor: { id: number; name: string; email: string }) => {
+    setEditingId(professor.id);
+    setEditName(professor.name);
+    setEditEmail(professor.email);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent, id: number) => {
+    e.preventDefault();
+    if (!editName || !editEmail) return;
+    const ok = await update(id, { name: editName, email: editEmail }, "Professor atualizado");
+    if (ok) {
+      setEditingId(null);
     }
   };
 
@@ -59,17 +78,41 @@ export function Professors() {
         <EmptyState icon={Users} title="Nenhum professor cadastrado ainda" />
       ) : (
         <ul className="list-rows">
-          {professors.map((professor) => (
-            <li key={professor.id} className="list-row">
-              <div className="list-row__main">
-                <span className="list-row__title">{professor.name}</span>
-                <span className="list-row__subtitle">{professor.email}</span>
-              </div>
-              <div className="list-row__actions">
-                <ConfirmDelete onConfirm={() => remove(professor.id, "Professor removido")} label="Remover professor" />
-              </div>
-            </li>
-          ))}
+          {professors.map((professor) =>
+            editingId === professor.id ? (
+              <li key={professor.id} className="list-row">
+                <form className="inline-form" onSubmit={(e) => handleEditSubmit(e, professor.id)}>
+                  <Field label="Nome" value={editName} onChange={(e) => setEditName(e.target.value)} required />
+                  <Field
+                    label="Email"
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    required
+                  />
+                  <Button type="submit" variant="primary">
+                    Salvar
+                  </Button>
+                  <Button type="button" variant="ghost" icon={X} onClick={() => setEditingId(null)}>
+                    Cancelar
+                  </Button>
+                </form>
+              </li>
+            ) : (
+              <li key={professor.id} className="list-row">
+                <div className="list-row__main">
+                  <span className="list-row__title">{professor.name}</span>
+                  <span className="list-row__subtitle">{professor.email}</span>
+                </div>
+                <div className="list-row__actions">
+                  <Button variant="ghost" icon={Pencil} onClick={() => startEdit(professor)}>
+                    Editar
+                  </Button>
+                  <ConfirmDelete onConfirm={() => remove(professor.id, "Professor removido")} label="Remover professor" />
+                </div>
+              </li>
+            ),
+          )}
         </ul>
       )}
     </div>
