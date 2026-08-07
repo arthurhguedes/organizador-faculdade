@@ -12,6 +12,7 @@ import { SubjectDetail } from "./pages/SubjectDetail";
 import { Periods } from "./pages/Periods";
 import { Professors } from "./pages/Professors";
 import { FacultyProfessors } from "./pages/FacultyProfessors";
+import { Plans } from "./pages/Plans";
 import { Profile } from "./pages/Profile";
 import { Terms } from "./pages/Terms";
 import { Settings } from "./pages/Settings";
@@ -34,6 +35,7 @@ export default function App() {
                     <Route path="periodos" element={<Periods />} />
                     <Route path="professores" element={<Professors />} />
                     <Route path="faculdade" element={<FacultyProfessors />} />
+                    <Route path="planos" element={<Plans />} />
                     <Route path="perfil" element={<Profile />} />
                     <Route path="termos" element={<Terms />} />
                     <Route path="configuracoes" element={<Settings />} />
