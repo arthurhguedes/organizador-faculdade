@@ -4,6 +4,24 @@ import { BookOpen, CalendarRange, ClipboardCheck, Flame, GraduationCap, Layers, 
 const STREAK_KEY = "notary:streak";
 const PREMIUM_KEY = "notary:premium-preview";
 
+/** One-time carry-over from the pre-rebrand key names — without this,
+ * everyone's streak/premium-preview silently reset to zero the moment
+ * the "organizador:" prefix became "notary:". */
+function migrateLegacyKeys(): void {
+  const legacyStreak = localStorage.getItem("organizador:streak");
+  if (legacyStreak !== null) {
+    if (localStorage.getItem(STREAK_KEY) === null) localStorage.setItem(STREAK_KEY, legacyStreak);
+    localStorage.removeItem("organizador:streak");
+  }
+
+  const legacyPremium = localStorage.getItem("organizador:premium-preview");
+  if (legacyPremium !== null) {
+    if (localStorage.getItem(PREMIUM_KEY) === null) localStorage.setItem(PREMIUM_KEY, legacyPremium);
+    localStorage.removeItem("organizador:premium-preview");
+  }
+}
+migrateLegacyKeys();
+
 export type StreakState = {
   current: number;
   best: number;

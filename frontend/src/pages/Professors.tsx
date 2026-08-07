@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Users, Plus, X, Pencil } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { professorsApi } from "../api/client";
@@ -100,10 +101,10 @@ export function Professors() {
               </li>
             ) : (
               <li key={professor.id} className="list-row">
-                <div className="list-row__main">
+                <Link to={`/professores/${professor.id}`} className="list-row__main list-row__main--link">
                   <span className="list-row__title">{professor.name}</span>
                   <span className="list-row__subtitle">{professor.email}</span>
-                </div>
+                </Link>
                 <div className="list-row__actions">
                   <Button variant="ghost" icon={Pencil} onClick={() => startEdit(professor)}>
                     Editar

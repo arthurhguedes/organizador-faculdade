@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+import authRouter from "./routes/auth.js";
 import periodsRouter from "./routes/periods.js";
 import professorsRouter from "./routes/professors.js";
 import subjectsRouter from "./routes/subjects.js";
@@ -7,9 +9,11 @@ import schedulesRouter from "./routes/schedules.js";
 import assignmentsRouter from "./routes/assignments.js";
 import examsRouter from "./routes/exams.js";
 import offeringsRouter from "./routes/offerings.js";
+import { requireAuth } from "./middleware/requireAuth.js";
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:5173", credentials: true }));
+app.use(cookieParser());
 app.use(express.json({ limit: "2mb" }));
 const port = 3000;
 
@@ -17,13 +21,14 @@ app.get("/", (req, res) => {
   res.send("API do Notary rodando!");
 });
 
-app.use("/periods", periodsRouter);
-app.use("/professors", professorsRouter);
-app.use("/subjects", subjectsRouter);
-app.use("/schedules", schedulesRouter);
-app.use("/assignments", assignmentsRouter);
-app.use("/exams", examsRouter);
-app.use("/offerings", offeringsRouter);
+app.use("/auth", authRouter);
+app.use("/periods", requireAuth, periodsRouter);
+app.use("/professors", requireAuth, professorsRouter);
+app.use("/subjects", requireAuth, subjectsRouter);
+app.use("/schedules", requireAuth, schedulesRouter);
+app.use("/assignments", requireAuth, assignmentsRouter);
+app.use("/exams", requireAuth, examsRouter);
+app.use("/offerings", requireAuth, offeringsRouter);
 
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

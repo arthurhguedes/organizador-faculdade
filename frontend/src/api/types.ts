@@ -1,3 +1,9 @@
+export type AuthUser = {
+  id: number;
+  name: string;
+  email: string;
+};
+
 export type Period = {
   id: number;
   label: string;

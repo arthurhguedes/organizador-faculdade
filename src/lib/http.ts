@@ -10,3 +10,11 @@ export function isForeignKeyViolation(err: unknown): boolean {
   const { code, cause } = err as { code?: string; cause?: { code?: string } };
   return code === "23503" || cause?.code === "23503";
 }
+
+export function isUniqueViolation(err: unknown): boolean {
+  if (typeof err !== "object" || err === null) {
+    return false;
+  }
+  const { code, cause } = err as { code?: string; cause?: { code?: string } };
+  return code === "23505" || cause?.code === "23505";
+}

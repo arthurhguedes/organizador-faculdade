@@ -1,5 +1,6 @@
 import type {
   Assignment,
+  AuthUser,
   Exam,
   Offering,
   Period,
@@ -17,6 +18,7 @@ export class ApiError extends Error {}
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     ...options,
   });
   const data = await res.json().catch(() => null);
@@ -47,6 +49,15 @@ export const examsApi = crud<Exam, Omit<Exam, "id">>("exams");
 
 export const getSubjectDetails = (id: number) =>
   request<SubjectDetails>(`/subjects/${id}/details`);
+
+export const authApi = {
+  register: (body: { name: string; email: string; password: string }) =>
+    request<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
+  login: (body: { email: string; password: string }) =>
+    request<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
+  logout: () => request<{ message: string }>("/auth/logout", { method: "POST" }),
+  me: () => request<AuthUser>("/auth/me"),
+};
 
 export const offeringsApi = {
   list: () => request<Offering[]>("/offerings"),

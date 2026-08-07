@@ -4,11 +4,11 @@ import {
   BookOpen,
   CalendarDays,
   CalendarRange,
+  ClipboardCheck,
   Users,
   Building2,
   UserRound,
   Settings,
-  Stamp,
   Sun,
   Moon,
   Crown,
@@ -19,6 +19,7 @@ const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
   { to: "/materias", label: "Matérias", icon: BookOpen },
+  { to: "/avaliacoes", label: "Provas e Atividades", icon: ClipboardCheck },
   { to: "/periodos", label: "Períodos", icon: CalendarRange },
   { to: "/professores", label: "Meus Professores", icon: Users },
   { to: "/faculdade", label: "Montar Grade", icon: Building2 },
@@ -36,9 +37,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <aside className="sidebar">
       <div className="sidebar__brand">
-        <span className="sidebar__brand-mark">
-          <Stamp size={18} strokeWidth={2} />
-        </span>
+        <img src="/favicon.svg" alt="" width={34} height={34} className="sidebar__brand-mark" />
         <span className="sidebar__brand-name">Notary</span>
       </div>
 

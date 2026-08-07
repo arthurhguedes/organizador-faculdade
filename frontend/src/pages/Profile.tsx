@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from "react";
-import { Pencil, X, Lock, BookOpen, CalendarRange, Flame, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Flame, Users } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { useEntityList } from "../hooks/useEntityList";
 import { useGamification } from "../hooks/useGamification";
 import { subjectsApi, professorsApi } from "../api/client";
@@ -31,6 +33,8 @@ function loadProfile(): LocalProfile {
 export function Profile() {
   usePageTitle("Perfil");
   const { notify } = useToast();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { periods } = usePeriods();
   const { items: subjects } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
@@ -52,6 +56,11 @@ export function Profile() {
   const startEditing = () => {
     setDraft(profile);
     setEditing(true);
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -162,8 +171,13 @@ export function Profile() {
         <div className="feature-row-list">
           <FeatureRow
             icon={Lock}
-            title="Login e sincronização"
-            description="Por enquanto o perfil fica salvo só neste navegador. Autenticação de verdade está planejada."
+            title={user?.email ?? ""}
+            description="Conta conectada"
+            action={
+              <Button variant="ghost" icon={LogOut} onClick={handleLogout}>
+                Sair
+              </Button>
+            }
           />
         </div>
       </section>
