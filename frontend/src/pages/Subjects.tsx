@@ -20,6 +20,7 @@ export function Subjects() {
   const { items: professors } = useEntityList(professorsApi);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [workload, setWorkload] = useState("");
   const [professorId, setProfessorId] = useState("");
 
@@ -33,6 +34,7 @@ export function Subjects() {
     const ok = await create(
       {
         name,
+        code: code || null,
         workload: Number(workload),
         periodId: selectedPeriodId,
         professorId: Number(professorId),
@@ -41,6 +43,7 @@ export function Subjects() {
     );
     if (ok) {
       setName("");
+      setCode("");
       setWorkload("");
       setProfessorId("");
       setFormOpen(false);
@@ -66,6 +69,7 @@ export function Subjects() {
       {formOpen && (
         <form className="inline-form" onSubmit={handleSubmit}>
           <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Field label="Código" hint="opcional" value={code} onChange={(e) => setCode(e.target.value)} />
           <Field
             label="Carga horária"
             type="number"
@@ -111,7 +115,10 @@ export function Subjects() {
           {periodSubjects.map((subject) => (
             <div key={subject.id} className="subject-card subject-card--list">
               <Link to={`/materias/${subject.id}`} className="subject-card__link">
-                <span className="subject-card__name">{subject.name}</span>
+                <span className="subject-card__name">
+                  {subject.code && <span className="subject-card__code">{subject.code}</span>}
+                  {subject.name}
+                </span>
                 <span className="subject-card__meta">{professorName(subject.professorId)} · {subject.workload}h</span>
               </Link>
               <ConfirmDelete onConfirm={() => remove(subject.id, "Matéria removida")} label="Remover matéria" />

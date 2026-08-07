@@ -14,6 +14,7 @@ export type Professor = {
 export type Subject = {
   id: number;
   name: string;
+  code: string | null;
   workload: number;
   periodId: number;
   professorId: number;

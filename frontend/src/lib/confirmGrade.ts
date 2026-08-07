@@ -39,7 +39,8 @@ export async function confirmGrade(offerings: Offering[], periodId: number): Pro
     const professor = await findOrCreateProfessor(offering.professorName ?? PLACEHOLDER_PROFESSOR_NAME);
 
     const [subject] = await subjectsApi.create({
-      name: `${offering.subjectCode} — ${offering.subjectName}`,
+      name: offering.subjectName,
+      code: offering.subjectCode,
       workload: Math.round(offering.workloadHours ?? 0),
       periodId,
       professorId: professor.id,

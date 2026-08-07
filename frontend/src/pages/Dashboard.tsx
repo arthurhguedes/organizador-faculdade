@@ -87,7 +87,10 @@ export function Dashboard() {
               return (
                 <Link key={subject.id} to={`/materias/${subject.id}`} className="subject-card">
                   <div className="subject-card__header">
-                    <span className="subject-card__name">{subject.name}</span>
+                    <span className="subject-card__name">
+                      {subject.code && <span className="subject-card__code">{subject.code}</span>}
+                      {subject.name}
+                    </span>
                     <span className="subject-card__average" data-empty={average === null}>
                       {formatGrade(average)}
                     </span>

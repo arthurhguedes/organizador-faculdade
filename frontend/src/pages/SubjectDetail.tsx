@@ -30,12 +30,14 @@ export function SubjectDetail() {
 
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
+  const [code, setCode] = useState("");
   const [workload, setWorkload] = useState("");
   const [professorId, setProfessorId] = useState("");
 
   useEffect(() => {
     if (details) {
       setName(details.name);
+      setCode(details.code ?? "");
       setWorkload(String(details.workload));
       setProfessorId(String(details.professorId));
     }
@@ -73,6 +75,7 @@ export function SubjectDetail() {
     try {
       await subjectsApi.update(subjectId, {
         name,
+        code: code || null,
         workload: Number(workload),
         periodId: details.periodId,
         professorId: Number(professorId),
@@ -104,6 +107,7 @@ export function SubjectDetail() {
       {editing ? (
         <form className="inline-form" onSubmit={saveSubject}>
           <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
+          <Field label="Código" hint="opcional" value={code} onChange={(e) => setCode(e.target.value)} />
           <Field
             label="Carga horária"
             type="number"
@@ -132,7 +136,10 @@ export function SubjectDetail() {
       ) : (
         <div className="subject-hub-header">
           <div>
-            <h2 className="subject-hub-header__name">{details.name}</h2>
+            <h2 className="subject-hub-header__name">
+              {details.code && <span className="subject-card__code">{details.code}</span>}
+              {details.name}
+            </h2>
             <p className="subject-hub-header__meta">
               {professor?.name ?? "sem professor"} · {details.workload}h · {period?.label ?? "—"}
             </p>

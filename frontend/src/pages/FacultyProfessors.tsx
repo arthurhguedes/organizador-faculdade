@@ -9,6 +9,7 @@ import { SkeletonRows } from "../components/ui/Skeleton";
 import { ImportPanel } from "./faculty/ImportPanel";
 import { OfferingsBrowser } from "./faculty/OfferingsBrowser";
 import { GradeBuilderPanel } from "./faculty/GradeBuilderPanel";
+import { EnrollmentImportButton } from "./faculty/EnrollmentImportButton";
 
 export function FacultyProfessors() {
   usePageTitle("Professores da Faculdade");
@@ -39,7 +40,10 @@ export function FacultyProfessors() {
         />
       ) : (
         <div className="faculty-layout">
-          <OfferingsBrowser offerings={offerings} isSelected={isSelected} onToggle={toggle} />
+          <div>
+            <EnrollmentImportButton offerings={offerings} />
+            <OfferingsBrowser offerings={offerings} isSelected={isSelected} onToggle={toggle} />
+          </div>
           <GradeBuilderPanel
             selectedOfferings={selectedOfferings}
             onRemove={toggle}

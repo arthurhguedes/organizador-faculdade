@@ -13,7 +13,7 @@ App para organizar a vida acadêmica: matérias, professores, horários de aula,
 ```
 periods            id, label, start_date, end_date
 professors         id, name, email
-subjects           id, name, workload, period_id -> periods, professor_id -> professors
+subjects           id, name, code (opcional), workload, period_id -> periods, professor_id -> professors
 schedules          id, subject_id -> subjects, weekday, start_time, end_time
 assignments        id, subject_id -> subjects, title, due_date, weight, grade
 exams              id, subject_id -> subjects, title, date, weight, grade

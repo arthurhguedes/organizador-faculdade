@@ -63,7 +63,7 @@ router.get("/:id/details", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { name, workload, periodId, professorId } = req.body ?? {};
+  const { name, code, workload, periodId, professorId } = req.body ?? {};
   if (!name || workload === undefined || workload === null || !periodId || !professorId) {
     return res.status(400).json({ message: "name, workload, periodId e professorId são obrigatórios" });
   }
@@ -71,6 +71,7 @@ router.post("/", async (req, res) => {
   try {
     const newSubject = await db.insert(schema.subjects).values({
       name,
+      code: code || null,
       workload,
       periodId,
       professorId,
@@ -91,7 +92,7 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { name, workload, periodId, professorId } = req.body ?? {};
+  const { name, code, workload, periodId, professorId } = req.body ?? {};
   if (!name || workload === undefined || workload === null || !periodId || !professorId) {
     return res.status(400).json({ message: "name, workload, periodId e professorId são obrigatórios" });
   }
@@ -99,6 +100,7 @@ router.put("/:id", async (req, res) => {
   try {
     const updated = await db.update(schema.subjects).set({
       name,
+      code: code || null,
       workload,
       periodId,
       professorId,

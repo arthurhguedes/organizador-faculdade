@@ -16,6 +16,7 @@ export const professors = pgTable("professors", {
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  code: text("code"),
   workload: integer("workload").notNull(),
   periodId: integer("period_id").references(() => periods.id).notNull(),
   professorId: integer("professor_id").references(() => professors.id).notNull(),

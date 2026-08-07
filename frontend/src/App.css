@@ -723,6 +723,19 @@
   font-size: var(--text-md);
 }
 
+.subject-card__code {
+  display: inline-block;
+  margin-right: var(--space-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bg-inset);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  vertical-align: middle;
+}
+
 .subject-card__average {
   font-family: var(--font-mono);
   font-weight: 600;
@@ -1040,6 +1053,10 @@
   color: var(--text-tertiary);
   font-size: var(--text-xs);
   margin-top: 2px;
+}
+
+.enrollment-import-row {
+  margin-bottom: var(--space-3);
 }
 
 .faculty-search {
