@@ -13,6 +13,17 @@ import studySessionsRouter from "./routes/studySessions.js";
 import dailyNotesRouter from "./routes/dailyNotes.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 
+// Sem isso, qualquer exceção não tratada (em qualquer lugar do processo, não
+// só nas rotas) mata o Node inteiro; sob `tsx watch` ele não reinicia sozinho
+// depois disso, então o back-end fica fora do ar em silêncio até a próxima
+// alteração de arquivo — é a causa recorrente do login "quebrar do nada".
+process.on("uncaughtException", (err) => {
+  console.error("Exceção não tratada:", err);
+});
+process.on("unhandledRejection", (err) => {
+  console.error("Promise rejeitada sem tratamento:", err);
+});
+
 const app = express();
 app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:5173", credentials: true }));
 app.use(cookieParser());
