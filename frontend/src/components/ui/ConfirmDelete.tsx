@@ -1,16 +1,28 @@
 import { useState } from "react";
-import { Trash2, Check, X } from "lucide-react";
+import { Trash2, Check, X, Loader2 } from "lucide-react";
 
 export function ConfirmDelete({
   onConfirm,
   label = "Remover",
   confirmText = "Remover?",
+  deletingText = "Excluindo...",
 }: {
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<unknown>;
   label?: string;
   confirmText?: string;
+  deletingText?: string;
 }) {
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  if (deleting) {
+    return (
+      <span className="confirm-delete confirm-delete--pending">
+        <Loader2 size={15} strokeWidth={2} className="spin" />
+        <span>{deletingText}</span>
+      </span>
+    );
+  }
 
   if (!confirming) {
     return (
@@ -32,9 +44,14 @@ export function ConfirmDelete({
       <button
         type="button"
         className="icon-btn icon-btn--danger"
-        onClick={() => {
-          onConfirm();
-          setConfirming(false);
+        onClick={async () => {
+          setDeleting(true);
+          try {
+            await onConfirm();
+          } finally {
+            setDeleting(false);
+            setConfirming(false);
+          }
         }}
         aria-label="Confirmar remoção"
       >

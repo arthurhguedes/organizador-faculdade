@@ -118,6 +118,7 @@ export function Subjects() {
             icon={Trash2}
             disabled={selectedIds.size === 0}
             loading={bulkDeleting}
+            loadingText="Excluindo..."
             onClick={handleBulkDelete}
           >
             Remover selecionadas
