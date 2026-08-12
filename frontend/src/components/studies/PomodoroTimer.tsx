@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Play, Pause, RotateCcw } from "lucide-react";
+import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { Button } from "../ui/Button";
 import type { Subject } from "../../api/types";
 
@@ -70,6 +70,11 @@ export function PomodoroTimer({
     setSecondsLeft(phaseDuration * 60);
   };
 
+  const skipToBreak = () => {
+    setPhase("short-break");
+    setSecondsLeft(breakMin * 60);
+  };
+
   const progressPct = ((phaseDuration * 60 - secondsLeft) / (phaseDuration * 60)) * 100;
 
   return (
@@ -97,6 +102,11 @@ export function PomodoroTimer({
         <Button variant="ghost" icon={RotateCcw} onClick={handleReset}>
           Reiniciar
         </Button>
+        {phase === "focus" && (
+          <Button variant="ghost" icon={SkipForward} onClick={skipToBreak}>
+            Pular pro descanso
+          </Button>
+        )}
       </div>
 
       <div className="pomodoro__setup">
