@@ -27,24 +27,39 @@ offering_schedules id, offering_id -> course_offerings, weekday, start_time, end
 
 ## Como rodar
 
-Pré-requisitos: Node.js e um banco PostgreSQL próprio — o projeto foi feito usando [Neon](https://neon.tech), que tem plano gratuito: crie uma conta lá, crie um projeto novo e copie a connection string (não dá pra rodar sem um banco seu, mesmo que seja outro Postgres).
+Pré-requisitos: Node.js e um banco PostgreSQL próprio — não dá pra rodar o projeto sem isso, mesmo só testando localmente.
 
-### Back-end
+### 1. Criar o banco no Neon
+
+1. Crie uma conta em [neon.tech](https://neon.tech) (tem plano gratuito, dá pra logar com GitHub/Google).
+2. Crie um projeto novo (qualquer nome/região serve).
+3. No dashboard do projeto, vá em **Connect** (ou **Dashboard → Connection string**) e copie a connection string no formato `postgresql://usuario:senha@host/banco?sslmode=require`.
+4. Guarde essa string — é o valor de `DATABASE_URL` no próximo passo. (Se preferir, qualquer outro Postgres serve, não precisa ser Neon.)
+
+### 2. Back-end
 
 ```bash
 npm install
 ```
 
-Crie um arquivo `.env` na raiz (veja `.env.example`) com a connection string do banco e um segredo pra assinar os tokens de login:
+Copie o `.env.example` para `.env` na raiz do projeto:
+
+```bash
+cp .env.example .env
+```
+
+Edite o `.env` e preencha:
 
 ```
 DATABASE_URL=postgresql://usuario:senha@host/banco?sslmode=require
 JWT_SECRET=qualquer-string-aleatoria-longa
 ```
 
-`JWT_SECRET` é obrigatório — sem ele, criar conta e logar falham com erro 500. `FRONTEND_URL` é opcional em dev (default `http://localhost:5173`); só precisa ser setado em produção, com a URL do front-end.
+- `DATABASE_URL`: a connection string copiada do Neon no passo anterior.
+- `JWT_SECRET`: qualquer string aleatória (ex: gere uma com `openssl rand -hex 32`). É obrigatório — sem ele, criar conta e logar falham com erro 500.
+- `FRONTEND_URL`: pode deixar comentado/ausente em dev (default `http://localhost:5173`); só precisa ser setado em produção, com a URL do front-end.
 
-Se as tabelas ainda não existirem no banco, gere e aplique as migrations do Drizzle:
+Com o banco configurado, gere e aplique as migrations do Drizzle (cria as tabelas no Neon):
 
 ```bash
 npx drizzle-kit generate
@@ -59,7 +74,7 @@ npm run dev
 
 O back-end sobe em `http://localhost:3000`.
 
-### Front-end
+### 3. Front-end
 
 ```bash
 cd frontend
