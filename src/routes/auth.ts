@@ -9,10 +9,15 @@ import { isUniqueViolation } from "../lib/http.js";
 
 const router = Router();
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const COOKIE_OPTIONS: CookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax",
+  secure: isProduction,
+  // "none" é necessário pro cookie ser enviado em requisições cross-site
+  // (front-end na Vercel, back-end em outro domínio); em dev (mesma origem
+  // via proxy/localhost) "lax" evita exigir HTTPS local.
+  sameSite: isProduction ? "none" : "lax",
   maxAge: 30 * 24 * 60 * 60 * 1000,
   path: "/",
 };
