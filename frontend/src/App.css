@@ -2043,16 +2043,34 @@
   background: var(--bg-inset);
 }
 
+/* Each row states both edges of the period it covers — the start pinned to
+   the top border, the end pinned to the bottom one — instead of a single
+   tick a reader has to mentally carry down to the next line to know when
+   a merged, multi-period block actually ends. */
+.weekly-grid__gutter .weekly-grid__row {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 2px 6px;
+  pointer-events: none;
+}
+
 .weekly-grid__hour-label {
   display: block;
-  padding: 3px 6px 0 0;
   text-align: right;
   font-size: 10px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
   font-weight: 600;
   white-space: nowrap;
+}
+
+.weekly-grid__hour-label--start {
+  color: var(--text-secondary);
+}
+
+.weekly-grid__hour-label--end {
+  color: var(--text-tertiary);
 }
 
 .weekly-grid__block {

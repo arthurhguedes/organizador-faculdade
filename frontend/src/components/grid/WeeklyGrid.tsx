@@ -261,7 +261,8 @@ export function WeeklyGrid({
             className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
             style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
           >
-            <span className="weekly-grid__hour-label">{formatHourLabel(row.startMin)}</span>
+            <span className="weekly-grid__hour-label weekly-grid__hour-label--start">{formatHourLabel(row.startMin)}</span>
+            <span className="weekly-grid__hour-label weekly-grid__hour-label--end">{formatHourLabel(row.endMin)}</span>
           </div>
         ))}
       </div>
