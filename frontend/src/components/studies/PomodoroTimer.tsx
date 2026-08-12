@@ -22,7 +22,7 @@ export function PomodoroTimer({
   onSessionComplete,
 }: {
   subjects: Subject[];
-  onSessionComplete: (input: { subjectId: number; topic: string; durationMinutes: number }) => void;
+  onSessionComplete: (input: { subjectId: number | null; topic: string; durationMinutes: number }) => void;
 }) {
   const [focusMin, setFocusMin] = useState(25);
   const [breakMin, setBreakMin] = useState(5);
@@ -48,7 +48,7 @@ export function PomodoroTimer({
     if (!running) return;
     if (secondsLeft <= 0) {
       if (phase === "focus") {
-        onSessionComplete({ subjectId: Number(subjectId), topic: topic.trim(), durationMinutes: focusMin });
+        onSessionComplete({ subjectId: subjectId ? Number(subjectId) : null, topic: topic.trim(), durationMinutes: focusMin });
         const nextCycles = cyclesCompleted + 1;
         setCyclesCompleted(nextCycles);
         const isLong = nextCycles % 4 === 0;
@@ -64,8 +64,6 @@ export function PomodoroTimer({
     const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
   }, [running, secondsLeft]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const canStart = phase !== "focus" || Boolean(subjectId);
 
   const handleReset = () => {
     setRunning(false);
@@ -92,7 +90,6 @@ export function PomodoroTimer({
         <Button
           variant="primary"
           icon={running ? Pause : Play}
-          disabled={!running && !canStart}
           onClick={() => setRunning((r) => !r)}
         >
           {running ? "Pausar" : "Iniciar"}
@@ -104,14 +101,14 @@ export function PomodoroTimer({
 
       <div className="pomodoro__setup">
         <label className="field">
-          <span className="field__label">Matéria</span>
+          <span className="field__label">Matéria (opcional)</span>
           <select
             className="field__input"
             value={subjectId}
             disabled={running}
             onChange={(e) => setSubjectId(e.target.value)}
           >
-            <option value="">Selecione</option>
+            <option value="">Sem matéria</option>
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -133,7 +130,7 @@ export function PomodoroTimer({
 
       {!subjectId && (
         <p className="pomodoro__hint">
-          Selecione uma matéria para registrar as horas de foco automaticamente.
+          Sem matéria selecionada — a sessão é registrada mesmo assim, você pode vincular uma matéria depois no histórico.
         </p>
       )}
 

@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Clock, ListChecks, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useEntityList } from "../hooks/useEntityList";
 import { subjectsApi, studySessionsApi, dailyNotesApi } from "../api/client";
 import { formatDate, todayISO } from "../lib/grades";
-import type { DailyNote } from "../api/types";
+import type { DailyNote, StudySession } from "../api/types";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonRows } from "../components/ui/Skeleton";
@@ -34,6 +34,7 @@ export function Studies() {
     loading: sessionsLoading,
     error: sessionsError,
     create: createSession,
+    update: updateSession,
     remove: removeSession,
   } = useEntityList(studySessionsApi);
   const {
@@ -55,27 +56,39 @@ export function Studies() {
   const [manualDate, setManualDate] = useState(todayISO());
   const [manualDuration, setManualDuration] = useState("");
 
+  const isInSelectedPeriod = (session: StudySession) =>
+    session.subjectId !== null
+      ? periodSubjectIds.has(session.subjectId)
+      : Boolean(selectedPeriod && session.date >= selectedPeriod.startDate && session.date <= selectedPeriod.endDate);
+
   const periodSessions = sessions
-    .filter((s) => periodSubjectIds.has(s.subjectId))
+    .filter(isInSelectedPeriod)
     .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
 
   const totalsBySubject = periodSubjects
     .map((s) => ({
-      subject: s,
+      label: s.name,
       minutes: periodSessions.filter((sess) => sess.subjectId === s.id).reduce((sum, sess) => sum + sess.durationMinutes, 0),
     }))
-    .filter((t) => t.minutes > 0)
-    .sort((a, b) => b.minutes - a.minutes);
+    .filter((t) => t.minutes > 0);
+
+  const unlinkedMinutes = periodSessions.filter((s) => s.subjectId === null).reduce((sum, s) => sum + s.durationMinutes, 0);
+  if (unlinkedMinutes > 0) {
+    totalsBySubject.push({ label: "Sem matéria vinculada", minutes: unlinkedMinutes });
+  }
+  totalsBySubject.sort((a, b) => b.minutes - a.minutes);
 
   const maxMinutes = Math.max(1, ...totalsBySubject.map((t) => t.minutes));
   const totalMinutesAll = periodSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
+
+  const [linkingSessionId, setLinkingSessionId] = useState<number | null>(null);
 
   const handlePomodoroComplete = ({
     subjectId,
     topic,
     durationMinutes,
   }: {
-    subjectId: number;
+    subjectId: number | null;
     topic: string;
     durationMinutes: number;
   }) => {
@@ -87,9 +100,15 @@ export function Studies() {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualSubjectId || !manualDate || !manualDuration) return;
+    if (!manualDate || !manualDuration) return;
     const ok = await createSession(
-      { subjectId: Number(manualSubjectId), topic: manualTopic || null, date: manualDate, durationMinutes: Number(manualDuration), source: "manual" },
+      {
+        subjectId: manualSubjectId ? Number(manualSubjectId) : null,
+        topic: manualTopic || null,
+        date: manualDate,
+        durationMinutes: Number(manualDuration),
+        source: "manual",
+      },
       "Sessão registrada",
     );
     if (ok) {
@@ -99,6 +118,15 @@ export function Studies() {
       setManualDuration("");
       setManualOpen(false);
     }
+  };
+
+  const linkSubjectToSession = (session: StudySession, subjectId: number) => {
+    updateSession(
+      session.id,
+      { subjectId, topic: session.topic, date: session.date, durationMinutes: session.durationMinutes, source: session.source },
+      "Matéria vinculada",
+    );
+    setLinkingSessionId(null);
   };
 
   const [viewDate, setViewDate] = useState(todayISO());
@@ -138,12 +166,6 @@ export function Studies() {
         </div>
         {subjectsLoading ? (
           <SkeletonRows rows={3} />
-        ) : periodSubjects.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="Cadastre uma matéria para usar o Pomodoro"
-            description="As sessões de foco são registradas vinculadas a uma matéria do período atual."
-          />
         ) : (
           <PomodoroTimer subjects={periodSubjects} onSessionComplete={handlePomodoroComplete} />
         )}
@@ -152,11 +174,9 @@ export function Studies() {
       <section className="hub-section">
         <div className="hub-section__header">
           <h3>Horas de estudo de {selectedPeriod?.label ?? "..."}</h3>
-          {periodSubjects.length > 0 && (
-            <Button variant="ghost" icon={manualOpen ? X : Plus} onClick={() => setManualOpen((v) => !v)}>
-              {manualOpen ? "Cancelar" : "Registrar sessão"}
-            </Button>
-          )}
+          <Button variant="ghost" icon={manualOpen ? X : Plus} onClick={() => setManualOpen((v) => !v)}>
+            {manualOpen ? "Cancelar" : "Registrar sessão"}
+          </Button>
         </div>
 
         {sessionsError && <ErrorBanner message={sessionsError} />}
@@ -164,11 +184,9 @@ export function Studies() {
         {manualOpen && (
           <form className="inline-form" onSubmit={handleManualSubmit}>
             <label className="field">
-              <span className="field__label">Matéria</span>
-              <select className="field__input" value={manualSubjectId} onChange={(e) => setManualSubjectId(e.target.value)} required>
-                <option value="" disabled>
-                  Selecione
-                </option>
+              <span className="field__label">Matéria (opcional)</span>
+              <select className="field__input" value={manualSubjectId} onChange={(e) => setManualSubjectId(e.target.value)}>
+                <option value="">Sem matéria</option>
                 {periodSubjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -199,9 +217,9 @@ export function Studies() {
               <p className="study-totals__summary">
                 Total no período: <strong>{formatHours(totalMinutesAll)}</strong>
               </p>
-              {totalsBySubject.map(({ subject, minutes }) => (
-                <div key={subject.id} className="study-totals__row">
-                  <span className="study-totals__label">{subject.name}</span>
+              {totalsBySubject.map(({ label, minutes }) => (
+                <div key={label} className="study-totals__row">
+                  <span className="study-totals__label">{label}</span>
                   <div className="study-totals__bar">
                     <div className="study-totals__bar-fill" style={{ width: `${(minutes / maxMinutes) * 100}%` }} />
                   </div>
@@ -225,7 +243,32 @@ export function Studies() {
               <tbody>
                 {periodSessions.slice(0, 20).map((session) => (
                   <tr key={session.id}>
-                    <td>{subjectName(session.subjectId)}</td>
+                    <td>
+                      {session.subjectId !== null ? (
+                        subjectName(session.subjectId)
+                      ) : linkingSessionId === session.id ? (
+                        <select
+                          autoFocus
+                          className="field__input link-subject-select"
+                          defaultValue=""
+                          onBlur={() => setLinkingSessionId(null)}
+                          onChange={(e) => e.target.value && linkSubjectToSession(session, Number(e.target.value))}
+                        >
+                          <option value="" disabled>
+                            Selecione
+                          </option>
+                          {periodSubjects.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <button type="button" className="link-subject-btn" onClick={() => setLinkingSessionId(session.id)}>
+                          Sem matéria · vincular
+                        </button>
+                      )}
+                    </td>
                     <td>{session.topic || "—"}</td>
                     <td>{formatDate(session.date)}</td>
                     <td className="eval-table__num">{formatHours(session.durationMinutes)}</td>

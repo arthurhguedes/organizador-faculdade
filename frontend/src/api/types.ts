@@ -56,7 +56,7 @@ export type Exam = {
 
 export type StudySession = {
   id: number;
-  subjectId: number;
+  subjectId: number | null;
   topic: string | null;
   date: string;
   durationMinutes: number;

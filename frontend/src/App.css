@@ -3067,6 +3067,25 @@
   text-align: right;
 }
 
+.link-subject-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-style: italic;
+  cursor: pointer;
+  padding: 0;
+}
+
+.link-subject-btn:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.link-subject-select {
+  min-width: 140px;
+}
+
 /* ---------- Estudos: anotações do dia ---------- */
 
 .daily-notes__nav {

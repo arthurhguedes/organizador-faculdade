@@ -71,9 +71,11 @@ export const exams = pgTable("exams", {
 // Blocos de estudo — registrados manualmente ou automaticamente ao completar
 // um ciclo de foco do Pomodoro. "topic" é texto livre (assunto dentro da
 // matéria), sem tabela própria: não precisa ser reaproveitado em outro lugar.
+// subjectId é opcional: o Pomodoro não obriga escolher matéria antes de
+// começar — dá pra vincular depois, editando a sessão já registrada.
 export const studySessions = pgTable("study_sessions", {
   id: serial("id").primaryKey(),
-  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  subjectId: integer("subject_id").references(() => subjects.id),
   topic: text("topic"),
   date: date("date").notNull(),
   durationMinutes: integer("duration_minutes").notNull(),
