@@ -12,6 +12,20 @@ export const users = pgTable("users", {
   plan: text("plan").notNull().default("free"),
   planBillingCycle: text("plan_billing_cycle"),
   premiumSince: timestamp("premium_since"),
+
+  // Perfil — todos opcionais, preenchidos depois do cadastro.
+  institution: text("institution"),
+  course: text("course"),
+  birthDate: date("birth_date"), // idade é sempre calculada a partir daqui, nunca armazenada
+  avatarImage: text("avatar_image"), // data URL base64, já redimensionada/comprimida no client
+  linkedinUrl: text("linkedin_url"),
+  githubUrl: text("github_url"),
+  instagramUrl: text("instagram_url"),
+  xUrl: text("x_url"),
+  // Único entre usuários, mas opcional (nulo até o usuário escolher) — usado
+  // futuramente pro sistema de ranking/amigos. Postgres permite múltiplos
+  // NULL num índice unique, então não obriga todo mundo a ter um.
+  username: text("username").unique(),
 });
 
 export const periods = pgTable("periods", {

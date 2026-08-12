@@ -9,6 +9,8 @@ type AuthContextValue = {
   register: (name: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => Promise<AuthUser>;
+  updateProfile: (body: Parameters<typeof authApi.updateProfile>[0]) => Promise<AuthUser>;
+  updateUsername: (username: string) => Promise<AuthUser>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -48,8 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updatedUser;
   };
 
+  const updateProfile = async (body: Parameters<typeof authApi.updateProfile>[0]) => {
+    const updatedUser = await authApi.updateProfile(body);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
+  const updateUsername = async (username: string) => {
+    const updatedUser = await authApi.updateUsername(username);
+    setUser(updatedUser);
+    return updatedUser;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updatePlan }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, updatePlan, updateProfile, updateUsername }}
+    >
       {children}
     </AuthContext.Provider>
   );

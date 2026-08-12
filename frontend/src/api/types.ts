@@ -4,6 +4,15 @@ export type AuthUser = {
   email: string;
   plan: "free" | "premium";
   planBillingCycle: "monthly" | "yearly" | null;
+  institution: string | null;
+  course: string | null;
+  birthDate: string | null;
+  avatarImage: string | null;
+  linkedinUrl: string | null;
+  githubUrl: string | null;
+  instagramUrl: string | null;
+  xUrl: string | null;
+  username: string | null;
 };
 
 export type Period = {

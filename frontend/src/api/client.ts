@@ -63,6 +63,21 @@ export const authApi = {
   me: () => request<AuthUser>("/auth/me"),
   updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) =>
     request<AuthUser>("/auth/me/plan", { method: "PATCH", body: JSON.stringify(body) }),
+  updateProfile: (
+    body: Partial<{
+      name: string;
+      institution: string;
+      course: string;
+      birthDate: string | null;
+      avatarImage: string | null;
+      linkedinUrl: string;
+      githubUrl: string;
+      instagramUrl: string;
+      xUrl: string;
+    }>,
+  ) => request<AuthUser>("/auth/me", { method: "PATCH", body: JSON.stringify(body) }),
+  updateUsername: (username: string) =>
+    request<AuthUser>("/auth/me/username", { method: "PATCH", body: JSON.stringify({ username }) }),
 };
 
 export const offeringsApi = {

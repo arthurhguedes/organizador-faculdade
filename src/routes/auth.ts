@@ -31,6 +31,27 @@ function normalizeEmail(email: string): string {
   return email.toLowerCase().trim();
 }
 
+function toPublicUser(user: typeof schema.users.$inferSelect) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    plan: user.plan,
+    planBillingCycle: user.planBillingCycle,
+    institution: user.institution,
+    course: user.course,
+    birthDate: user.birthDate,
+    avatarImage: user.avatarImage,
+    linkedinUrl: user.linkedinUrl,
+    githubUrl: user.githubUrl,
+    instagramUrl: user.instagramUrl,
+    xUrl: user.xUrl,
+    username: user.username,
+  };
+}
+
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
 router.post("/register", async (req, res) => {
   const { name, email, password } = req.body ?? {};
   if (!name || !email || !password) {
@@ -55,7 +76,7 @@ router.post("/register", async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "30d" });
     res.cookie("token", token, COOKIE_OPTIONS);
-    res.json({ id: user.id, name: user.name, email: user.email, plan: user.plan, planBillingCycle: user.planBillingCycle });
+    res.json(toPublicUser(user));
   } catch (err) {
     if (isUniqueViolation(err)) {
       return res.status(409).json({ message: "Email já cadastrado" });
@@ -84,7 +105,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, { expiresIn: "30d" });
     res.cookie("token", token, COOKIE_OPTIONS);
-    res.json({ id: user.id, name: user.name, email: user.email, plan: user.plan, planBillingCycle: user.planBillingCycle });
+    res.json(toPublicUser(user));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao fazer login" });
@@ -102,7 +123,7 @@ router.get("/me", requireAuth, async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Não autenticado" });
     }
-    res.json({ id: user.id, name: user.name, email: user.email, plan: user.plan, planBillingCycle: user.planBillingCycle });
+    res.json(toPublicUser(user));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao buscar usuário" });
@@ -137,16 +158,86 @@ router.patch("/me/plan", requireAuth, async (req, res) => {
       .where(eq(schema.users.id, req.userId!))
       .returning();
 
-    res.json({
-      id: updated.id,
-      name: updated.name,
-      email: updated.email,
-      plan: updated.plan,
-      planBillingCycle: updated.planBillingCycle,
-    });
+    if (!updated) {
+      return res.status(401).json({ message: "Não autenticado" });
+    }
+    res.json(toPublicUser(updated));
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao atualizar plano" });
+  }
+});
+
+router.patch("/me", requireAuth, async (req, res) => {
+  const { name, institution, course, birthDate, avatarImage, linkedinUrl, githubUrl, instagramUrl, xUrl } =
+    req.body ?? {};
+
+  if (name !== undefined && !String(name).trim()) {
+    return res.status(400).json({ message: "Nome não pode ficar vazio" });
+  }
+  if (birthDate !== undefined && birthDate !== null && Number.isNaN(Date.parse(birthDate))) {
+    return res.status(400).json({ message: "Data de nascimento inválida" });
+  }
+  if (avatarImage !== undefined && avatarImage !== null) {
+    if (typeof avatarImage !== "string" || !avatarImage.startsWith("data:image/")) {
+      return res.status(400).json({ message: "Foto de perfil inválida" });
+    }
+    if (avatarImage.length > 1_500_000) {
+      return res.status(400).json({ message: "Foto de perfil muito grande" });
+    }
+  }
+
+  const fields: Partial<typeof schema.users.$inferInsert> = {};
+  if (name !== undefined) fields.name = name;
+  if (institution !== undefined) fields.institution = institution;
+  if (course !== undefined) fields.course = course;
+  if (birthDate !== undefined) fields.birthDate = birthDate;
+  if (avatarImage !== undefined) fields.avatarImage = avatarImage;
+  if (linkedinUrl !== undefined) fields.linkedinUrl = linkedinUrl;
+  if (githubUrl !== undefined) fields.githubUrl = githubUrl;
+  if (instagramUrl !== undefined) fields.instagramUrl = instagramUrl;
+  if (xUrl !== undefined) fields.xUrl = xUrl;
+
+  try {
+    const [updated] = await db
+      .update(schema.users)
+      .set(fields)
+      .where(eq(schema.users.id, req.userId!))
+      .returning();
+    if (!updated) {
+      return res.status(401).json({ message: "Não autenticado" });
+    }
+    res.json(toPublicUser(updated));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao atualizar perfil" });
+  }
+});
+
+router.patch("/me/username", requireAuth, async (req, res) => {
+  const { username } = req.body ?? {};
+  if (!username || !USERNAME_PATTERN.test(username)) {
+    return res
+      .status(400)
+      .json({ message: "Nome de usuário deve ter 3–20 caracteres: letras minúsculas, números ou _" });
+  }
+
+  try {
+    const [updated] = await db
+      .update(schema.users)
+      .set({ username })
+      .where(eq(schema.users.id, req.userId!))
+      .returning();
+    if (!updated) {
+      return res.status(401).json({ message: "Não autenticado" });
+    }
+    res.json(toPublicUser(updated));
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return res.status(409).json({ message: "Esse nome de usuário já está em uso" });
+    }
+    console.error(err);
+    res.status(500).json({ message: "Erro ao atualizar nome de usuário" });
   }
 });
 
