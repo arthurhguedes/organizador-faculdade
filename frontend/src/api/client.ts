@@ -57,6 +57,8 @@ export const authApi = {
     request<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
   logout: () => request<{ message: string }>("/auth/logout", { method: "POST" }),
   me: () => request<AuthUser>("/auth/me"),
+  updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) =>
+    request<AuthUser>("/auth/me/plan", { method: "PATCH", body: JSON.stringify(body) }),
 };
 
 export const offeringsApi = {

@@ -6,6 +6,12 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Plano da conta. Hoje é trocado manualmente pelo próprio usuário (prévia,
+  // sem cobrança real); quando o pagamento existir de verdade, é essa mesma
+  // coluna que um webhook do provedor vai atualizar.
+  plan: text("plan").notNull().default("free"),
+  planBillingCycle: text("plan_billing_cycle"),
+  premiumSince: timestamp("premium_since"),
 });
 
 export const periods = pgTable("periods", {

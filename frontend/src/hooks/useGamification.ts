@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { periodsApi, professorsApi, subjectsApi, getSubjectDetails } from "../api/client";
+import { useAuth } from "../context/AuthContext";
 import {
   ACHIEVEMENTS,
   computeLevel,
   computeXp,
-  isPremiumPreview,
   recordVisit,
-  setPremiumPreview,
   type AcademicStats,
   type StreakState,
 } from "../lib/gamification";
@@ -20,8 +19,9 @@ const EMPTY_STATS: AcademicStats = {
 };
 
 export function useGamification() {
-  const [premium, setPremium] = useState(isPremiumPreview);
-  const [streak] = useState<StreakState>(() => recordVisit(isPremiumPreview()));
+  const { user } = useAuth();
+  const premium = user?.plan === "premium";
+  const [streak] = useState<StreakState>(() => recordVisit(premium));
   const [stats, setStats] = useState<AcademicStats | null>(null);
 
   useEffect(() => {
@@ -65,12 +65,6 @@ export function useGamification() {
     unlocked: stats !== null && achievement.check(stats, streak),
   }));
 
-  function togglePremiumPreview() {
-    const next = !premium;
-    setPremiumPreview(next);
-    setPremium(next);
-  }
-
   return {
     loading: stats === null,
     streak,
@@ -78,6 +72,5 @@ export function useGamification() {
     level,
     achievements,
     premium,
-    togglePremiumPreview,
   };
 }

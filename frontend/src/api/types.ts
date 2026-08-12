@@ -2,6 +2,8 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
+  plan: "free" | "premium";
+  planBillingCycle: "monthly" | "yearly" | null;
 };
 
 export type Period = {

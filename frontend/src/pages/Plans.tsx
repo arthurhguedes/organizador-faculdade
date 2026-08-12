@@ -2,8 +2,9 @@ import { useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import { Check, Crown, Sparkles } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { useToast } from "../context/ToastContext";
+import { useAuth } from "../context/AuthContext";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
-import { useGamification } from "../hooks/useGamification";
+import { ApiError } from "../api/client";
 import { PageHeader } from "../components/ui/PageHeader";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
@@ -47,8 +48,8 @@ const plans: Plan[] = [
     name: "Premium",
     tagline: "Pra quem quer a faculdade inteira num só painel.",
     icon: Crown,
-    priceMonthly: 14.9,
-    priceYearly: 149,
+    priceMonthly: 20,
+    priceYearly: 192,
     featured: true,
     ctaLabel: "Assinar Premium",
     features: [
@@ -71,15 +72,15 @@ function PlanCard({
   billing,
   index,
   premiumActive,
-  onTogglePremium,
 }: {
   plan: Plan;
   billing: Billing;
   index: number;
   premiumActive: boolean;
-  onTogglePremium: () => void;
 }) {
   const { notify } = useToast();
+  const { updatePlan } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const isPremiumPlan = plan.id === "premium";
 
@@ -107,20 +108,27 @@ function PlanCard({
     card.style.setProperty("--spot-y", "-20%");
   }
 
-  function handleSubscribe() {
+  async function handleSubscribe() {
     if (!isPremiumPlan) {
       notify("Assinaturas ainda não estão disponíveis — essa é só a base visual, pagamento vem depois.", "success");
       return;
     }
 
     const willActivate = !premiumActive;
-    onTogglePremium();
-    notify(
-      willActivate
-        ? "Prévia do Premium ativada — proteção de sequência e XP em dobro já valendo neste navegador."
-        : "Prévia do Premium desativada.",
-      "success",
-    );
+    setSubmitting(true);
+    try {
+      await updatePlan(willActivate ? { plan: "premium", billingCycle: billing } : { plan: "free" });
+      notify(
+        willActivate
+          ? "Prévia do Premium ativada na sua conta — proteção de sequência e XP em dobro já valendo."
+          : "Prévia do Premium desativada.",
+        "success",
+      );
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao atualizar o plano", "error");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -165,7 +173,7 @@ function PlanCard({
 
       {isPremiumPlan && premiumActive && (
         <span className="plan-card__preview-badge">
-          <Badge tone="accent">Prévia ativa neste navegador</Badge>
+          <Badge tone="accent">Prévia ativa na sua conta</Badge>
         </span>
       )}
 
@@ -173,6 +181,8 @@ function PlanCard({
         variant={isPremiumPlan && premiumActive ? "secondary" : plan.featured ? "primary" : "secondary"}
         className="plan-card__cta"
         disabled={plan.ctaDisabled}
+        loading={submitting}
+        loadingText="Atualizando..."
         onClick={handleSubscribe}
       >
         {isPremiumPlan && premiumActive ? "Cancelar prévia Premium" : plan.ctaLabel}
@@ -195,7 +205,8 @@ function PlanCard({
 export function Plans() {
   usePageTitle("Planos");
   const [billing, setBilling] = useState<Billing>("monthly");
-  const { premium, togglePremiumPreview } = useGamification();
+  const { user } = useAuth();
+  const premium = user?.plan === "premium";
 
   return (
     <div className="plans-page">
@@ -225,27 +236,20 @@ export function Plans() {
           onClick={() => setBilling("yearly")}
         >
           Anual
-          <span className="billing-toggle__save">-17%</span>
+          <span className="billing-toggle__save">-20%</span>
         </button>
         <span className={`billing-toggle__thumb billing-toggle__thumb--${billing}`} />
       </div>
 
       <div className="plans-grid">
         {plans.map((plan, index) => (
-          <PlanCard
-            plan={plan}
-            billing={billing}
-            index={index}
-            premiumActive={premium}
-            onTogglePremium={togglePremiumPreview}
-            key={plan.id}
-          />
+          <PlanCard plan={plan} billing={billing} index={index} premiumActive={premium} key={plan.id} />
         ))}
       </div>
 
       <p className="plans-page__disclaimer">
-        Valores ilustrativos — nenhuma cobrança real acontece por aqui. Assinar o Premium já libera de verdade a
-        proteção de sequência e o XP em dobro neste navegador, pra você sentir o efeito antes do pagamento existir.
+        Nenhuma cobrança real acontece por aqui ainda. Assinar o Premium já libera de verdade a proteção de sequência
+        e o XP em dobro na sua conta, pra você sentir o efeito antes do pagamento existir.
       </p>
     </div>
   );
