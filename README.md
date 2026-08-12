@@ -27,7 +27,7 @@ offering_schedules id, offering_id -> course_offerings, weekday, start_time, end
 
 ## Como rodar
 
-Pré-requisitos: Node.js e um banco PostgreSQL (o projeto foi feito usando [Neon](https://neon.tech)).
+Pré-requisitos: Node.js e um banco PostgreSQL próprio — o projeto foi feito usando [Neon](https://neon.tech), que tem plano gratuito: crie uma conta lá, crie um projeto novo e copie a connection string (não dá pra rodar sem um banco seu, mesmo que seja outro Postgres).
 
 ### Back-end
 
