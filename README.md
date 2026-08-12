@@ -35,11 +35,14 @@ Pré-requisitos: Node.js e um banco PostgreSQL (o projeto foi feito usando [Neon
 npm install
 ```
 
-Crie um arquivo `.env` na raiz com a connection string do banco:
+Crie um arquivo `.env` na raiz (veja `.env.example`) com a connection string do banco e um segredo pra assinar os tokens de login:
 
 ```
 DATABASE_URL=postgresql://usuario:senha@host/banco?sslmode=require
+JWT_SECRET=qualquer-string-aleatoria-longa
 ```
+
+`JWT_SECRET` é obrigatório — sem ele, criar conta e logar falham com erro 500. `FRONTEND_URL` é opcional em dev (default `http://localhost:5173`); só precisa ser setado em produção, com a URL do front-end.
 
 Se as tabelas ainda não existirem no banco, gere e aplique as migrations do Drizzle:
 
