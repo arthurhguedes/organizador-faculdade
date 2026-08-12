@@ -26,13 +26,6 @@ const DEFAULT_WEEKDAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sá
 const FALLBACK_START_MIN = 8 * 60;
 const FALLBACK_END_MIN = 22 * 60;
 
-// Breathing room (in minutes) kept above the earliest class and below the
-// latest one before rounding out to the enclosing hour.
-const RANGE_PADDING_MIN = 20;
-
-const PX_PER_MIN = 0.82;
-const MIN_BODY_HEIGHT = 340;
-
 export type WeeklyGridBlock = {
   id: string | number;
   label: string;
@@ -60,20 +53,12 @@ function formatTimeRange(startTime: string, endTime: string): string {
   return `${startTime.slice(0, 5)}–${endTime.slice(0, 5)}`;
 }
 
-// The grid's time span hugs the classes it actually needs to show — from a
-// bit before the earliest start to a bit after the latest end, rounded out
-// to the hour — instead of a fixed 07h–23h span that leaves dead space on
-// lighter schedules.
-function getTimeRange(blocks: WeeklyGridBlock[]): { startMin: number; endMin: number } {
-  if (blocks.length === 0) return { startMin: FALLBACK_START_MIN, endMin: FALLBACK_END_MIN };
-
-  const earliestStart = Math.min(...blocks.map((b) => toMinutes(b.startTime)));
-  const latestEnd = Math.max(...blocks.map((b) => toMinutes(b.endTime)));
-
-  const startMin = Math.max(0, Math.floor((earliestStart - RANGE_PADDING_MIN) / 60) * 60);
-  const endMin = Math.min(24 * 60, Math.ceil((latestEnd + RANGE_PADDING_MIN) / 60) * 60);
-
-  return { startMin, endMin };
+function formatHourLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const m = (minutes % 60).toString().padStart(2, "0");
+  return `${h}:${m}`;
 }
 
 // Collapses consecutive blocks of the same subject/turma on the same day
@@ -154,26 +139,73 @@ function layoutDay(blocks: WeeklyGridBlock[]): LaidOutBlock[] {
   return result;
 }
 
-function formatHourLabel(minutes: number): string {
-  const h = Math.floor(minutes / 60)
-    .toString()
-    .padStart(2, "0");
-  const m = (minutes % 60).toString().padStart(2, "0");
-  return `${h}:${m}`;
+type Row = { startMin: number; endMin: number; hasClass: boolean };
+
+// Every row — whether it holds a class or not — gets this same height. A
+// 10min gap between two periods and a 90min lunch break both read as "one
+// row", and an hour of class reads the same width as an hour of nothing:
+// a real "grade de horários" table, not a clock rendered to scale.
+const ROW_HEIGHT_PX = 56;
+// Rows always reach at least this late, in plain hourly slots, so the
+// evening has room on the grid even on a semester with no night classes.
+const EVENING_CUTOFF_MIN = 22 * 60;
+
+function nextRoundHour(minutes: number): number {
+  const rounded = Math.ceil(minutes / 60) * 60;
+  return rounded > minutes ? rounded : minutes + 60;
 }
 
-// The gutter — and the ruled lines behind every day column — mark clean,
-// round hours instead of each block's exact start time, so the axis stays
-// legible and evenly spaced no matter how the actual classes line up.
-// Blocks are still positioned by their real minutes, so they read precisely
-// against this ruler without needing a line drawn at their own edges.
-function getHourMarks(range: { startMin: number; endMin: number }) {
-  const span = range.endMin - range.startMin;
-  const marks: { minutes: number; label: string; percent: number }[] = [];
-  for (let minutes = range.startMin; minutes <= range.endMin; minutes += 60) {
-    marks.push({ minutes, label: formatHourLabel(minutes), percent: ((minutes - range.startMin) / span) * 100 });
+// Turns the week's classes into a fixed row table: every distinct start/end
+// time anyone's class uses becomes a row boundary (so a block always spans
+// whole rows, never a fraction of one), rows with no class anywhere in the
+// week that day are marked as such, and the table is padded out with plain
+// hourly rows through the evening.
+function buildRows(mergedBlocks: WeeklyGridBlock[]): Row[] {
+  if (mergedBlocks.length === 0) {
+    const rows: Row[] = [];
+    for (let m = FALLBACK_START_MIN; m < FALLBACK_END_MIN; m += 60) {
+      rows.push({ startMin: m, endMin: Math.min(m + 60, FALLBACK_END_MIN), hasClass: false });
+    }
+    return rows;
   }
-  return marks;
+
+  const boundarySet = new Set<number>();
+  for (const block of mergedBlocks) {
+    boundarySet.add(toMinutes(block.startTime));
+    boundarySet.add(toMinutes(block.endTime));
+  }
+  const boundaries = [...boundarySet].sort((a, b) => a - b);
+
+  const rows: Row[] = [];
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const startMin = boundaries[i];
+    const endMin = boundaries[i + 1];
+    const hasClass = mergedBlocks.some((b) => toMinutes(b.startTime) <= startMin && toMinutes(b.endTime) >= endMin);
+    rows.push({ startMin, endMin, hasClass });
+  }
+
+  let cursor = boundaries[boundaries.length - 1];
+  while (cursor < EVENING_CUTOFF_MIN) {
+    const next = Math.min(nextRoundHour(cursor), EVENING_CUTOFF_MIN);
+    rows.push({ startMin: cursor, endMin: next, hasClass: false });
+    cursor = next;
+  }
+
+  return rows;
+}
+
+// A block's start/end are always exact row boundaries by construction, so
+// this only ever walks forward to find how many whole rows it spans.
+function findRowSpan(block: WeeklyGridBlock, rows: Row[]): { top: number; height: number } {
+  const blockStart = toMinutes(block.startTime);
+  const blockEnd = toMinutes(block.endTime);
+  const startIdx = rows.findIndex((row) => row.startMin === blockStart);
+  if (startIdx === -1) return { top: 0, height: ROW_HEIGHT_PX };
+
+  let endIdx = startIdx;
+  while (endIdx < rows.length - 1 && rows[endIdx].endMin < blockEnd) endIdx++;
+
+  return { top: startIdx * ROW_HEIGHT_PX, height: (endIdx - startIdx + 1) * ROW_HEIGHT_PX };
 }
 
 export function WeeklyGrid({
@@ -183,10 +215,9 @@ export function WeeklyGrid({
   blocks: WeeklyGridBlock[];
   weekdays?: string[];
 }) {
-  const range = useMemo(() => getTimeRange(blocks), [blocks]);
-  const span = range.endMin - range.startMin;
-  const timeMarks = useMemo(() => getHourMarks(range), [range]);
-  const bodyHeight = Math.max(MIN_BODY_HEIGHT, Math.round(span * PX_PER_MIN));
+  const mergedBlocks = useMemo(() => mergeAdjacentBlocks(blocks), [blocks]);
+  const rows = useMemo(() => buildRows(mergedBlocks), [mergedBlocks]);
+  const bodyHeight = rows.length * ROW_HEIGHT_PX;
 
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -196,17 +227,20 @@ export function WeeklyGrid({
 
   const todayWeekday = WEEKDAY_BY_JS_DAY[now.getDay()];
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
-  const showNowLine = weekdays.includes(todayWeekday) && nowMinutes >= range.startMin && nowMinutes <= range.endMin;
-  const nowTop = ((nowMinutes - range.startMin) / span) * 100;
+  const nowRowIndex = rows.findIndex((row) => nowMinutes >= row.startMin && nowMinutes < row.endMin);
+  const showNowLine = weekdays.includes(todayWeekday) && nowRowIndex !== -1;
+  const nowTop = showNowLine
+    ? nowRowIndex * ROW_HEIGHT_PX +
+      ((nowMinutes - rows[nowRowIndex].startMin) / (rows[nowRowIndex].endMin - rows[nowRowIndex].startMin)) * ROW_HEIGHT_PX
+    : 0;
 
   const blocksByDay = useMemo(() => {
     const map = new Map<string, LaidOutBlock[]>();
     for (const day of weekdays) {
-      const dayBlocks = mergeAdjacentBlocks(blocks.filter((block) => block.weekday === day));
-      map.set(day, layoutDay(dayBlocks));
+      map.set(day, layoutDay(mergedBlocks.filter((block) => block.weekday === day)));
     }
     return map;
-  }, [blocks, weekdays]);
+  }, [mergedBlocks, weekdays]);
 
   return (
     <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
@@ -221,10 +255,14 @@ export function WeeklyGrid({
       ))}
 
       <div className="weekly-grid__gutter" style={{ height: `${bodyHeight}px` }}>
-        {timeMarks.map((mark) => (
-          <span key={mark.minutes} className="weekly-grid__hour-label" style={{ top: `${mark.percent}%` }}>
-            {mark.label}
-          </span>
+        {rows.map((row, index) => (
+          <div
+            key={row.startMin}
+            className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
+            style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
+          >
+            <span className="weekly-grid__hour-label">{formatHourLabel(row.startMin)}</span>
+          </div>
         ))}
       </div>
 
@@ -234,13 +272,16 @@ export function WeeklyGrid({
           className={`weekly-grid__day-body${day === todayWeekday ? " weekly-grid__day-body--today" : ""}`}
           style={{ height: `${bodyHeight}px` }}
         >
-          {timeMarks.map((mark) => (
-            <div key={mark.minutes} className="weekly-grid__rule" style={{ top: `${mark.percent}%` }} />
+          {rows.map((row, index) => (
+            <div
+              key={row.startMin}
+              className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
+              style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
+            />
           ))}
 
           {(blocksByDay.get(day) ?? []).map((block) => {
-            const top = ((toMinutes(block.startTime) - range.startMin) / span) * 100;
-            const height = ((toMinutes(block.endTime) - toMinutes(block.startTime)) / span) * 100;
+            const { top, height } = findRowSpan(block, rows);
             const width = 100 / block.cols;
             const left = block.col * width;
             const timeRange = formatTimeRange(block.startTime, block.endTime);
@@ -250,8 +291,8 @@ export function WeeklyGrid({
                 key={block.id}
                 className={`weekly-grid__block weekly-grid__block--${block.tone ?? "accent"}`}
                 style={{
-                  top: `${top}%`,
-                  height: `${Math.max(height, 3)}%`,
+                  top: `${top}px`,
+                  height: `${height}px`,
                   left: `calc(${left}% + 2px)`,
                   width: `calc(${width}% - 4px)`,
                 }}
@@ -267,7 +308,7 @@ export function WeeklyGrid({
           })}
 
           {day === todayWeekday && showNowLine && (
-            <div className="weekly-grid__now-line" style={{ top: `${nowTop}%` }}>
+            <div className="weekly-grid__now-line" style={{ top: `${nowTop}px` }}>
               <span className="weekly-grid__now-dot" />
             </div>
           )}

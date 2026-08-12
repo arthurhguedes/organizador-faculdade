@@ -2018,21 +2018,6 @@
   background: var(--bg-elevated);
 }
 
-.weekly-grid__hour-label {
-  position: absolute;
-  right: var(--space-1);
-  transform: translateY(-50%);
-  padding: 1px 3px;
-  font-size: 10px;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-secondary);
-  font-weight: 600;
-  white-space: nowrap;
-  background: var(--bg-elevated);
-  border-radius: 3px;
-}
-
 .weekly-grid__day-body {
   position: relative;
   background: var(--bg-elevated);
@@ -2042,13 +2027,32 @@
   background-color: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
 }
 
-.weekly-grid__rule {
+/* One fixed-height row per period boundary the week's classes actually use
+   (plus plain hourly rows through the evening) — a real "grade de horários"
+   table rather than a clock rendered to scale, so a 10min break and a
+   90min lunch gap both read as "one row", not wildly different heights. */
+.weekly-grid__row {
   position: absolute;
   left: 0;
   right: 0;
-  height: 0;
   border-top: 1px solid var(--border);
   pointer-events: none;
+}
+
+.weekly-grid__row--empty {
+  background: var(--bg-inset);
+}
+
+.weekly-grid__hour-label {
+  display: block;
+  padding: 3px 6px 0 0;
+  text-align: right;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .weekly-grid__block {
