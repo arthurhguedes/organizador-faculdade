@@ -1,4 +1,4 @@
-import { pgTable, serial, text, date, integer, real, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, integer, real, timestamp, boolean } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -65,6 +65,29 @@ export const exams = pgTable("exams", {
   date: date("date").notNull(),
   weight: real("weight").notNull(),
   grade: real("grade"),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
+// Blocos de estudo — registrados manualmente ou automaticamente ao completar
+// um ciclo de foco do Pomodoro. "topic" é texto livre (assunto dentro da
+// matéria), sem tabela própria: não precisa ser reaproveitado em outro lugar.
+export const studySessions = pgTable("study_sessions", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  topic: text("topic"),
+  date: date("date").notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  source: text("source").notNull(), // "pomodoro" | "manual"
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
+// Anotações diárias soltas (ex: coisas para estudar) — múltiplas por dia,
+// estilo checklist. Sem vínculo com matéria: são notas gerais do dia.
+export const dailyNotes = pgTable("daily_notes", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  content: text("content").notNull(),
+  done: boolean("done").notNull().default(false),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

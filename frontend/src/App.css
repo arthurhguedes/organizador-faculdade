@@ -2903,3 +2903,233 @@
 .auth-card__footer a:hover {
   text-decoration: underline;
 }
+
+/* ---------- Estudos: Pomodoro ---------- */
+
+.pomodoro {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.pomodoro__dots {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.pomodoro__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border-strong);
+}
+
+.pomodoro__dot[data-filled="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.pomodoro__phase {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.pomodoro__phase--focus {
+  color: var(--accent);
+}
+
+.pomodoro__clock {
+  font-family: var(--font-mono);
+  font-size: 3.25rem;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.pomodoro__progress {
+  width: 100%;
+  max-width: 280px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.pomodoro__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 1s linear;
+}
+
+.pomodoro__controls {
+  display: flex;
+  gap: var(--space-3);
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.pomodoro__setup {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 420px;
+}
+
+.pomodoro__hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+  max-width: 320px;
+}
+
+.pomodoro__durations {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  width: 100%;
+  max-width: 420px;
+  justify-content: center;
+}
+
+.field--tiny {
+  flex: 0 1 100px;
+}
+
+.field--tiny .field__input {
+  text-align: center;
+}
+
+/* ---------- Estudos: horas por matéria ---------- */
+
+.study-totals {
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.study-totals__summary {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-4);
+}
+
+.study-totals__summary strong {
+  color: var(--text);
+}
+
+.study-totals__row {
+  display: grid;
+  grid-template-columns: minmax(0, 160px) 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.study-totals__label {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.study-totals__bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.study-totals__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.study-totals__value {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* ---------- Estudos: anotações do dia ---------- */
+
+.daily-notes__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.daily-notes__date {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  min-width: 6ch;
+  text-align: center;
+}
+
+.daily-notes__form {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.daily-notes__form .field__input {
+  flex: 1;
+}
+
+.daily-notes__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.daily-notes__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.daily-notes__checkbox {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  cursor: pointer;
+}
+
+.daily-notes__item[data-done="true"] .daily-notes__checkbox {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.daily-notes__content {
+  flex: 1;
+  font-size: var(--text-sm);
+}
+
+.daily-notes__item[data-done="true"] .daily-notes__content {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}

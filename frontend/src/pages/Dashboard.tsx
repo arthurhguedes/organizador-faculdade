@@ -1,22 +1,27 @@
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight } from "lucide-react";
+import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import { useGamification } from "../hooks/useGamification";
+import { useToast } from "../context/ToastContext";
 import { subjectAverage, formatGrade, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
+import { assignmentsApi, examsApi, ApiError } from "../api/client";
 import type { SubjectDetails } from "../api/types";
 import type { CSSProperties } from "react";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonCards, SkeletonRows } from "../components/ui/Skeleton";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { Field } from "../components/ui/Field";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { PeriodFilterMenu, describePeriodSelection } from "../components/dashboard/PeriodFilterMenu";
 import { ProgressBoard } from "../components/gamification/ProgressBoard";
+
+type QuickAddKind = "assignment" | "exam";
 
 function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; index: number }) {
   const average = subjectAverage(subject.assignments, subject.exams);
@@ -83,9 +88,44 @@ export function Dashboard() {
     });
   }
 
-  const { subjects, upcoming, loading, error } = useDashboardData(
+  const { subjects, upcoming, loading, error, refresh } = useDashboardData(
     filterPeriodIds ? Array.from(filterPeriodIds) : [],
   );
+  const { notify } = useToast();
+
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [quickAddKind, setQuickAddKind] = useState<QuickAddKind>("assignment");
+  const [quickAddSubjectId, setQuickAddSubjectId] = useState("");
+  const [quickAddTitle, setQuickAddTitle] = useState("");
+  const [quickAddDate, setQuickAddDate] = useState("");
+  const [quickAddWeight, setQuickAddWeight] = useState("");
+  const [quickAddSaving, setQuickAddSaving] = useState(false);
+
+  const handleQuickAddSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickAddSubjectId || !quickAddTitle || !quickAddDate || !quickAddWeight) return;
+    setQuickAddSaving(true);
+    try {
+      const subjectId = Number(quickAddSubjectId);
+      if (quickAddKind === "assignment") {
+        await assignmentsApi.create({ subjectId, title: quickAddTitle, dueDate: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        notify("Atividade adicionada", "success");
+      } else {
+        await examsApi.create({ subjectId, title: quickAddTitle, date: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        notify("Prova adicionada", "success");
+      }
+      setQuickAddTitle("");
+      setQuickAddDate("");
+      setQuickAddWeight("");
+      setQuickAddSubjectId("");
+      setQuickAddOpen(false);
+      refresh();
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao adicionar", "error");
+    } finally {
+      setQuickAddSaving(false);
+    }
+  };
 
   if (!periodsLoading && periods.length === 0) {
     return (
@@ -187,7 +227,49 @@ export function Dashboard() {
       <section className="dashboard__section">
         <div className="dashboard__section-header">
           <h3>Próximas atividades e provas</h3>
+          {subjects.length > 0 && (
+            <Button variant="ghost" icon={quickAddOpen ? X : Plus} onClick={() => setQuickAddOpen((v) => !v)}>
+              {quickAddOpen ? "Cancelar" : "Nova"}
+            </Button>
+          )}
         </div>
+
+        {quickAddOpen && (
+          <form className="inline-form" onSubmit={handleQuickAddSubmit}>
+            <label className="field">
+              <span className="field__label">Tipo</span>
+              <select className="field__input" value={quickAddKind} onChange={(e) => setQuickAddKind(e.target.value as QuickAddKind)}>
+                <option value="assignment">Atividade</option>
+                <option value="exam">Prova</option>
+              </select>
+            </label>
+            <label className="field">
+              <span className="field__label">Matéria</span>
+              <select className="field__input" value={quickAddSubjectId} onChange={(e) => setQuickAddSubjectId(e.target.value)} required>
+                <option value="" disabled>
+                  Selecione
+                </option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field label="Título" value={quickAddTitle} onChange={(e) => setQuickAddTitle(e.target.value)} required />
+            <Field
+              label={quickAddKind === "assignment" ? "Entrega" : "Data"}
+              type="date"
+              value={quickAddDate}
+              onChange={(e) => setQuickAddDate(e.target.value)}
+              required
+            />
+            <Field label="Peso" type="number" step="any" min="0" value={quickAddWeight} onChange={(e) => setQuickAddWeight(e.target.value)} required />
+            <Button type="submit" variant="primary" loading={quickAddSaving}>
+              Salvar
+            </Button>
+          </form>
+        )}
 
         {loading ? (
           <SkeletonRows rows={4} />

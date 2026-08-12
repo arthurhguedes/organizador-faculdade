@@ -54,6 +54,22 @@ export type Exam = {
   grade: number | null;
 };
 
+export type StudySession = {
+  id: number;
+  subjectId: number;
+  topic: string | null;
+  date: string;
+  durationMinutes: number;
+  source: "pomodoro" | "manual";
+};
+
+export type DailyNote = {
+  id: number;
+  date: string;
+  content: string;
+  done: boolean;
+};
+
 export type SubjectDetails = Subject & {
   schedules: Schedule[];
   assignments: Assignment[];

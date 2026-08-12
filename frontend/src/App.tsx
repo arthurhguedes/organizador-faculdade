@@ -17,6 +17,7 @@ import { Periods } from "./pages/Periods";
 import { Professors } from "./pages/Professors";
 import { ProfessorDetail } from "./pages/ProfessorDetail";
 import { Evaluations } from "./pages/Evaluations";
+import { Studies } from "./pages/Studies";
 import { FacultyProfessors } from "./pages/FacultyProfessors";
 import { Plans } from "./pages/Plans";
 import { Profile } from "./pages/Profile";
@@ -53,6 +54,7 @@ export default function App() {
                     <Route path="materias" element={<Subjects />} />
                     <Route path="materias/:id" element={<SubjectDetail />} />
                     <Route path="avaliacoes" element={<Evaluations />} />
+                    <Route path="estudos" element={<Studies />} />
                     <Route path="periodos" element={<Periods />} />
                     <Route path="professores" element={<Professors />} />
                     <Route path="professores/:id" element={<ProfessorDetail />} />

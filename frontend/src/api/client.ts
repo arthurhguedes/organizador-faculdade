@@ -1,11 +1,13 @@
 import type {
   Assignment,
   AuthUser,
+  DailyNote,
   Exam,
   Offering,
   Period,
   Professor,
   Schedule,
+  StudySession,
   Subject,
   SubjectDetails,
 } from "./types";
@@ -46,6 +48,8 @@ export const subjectsApi = crud<Subject, Omit<Subject, "id">>("subjects");
 export const schedulesApi = crud<Schedule, Omit<Schedule, "id">>("schedules");
 export const assignmentsApi = crud<Assignment, Omit<Assignment, "id">>("assignments");
 export const examsApi = crud<Exam, Omit<Exam, "id">>("exams");
+export const studySessionsApi = crud<StudySession, Omit<StudySession, "id">>("study-sessions");
+export const dailyNotesApi = crud<DailyNote, Omit<DailyNote, "id">>("daily-notes");
 
 export const getSubjectDetails = (id: number) =>
   request<SubjectDetails>(`/subjects/${id}/details`);

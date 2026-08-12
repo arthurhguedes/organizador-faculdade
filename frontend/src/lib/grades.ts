@@ -31,6 +31,12 @@ export function isOverdue(dateStr: string): boolean {
   return new Date(dateStr) < new Date(new Date().toDateString());
 }
 
+export function todayISO(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset();
+  return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 10);
+}
+
 export function relativeDayLabel(dateStr: string): string | null {
   const target = new Date(dateStr);
   const today = new Date(new Date().toDateString());

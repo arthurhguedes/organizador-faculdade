@@ -16,6 +16,7 @@ export function useDashboardData(periodIds: number[]) {
   const [subjects, setSubjects] = useState<SubjectDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
   const periodIdsKey = periodIds.slice().sort((a, b) => a - b).join(",");
 
   useEffect(() => {
@@ -48,7 +49,7 @@ export function useDashboardData(periodIds: number[]) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodIdsKey]);
+  }, [periodIdsKey, version]);
 
   const upcoming: UpcomingItem[] = subjects
     .flatMap((subject) => [
@@ -73,5 +74,5 @@ export function useDashboardData(periodIds: number[]) {
     ])
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  return { subjects, upcoming, loading, error };
+  return { subjects, upcoming, loading, error, refresh: () => setVersion((v) => v + 1) };
 }
