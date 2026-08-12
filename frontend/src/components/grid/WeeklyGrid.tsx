@@ -45,6 +45,12 @@ export type WeeklyGridBlock = {
 
 type LaidOutBlock = WeeklyGridBlock & { col: number; cols: number };
 
+// UFOP schedules classes in back-to-back 50min periods (e.g. 08:20–09:10 +
+// 09:20–10:10) that are really a single class session with a short break
+// baked into the two DB rows. Anything within this gap, same subject/day,
+// gets merged into one visual block instead of rendering as two stacked ones.
+const MERGE_GAP_MIN = 20;
+
 function toMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
@@ -68,6 +74,36 @@ function getTimeRange(blocks: WeeklyGridBlock[]): { startMin: number; endMin: nu
   const endMin = Math.min(24 * 60, Math.ceil((latestEnd + RANGE_PADDING_MIN) / 60) * 60);
 
   return { startMin, endMin };
+}
+
+// Collapses consecutive blocks of the same subject/turma on the same day
+// into one when the gap between them is small, so a paired class shows up
+// as a single "08:20–10:10" block instead of two separate ones with a seam.
+function mergeAdjacentBlocks(blocks: WeeklyGridBlock[]): WeeklyGridBlock[] {
+  const groups = new Map<string, WeeklyGridBlock[]>();
+  for (const block of blocks) {
+    const key = `${block.weekday}|${block.label}|${block.sublabel ?? ""}|${block.tone ?? "accent"}`;
+    const group = groups.get(key);
+    if (group) group.push(block);
+    else groups.set(key, [block]);
+  }
+
+  const merged: WeeklyGridBlock[] = [];
+  for (const group of groups.values()) {
+    const sorted = [...group].sort((a, b) => toMinutes(a.startTime) - toMinutes(b.startTime));
+    let current = sorted[0];
+    for (let i = 1; i < sorted.length; i++) {
+      const next = sorted[i];
+      if (toMinutes(next.startTime) - toMinutes(current.endTime) <= MERGE_GAP_MIN) {
+        current = { ...current, endTime: next.endTime };
+      } else {
+        merged.push(current);
+        current = next;
+      }
+    }
+    merged.push(current);
+  }
+  return merged;
 }
 
 // Sweeps each day's blocks left-to-right in time order, packing overlapping
@@ -118,37 +154,26 @@ function layoutDay(blocks: WeeklyGridBlock[]): LaidOutBlock[] {
   return result;
 }
 
-// Minimum vertical gap (in % of the grid's time span) between two marks
-// before the later one is dropped, so two classes starting a few minutes
-// apart don't render overlapping ruled lines/labels.
-const MIN_MARK_GAP_PERCENT = 5;
+function formatHourLabel(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const m = (minutes % 60).toString().padStart(2, "0");
+  return `${h}:${m}`;
+}
 
-// The gutter — and the ruled lines behind every day column — mark the exact
-// start time of every scheduled block instead of a generic hourly ruler, so
-// "starts at 8:20" reads as "8:20" on a line that's actually at 8:20, not a
-// guess at where 8:20 falls between two round hours.
-function getTimeMarks(blocks: WeeklyGridBlock[], range: { startMin: number; endMin: number }) {
+// The gutter — and the ruled lines behind every day column — mark clean,
+// round hours instead of each block's exact start time, so the axis stays
+// legible and evenly spaced no matter how the actual classes line up.
+// Blocks are still positioned by their real minutes, so they read precisely
+// against this ruler without needing a line drawn at their own edges.
+function getHourMarks(range: { startMin: number; endMin: number }) {
   const span = range.endMin - range.startMin;
-  const uniqueMinutes = new Map<number, string>();
-  for (const block of blocks) {
-    const minutes = toMinutes(block.startTime);
-    if (minutes < range.startMin || minutes > range.endMin) continue;
-    if (!uniqueMinutes.has(minutes)) uniqueMinutes.set(minutes, block.startTime.slice(0, 5));
+  const marks: { minutes: number; label: string; percent: number }[] = [];
+  for (let minutes = range.startMin; minutes <= range.endMin; minutes += 60) {
+    marks.push({ minutes, label: formatHourLabel(minutes), percent: ((minutes - range.startMin) / span) * 100 });
   }
-
-  const sorted = [...uniqueMinutes.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([minutes, label]) => ({ minutes, label, percent: ((minutes - range.startMin) / span) * 100 }));
-
-  const spaced: typeof sorted = [];
-  let lastPercent = -Infinity;
-  for (const mark of sorted) {
-    if (mark.percent - lastPercent < MIN_MARK_GAP_PERCENT) continue;
-    spaced.push(mark);
-    lastPercent = mark.percent;
-  }
-
-  return spaced;
+  return marks;
 }
 
 export function WeeklyGrid({
@@ -160,7 +185,7 @@ export function WeeklyGrid({
 }) {
   const range = useMemo(() => getTimeRange(blocks), [blocks]);
   const span = range.endMin - range.startMin;
-  const timeMarks = useMemo(() => getTimeMarks(blocks, range), [blocks, range]);
+  const timeMarks = useMemo(() => getHourMarks(range), [range]);
   const bodyHeight = Math.max(MIN_BODY_HEIGHT, Math.round(span * PX_PER_MIN));
 
   const [now, setNow] = useState(() => new Date());
@@ -177,7 +202,8 @@ export function WeeklyGrid({
   const blocksByDay = useMemo(() => {
     const map = new Map<string, LaidOutBlock[]>();
     for (const day of weekdays) {
-      map.set(day, layoutDay(blocks.filter((block) => block.weekday === day)));
+      const dayBlocks = mergeAdjacentBlocks(blocks.filter((block) => block.weekday === day));
+      map.set(day, layoutDay(dayBlocks));
     }
     return map;
   }, [blocks, weekdays]);
