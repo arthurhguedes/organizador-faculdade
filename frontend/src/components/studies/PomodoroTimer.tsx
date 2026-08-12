@@ -75,6 +75,11 @@ export function PomodoroTimer({
     setSecondsLeft(breakMin * 60);
   };
 
+  const skipToFocus = () => {
+    setPhase("focus");
+    setSecondsLeft(focusMin * 60);
+  };
+
   const progressPct = ((phaseDuration * 60 - secondsLeft) / (phaseDuration * 60)) * 100;
 
   return (
@@ -102,9 +107,13 @@ export function PomodoroTimer({
         <Button variant="ghost" icon={RotateCcw} onClick={handleReset}>
           Reiniciar
         </Button>
-        {phase === "focus" && (
+        {phase === "focus" ? (
           <Button variant="ghost" icon={SkipForward} onClick={skipToBreak}>
             Pular pro descanso
+          </Button>
+        ) : (
+          <Button variant="ghost" icon={SkipForward} onClick={skipToFocus}>
+            Voltar pro foco
           </Button>
         )}
       </div>
