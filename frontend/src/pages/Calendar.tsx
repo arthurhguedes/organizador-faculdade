@@ -13,7 +13,7 @@ import { Button } from "../components/ui/Button";
 export function Calendar() {
   usePageTitle("Calendário");
   const { selectedPeriod, selectedPeriodId, periods, loading: periodsLoading } = usePeriods();
-  const { subjects, loading } = useDashboardData(selectedPeriodId);
+  const { subjects, loading } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
 
   if (!periodsLoading && periods.length === 0) {
     return (

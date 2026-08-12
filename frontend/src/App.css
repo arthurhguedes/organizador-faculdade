@@ -1093,6 +1093,80 @@
   font-size: var(--text-md);
 }
 
+.dashboard__section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ---------- Period filter (dashboard) ---------- */
+
+.period-filter {
+  position: relative;
+}
+
+.period-filter__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.period-filter__trigger:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.period-filter__panel {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 200px;
+  padding: var(--space-2);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+}
+
+.period-filter__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.period-filter__option:hover {
+  background: var(--bg-hover);
+}
+
+.period-filter__option--all {
+  font-weight: 600;
+}
+
+.period-filter__option input {
+  accent-color: var(--accent);
+}
+
+.period-filter__divider {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--border);
+}
+
 .progress-row {
   display: flex;
   align-items: center;
@@ -2248,6 +2322,10 @@
 
   .notif-panel {
     width: min(360px, calc(100vw - var(--space-8)));
+  }
+
+  .period-filter__panel {
+    width: min(240px, calc(100vw - var(--space-8)));
   }
 
   .streak-chip span {

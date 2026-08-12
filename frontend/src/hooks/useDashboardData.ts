@@ -12,18 +12,20 @@ export type UpcomingItem = {
   grade: number | null;
 };
 
-export function useDashboardData(periodId: number | null) {
+export function useDashboardData(periodIds: number[]) {
   const [subjects, setSubjects] = useState<SubjectDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const periodIdsKey = periodIds.slice().sort((a, b) => a - b).join(",");
 
   useEffect(() => {
-    if (periodId === null) {
+    if (periodIdsKey === "") {
       setSubjects([]);
       setLoading(false);
       return;
     }
 
+    const wantedPeriodIds = new Set(periodIdsKey.split(",").map(Number));
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -31,7 +33,7 @@ export function useDashboardData(periodId: number | null) {
     subjectsApi
       .list()
       .then(async (all) => {
-        const periodSubjects = all.filter((s) => s.periodId === periodId);
+        const periodSubjects = all.filter((s) => wantedPeriodIds.has(s.periodId));
         const details = await Promise.all(periodSubjects.map((s) => getSubjectDetails(s.id)));
         if (!cancelled) setSubjects(details);
       })
@@ -45,7 +47,8 @@ export function useDashboardData(periodId: number | null) {
     return () => {
       cancelled = true;
     };
-  }, [periodId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodIdsKey]);
 
   const upcoming: UpcomingItem[] = subjects
     .flatMap((subject) => [

@@ -8,7 +8,7 @@ import { Badge } from "../ui/Badge";
 
 export function NotificationBell() {
   const { selectedPeriodId } = usePeriods();
-  const { upcoming } = useDashboardData(selectedPeriodId);
+  const { upcoming } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { BookOpen, CalendarClock, ClipboardList, Flame, Plus, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
@@ -14,6 +15,7 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
+import { PeriodFilterMenu, describePeriodSelection } from "../components/dashboard/PeriodFilterMenu";
 
 function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; index: number }) {
   const average = subjectAverage(subject.assignments, subject.exams);
@@ -45,9 +47,44 @@ function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; ind
 
 export function Dashboard() {
   usePageTitle("Dashboard");
-  const { selectedPeriod, selectedPeriodId, loading: periodsLoading, periods } = usePeriods();
-  const { subjects, upcoming, loading, error } = useDashboardData(selectedPeriodId);
+  const { selectedPeriodId, loading: periodsLoading, periods } = usePeriods();
   const { streak, xp, level, loading: gamificationLoading } = useGamification();
+
+  const [filterPeriodIds, setFilterPeriodIds] = useState<Set<number> | null>(null);
+
+  useEffect(() => {
+    if (filterPeriodIds !== null || periodsLoading || periods.length === 0) return;
+    setFilterPeriodIds(new Set([selectedPeriodId ?? periods[0].id]));
+  }, [filterPeriodIds, periodsLoading, periods, selectedPeriodId]);
+
+  function toggleFilterPeriod(id: number) {
+    setFilterPeriodIds((prev) => {
+      if (!prev) return prev;
+      const next = new Set(prev);
+      if (next.has(id)) {
+        if (next.size === 1) return prev;
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function toggleAllFilterPeriods() {
+    setFilterPeriodIds((prev) => {
+      if (!prev) return prev;
+      if (prev.size === periods.length) {
+        const [first] = prev;
+        return new Set([first]);
+      }
+      return new Set(periods.map((p) => p.id));
+    });
+  }
+
+  const { subjects, upcoming, loading, error } = useDashboardData(
+    filterPeriodIds ? Array.from(filterPeriodIds) : [],
+  );
 
   if (!periodsLoading && periods.length === 0) {
     return (
@@ -120,10 +157,22 @@ export function Dashboard() {
 
       <section className="dashboard__section">
         <div className="dashboard__section-header">
-          <h3>Matérias de {selectedPeriod?.label ?? "..."}</h3>
-          <Link to="/materias" className="link-with-icon">
-            Ver todas <ArrowRight size={14} strokeWidth={2} />
-          </Link>
+          <h3>
+            Matérias de {filterPeriodIds ? describePeriodSelection(periods, filterPeriodIds) : "..."}
+          </h3>
+          <div className="dashboard__section-actions">
+            {filterPeriodIds && (
+              <PeriodFilterMenu
+                periods={periods}
+                selectedIds={filterPeriodIds}
+                onToggle={toggleFilterPeriod}
+                onToggleAll={toggleAllFilterPeriods}
+              />
+            )}
+            <Link to="/materias" className="link-with-icon">
+              Ver todas <ArrowRight size={14} strokeWidth={2} />
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -180,9 +229,10 @@ export function Dashboard() {
                 <span className="upcoming-item__subject">{item.subjectName}</span>
                 <span className="upcoming-item__date">
                   {formatDate(item.date)}
-                  {isOverdue(item.date) ? (
+                  {item.grade === null && isOverdue(item.date) ? (
                     <Badge tone="warning">atrasada</Badge>
                   ) : (
+                    item.grade === null &&
                     relativeDayLabel(item.date) && <Badge tone="accent">{relativeDayLabel(item.date)}</Badge>
                   )}
                 </span>
