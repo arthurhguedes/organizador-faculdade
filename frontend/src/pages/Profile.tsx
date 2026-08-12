@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Flame, Users } from "lucide-react";
+import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Users } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
@@ -12,6 +12,8 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { FeatureRow } from "../components/ui/FeatureRow";
+import { ProgressBoard } from "../components/gamification/ProgressBoard";
+import { AchievementGrid } from "../components/gamification/AchievementGrid";
 
 const STORAGE_KEY = "notary:profile";
 
@@ -38,7 +40,7 @@ export function Profile() {
   const { periods } = usePeriods();
   const { items: subjects } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
-  const { streak, xp, level, achievements, loading: gamificationLoading, premium } = useGamification();
+  const { streak, weekActivity, xp, level, achievements, statsLoading: gamificationLoading, premium } = useGamification();
   const unlockedCount = achievements.filter((a) => a.unlocked).length;
 
   const [profile, setProfile] = useState<LocalProfile>(loadProfile);
@@ -121,24 +123,7 @@ export function Profile() {
             <h3>Progresso</h3>
             {premium && <Badge tone="accent">Premium: XP em dobro</Badge>}
           </div>
-          <div className="progress-panel">
-            <div className="progress-panel__top">
-              <span className="progress-panel__level-name">{level.name}</span>
-              <span className="progress-panel__xp">
-                {xp} XP{level.nextThreshold !== null ? ` · ${level.nextThreshold - xp} para o próximo nível` : ""}
-              </span>
-            </div>
-            <div className="xp-bar">
-              <div className="xp-bar__fill" style={{ width: `${level.progressPct}%` }} />
-            </div>
-            <div className="progress-panel__streak">
-              <span className="progress-panel__streak-current" data-active={streak.current > 0}>
-                <Flame size={14} strokeWidth={2} />
-                {streak.current} {streak.current === 1 ? "dia seguido" : "dias seguidos"}
-              </span>
-              <span>Recorde: {streak.best} {streak.best === 1 ? "dia" : "dias"}</span>
-            </div>
-          </div>
+          <ProgressBoard streak={streak} weekActivity={weekActivity} xp={xp} level={level} />
         </section>
       )}
 
@@ -148,21 +133,7 @@ export function Profile() {
             <h3>Conquistas</h3>
             <Badge tone="muted">{unlockedCount}/{achievements.length}</Badge>
           </div>
-          <div className="feature-row-list">
-            {achievements.map((achievement) => (
-              <FeatureRow
-                key={achievement.id}
-                icon={achievement.icon}
-                title={achievement.title}
-                description={achievement.description}
-                action={
-                  <Badge tone={achievement.unlocked ? "accent" : "muted"}>
-                    {achievement.unlocked ? "Desbloqueada" : "Bloqueada"}
-                  </Badge>
-                }
-              />
-            ))}
-          </div>
+          <AchievementGrid achievements={achievements} />
         </section>
       )}
 

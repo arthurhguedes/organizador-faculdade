@@ -1,26 +1,23 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Flame } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 import { useGamification } from "../../hooks/useGamification";
+import { consumeStreakBump } from "../../lib/gamification";
 
 export function StreakChip() {
-  const { streak, loading } = useGamification();
-  const previous = useRef<number | null>(null);
+  const { user } = useAuth();
+  const { streak } = useGamification();
   const [justBumped, setJustBumped] = useState(false);
 
   useEffect(() => {
-    if (loading) return;
-    const prev = previous.current;
-    previous.current = streak.current;
-
-    if (prev !== null && streak.current > prev) {
+    if (!user) return;
+    if (consumeStreakBump(user.id, streak.current)) {
       setJustBumped(true);
       const timer = setTimeout(() => setJustBumped(false), 640);
       return () => clearTimeout(timer);
     }
-  }, [streak.current, loading]);
-
-  if (loading) return null;
+  }, [user, streak]);
 
   const active = streak.current > 0;
   const onFire = streak.current >= 7;

@@ -5,6 +5,7 @@ import {
   ACHIEVEMENTS,
   computeLevel,
   computeXp,
+  getWeekActivity,
   recordVisit,
   type AcademicStats,
   type StreakState,
@@ -18,10 +19,12 @@ const EMPTY_STATS: AcademicStats = {
   gradedCount: 0,
 };
 
+const EMPTY_STREAK: StreakState = { current: 0, best: 0, lastVisit: null, history: [] };
+
 export function useGamification() {
   const { user } = useAuth();
   const premium = user?.plan === "premium";
-  const [streak] = useState<StreakState>(() => recordVisit(premium));
+  const [streak] = useState<StreakState>(() => (user ? recordVisit(user.id, premium) : EMPTY_STREAK));
   const [stats, setStats] = useState<AcademicStats | null>(null);
 
   useEffect(() => {
@@ -63,11 +66,14 @@ export function useGamification() {
   const achievements = ACHIEVEMENTS.map((achievement) => ({
     ...achievement,
     unlocked: stats !== null && achievement.check(stats, streak),
+    progress: stats && achievement.progress ? achievement.progress(stats, streak) : undefined,
   }));
+  const weekActivity = getWeekActivity(streak);
 
   return {
-    loading: stats === null,
     streak,
+    weekActivity,
+    statsLoading: stats === null,
     xp,
     level,
     achievements,

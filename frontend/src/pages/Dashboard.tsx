@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarClock, ClipboardList, Flame, Plus, ArrowRight } from "lucide-react";
+import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
@@ -16,6 +16,7 @@ import { Button } from "../components/ui/Button";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { PeriodFilterMenu, describePeriodSelection } from "../components/dashboard/PeriodFilterMenu";
+import { ProgressBoard } from "../components/gamification/ProgressBoard";
 
 function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; index: number }) {
   const average = subjectAverage(subject.assignments, subject.exams);
@@ -48,7 +49,7 @@ function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; ind
 export function Dashboard() {
   usePageTitle("Dashboard");
   const { selectedPeriodId, loading: periodsLoading, periods } = usePeriods();
-  const { streak, xp, level, loading: gamificationLoading } = useGamification();
+  const { streak, weekActivity, xp, level, statsLoading: gamificationLoading } = useGamification();
 
   const [filterPeriodIds, setFilterPeriodIds] = useState<Set<number> | null>(null);
 
@@ -126,23 +127,7 @@ export function Dashboard() {
               Ver conquistas <ArrowRight size={14} strokeWidth={2} />
             </Link>
           </div>
-          <div className="progress-row">
-            <span className="progress-row__streak" data-active={streak.current > 0}>
-              <Flame size={16} strokeWidth={2} />
-              {streak.current} {streak.current === 1 ? "dia seguido" : "dias seguidos"}
-            </span>
-            <div className="progress-row__level">
-              <div className="progress-row__level-top">
-                <span className="progress-row__level-name">{level.name}</span>
-                <span className="progress-row__xp">
-                  {xp} XP{level.nextThreshold !== null ? ` · ${level.nextThreshold - xp} para o próximo nível` : ""}
-                </span>
-              </div>
-              <div className="xp-bar">
-                <div className="xp-bar__fill" style={{ width: `${level.progressPct}%` }} />
-              </div>
-            </div>
-          </div>
+          <ProgressBoard streak={streak} weekActivity={weekActivity} xp={xp} level={level} />
         </section>
       )}
 
