@@ -109,7 +109,11 @@ export function Professors() {
                   <Button variant="ghost" icon={Pencil} onClick={() => startEdit(professor)}>
                     Editar
                   </Button>
-                  <ConfirmDelete onConfirm={() => remove(professor.id, "Professor removido")} label="Remover professor" />
+                  <ConfirmDelete
+                    onConfirm={() => remove(professor.id, "Professor e matérias vinculadas removidos")}
+                    label="Remover professor"
+                    confirmText="Remover professor e matérias?"
+                  />
                 </div>
               </li>
             ),

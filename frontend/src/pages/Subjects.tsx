@@ -128,7 +128,7 @@ export function Subjects() {
       {formOpen && (
         <form className="inline-form" onSubmit={handleSubmit}>
           <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
-          <Field label="Código" hint="opcional" value={code} onChange={(e) => setCode(e.target.value)} />
+          <Field label="Código (opcional)" value={code} onChange={(e) => setCode(e.target.value)} />
           <Field
             label="Carga horária"
             type="number"

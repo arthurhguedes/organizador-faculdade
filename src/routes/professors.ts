@@ -1,8 +1,8 @@
 import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
-import { and, eq } from "drizzle-orm";
-import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { and, eq, inArray } from "drizzle-orm";
+import { parseId } from "../lib/http.js";
 
 const router = Router();
 
@@ -91,19 +91,33 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deleted = await db
-      .delete(schema.professors)
-      .where(and(eq(schema.professors.id, id), eq(schema.professors.userId, req.userId!)))
-      .returning();
+    const deleted = await db.transaction(async (tx) => {
+      const userId = req.userId!;
+      const linkedSubjects = await tx
+        .select({ id: schema.subjects.id })
+        .from(schema.subjects)
+        .where(and(eq(schema.subjects.professorId, id), eq(schema.subjects.userId, userId)));
+      const subjectIds = linkedSubjects.map((s) => s.id);
+
+      if (subjectIds.length > 0) {
+        await tx.delete(schema.schedules).where(and(inArray(schema.schedules.subjectId, subjectIds), eq(schema.schedules.userId, userId)));
+        await tx.delete(schema.assignments).where(and(inArray(schema.assignments.subjectId, subjectIds), eq(schema.assignments.userId, userId)));
+        await tx.delete(schema.exams).where(and(inArray(schema.exams.subjectId, subjectIds), eq(schema.exams.userId, userId)));
+        await tx.delete(schema.subjects).where(and(inArray(schema.subjects.id, subjectIds), eq(schema.subjects.userId, userId)));
+      }
+
+      return tx
+        .delete(schema.professors)
+        .where(and(eq(schema.professors.id, id), eq(schema.professors.userId, userId)))
+        .returning();
+    });
+
     if (deleted.length === 0) {
       return res.status(404).json({ message: "Professor não encontrado" });
     }
     res.json({ message: "Professor removido com sucesso" });
   } catch (err) {
     console.error(err);
-    if (isForeignKeyViolation(err)) {
-      return res.status(400).json({ message: "Não é possível remover: existem matérias vinculadas a este professor" });
-    }
     res.status(500).json({ message: "Erro ao remover professor" });
   }
 });

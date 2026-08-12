@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { Trash2, Check, X } from "lucide-react";
 
-export function ConfirmDelete({ onConfirm, label = "Remover" }: { onConfirm: () => void; label?: string }) {
+export function ConfirmDelete({
+  onConfirm,
+  label = "Remover",
+  confirmText = "Remover?",
+}: {
+  onConfirm: () => void;
+  label?: string;
+  confirmText?: string;
+}) {
   const [confirming, setConfirming] = useState(false);
 
   if (!confirming) {
@@ -20,7 +28,7 @@ export function ConfirmDelete({ onConfirm, label = "Remover" }: { onConfirm: () 
 
   return (
     <span className="confirm-delete">
-      <span>Remover?</span>
+      <span>{confirmText}</span>
       <button
         type="button"
         className="icon-btn icon-btn--danger"

@@ -98,7 +98,7 @@ export function ProfessorDetail() {
   const deleteProfessor = async () => {
     try {
       await professorsApi.remove(professorId);
-      notify("Professor removido", "success");
+      notify("Professor e matérias vinculadas removidos", "success");
       navigate("/professores");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao remover professor", "error");
@@ -134,7 +134,11 @@ export function ProfessorDetail() {
             <Button variant="ghost" icon={Pencil} onClick={() => setEditing(true)}>
               Editar
             </Button>
-            <ConfirmDelete onConfirm={deleteProfessor} label="Remover professor" />
+            <ConfirmDelete
+              onConfirm={deleteProfessor}
+              label="Remover professor"
+              confirmText="Remover professor e matérias?"
+            />
           </div>
         </div>
       )}
