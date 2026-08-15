@@ -744,6 +744,28 @@
   color: var(--warning);
 }
 
+.status-select {
+  width: auto;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border: none;
+}
+
+.status-select--muted {
+  background: var(--bg-inset);
+  color: var(--text-tertiary);
+}
+
+.status-select--warning {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.status-select--accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
 /* ---------- Fields / forms ---------- */
 
 .field {
@@ -1672,6 +1694,57 @@
   font-family: var(--font-mono);
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.attendance-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.attendance-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.attendance-panel__count {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.attendance-panel__count-max {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+
+.attendance-panel__bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.attendance-panel__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.attendance-panel__bar-fill[data-tone="warning"] {
+  background: var(--warning);
+}
+
+.attendance-panel__bar-fill[data-tone="danger"] {
+  background: var(--danger);
+}
+
+.attendance-panel__hint {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 
 .eval-table {

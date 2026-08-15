@@ -9,6 +9,7 @@ import { useEntityList } from "../hooks/useEntityList";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import { assignmentsApi, examsApi, subjectsApi, professorsApi, ApiError } from "../api/client";
 import { subjectAverage, formatGrade } from "../lib/grades";
+import { AttendanceSection } from "./subject-detail/AttendanceSection";
 import { ScheduleSection } from "./subject-detail/ScheduleSection";
 import { EvaluationSection } from "./subject-detail/EvaluationSection";
 import { Button } from "../components/ui/Button";
@@ -161,6 +162,13 @@ export function SubjectDetail() {
           </div>
         </div>
       )}
+
+      <AttendanceSection
+        subjectId={subjectId}
+        workload={details.workload}
+        absences={details.absences}
+        onChange={reload}
+      />
 
       <ScheduleSection subjectId={subjectId} schedules={details.schedules} onChange={reload} />
 

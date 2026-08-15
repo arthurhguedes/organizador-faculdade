@@ -13,6 +13,7 @@ import { Dashboard } from "./pages/Dashboard";
 import { Calendar } from "./pages/Calendar";
 import { Subjects } from "./pages/Subjects";
 import { SubjectDetail } from "./pages/SubjectDetail";
+import { CurriculumMatrix } from "./pages/CurriculumMatrix";
 import { Periods } from "./pages/Periods";
 import { Professors } from "./pages/Professors";
 import { ProfessorDetail } from "./pages/ProfessorDetail";
@@ -53,6 +54,7 @@ export default function App() {
                     <Route path="calendario" element={<Calendar />} />
                     <Route path="materias" element={<Subjects />} />
                     <Route path="materias/:id" element={<SubjectDetail />} />
+                    <Route path="matriz-curricular" element={<CurriculumMatrix />} />
                     <Route path="avaliacoes" element={<Evaluations />} />
                     <Route path="estudos" element={<Studies />} />
                     <Route path="periodos" element={<Periods />} />

@@ -35,6 +35,7 @@ export type Subject = {
   workload: number;
   periodId: number;
   professorId: number;
+  absences: number;
 };
 
 export type Schedule = {
@@ -108,6 +109,17 @@ export type Offering = {
   practiceHours: number | null;
   importedAt: string;
   schedules: OfferingScheduleSlot[];
+};
+
+export type CurriculumStatus = "pendente" | "cursando" | "concluida";
+
+export type CurriculumSubject = {
+  id: number;
+  name: string;
+  code: string | null;
+  workload: number;
+  suggestedPeriod: number | null;
+  status: CurriculumStatus;
 };
 
 export const WEEKDAYS = [

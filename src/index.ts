@@ -11,6 +11,7 @@ import examsRouter from "./routes/exams.js";
 import offeringsRouter from "./routes/offerings.js";
 import studySessionsRouter from "./routes/studySessions.js";
 import dailyNotesRouter from "./routes/dailyNotes.js";
+import curriculumSubjectsRouter from "./routes/curriculumSubjects.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 
 // Sem isso, qualquer exceção não tratada (em qualquer lugar do processo, não
@@ -45,6 +46,7 @@ app.use("/exams", requireAuth, examsRouter);
 app.use("/offerings", requireAuth, offeringsRouter);
 app.use("/study-sessions", requireAuth, studySessionsRouter);
 app.use("/daily-notes", requireAuth, dailyNotesRouter);
+app.use("/curriculum-subjects", requireAuth, curriculumSubjectsRouter);
 
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

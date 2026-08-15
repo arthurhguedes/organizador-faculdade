@@ -50,6 +50,9 @@ export const subjects = pgTable("subjects", {
   workload: integer("workload").notNull(),
   periodId: integer("period_id").references(() => periods.id).notNull(),
   professorId: integer("professor_id").references(() => professors.id).notNull(),
+  // Contador simples de faltas, sem data/aula vinculada. Limite calculado no
+  // client como 25% da carga horária (regra padrão MEC), não armazenado aqui.
+  absences: integer("absences").notNull().default(0),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
@@ -133,5 +136,18 @@ export const offeringSchedules = pgTable("offering_schedules", {
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
   kind: text("kind").notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
+// Matriz curricular — universo de matérias que o curso exige, independente
+// de `periods`/`subjects` (que são o que o usuário de fato cursou). Cadastro
+// manual por enquanto: import de PDF de matriz fica pra uma versão futura.
+export const curriculumSubjects = pgTable("curriculum_subjects", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  code: text("code"),
+  workload: integer("workload").notNull(),
+  suggestedPeriod: integer("suggested_period"),
+  status: text("status").notNull().default("pendente"), // "pendente" | "cursando" | "concluida"
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });

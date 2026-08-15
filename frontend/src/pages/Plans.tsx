@@ -41,6 +41,7 @@ const plans: Plan[] = [
       "Montador de grade com detecção de conflito",
       "Importação de matrícula e histórico da faculdade",
       "Catálogo de ofertas por professor e disciplina",
+      "Contagem de faltas por matéria, com limite de 25% da carga horária",
     ],
   },
   {
@@ -54,6 +55,7 @@ const plans: Plan[] = [
     ctaLabel: "Assinar Premium",
     features: [
       "Tudo do plano Gratuito",
+      "Matriz curricular com progresso do curso e o que falta pra concluir",
       "Coeficiente de rendimento geral entre matérias",
       "Notificações de provas e atividades chegando perto do prazo",
       "Exportar dados em PDF e CSV",

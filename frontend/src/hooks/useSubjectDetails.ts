@@ -8,10 +8,10 @@ export function useSubjectDetails(id: number | null) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    if (id === null) return;
+    if (id === null) return Promise.resolve();
     setLoading(true);
     setError(null);
-    getSubjectDetails(id)
+    return getSubjectDetails(id)
       .then(setDetails)
       .catch((err) => setError(err instanceof Error ? err.message : "Erro ao carregar matéria"))
       .finally(() => setLoading(false));

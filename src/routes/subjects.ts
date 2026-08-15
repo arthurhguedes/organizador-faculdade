@@ -153,6 +153,34 @@ router.put("/:id", async (req, res) => {
   }
 });
 
+router.patch("/:id/absences", async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ message: "id inválido" });
+  }
+
+  const { absences } = req.body ?? {};
+  if (typeof absences !== "number" || !Number.isInteger(absences) || absences < 0) {
+    return res.status(400).json({ message: "absences deve ser um inteiro >= 0" });
+  }
+
+  try {
+    const updated = await db
+      .update(schema.subjects)
+      .set({ absences })
+      .where(and(eq(schema.subjects.id, id), eq(schema.subjects.userId, req.userId!)))
+      .returning();
+
+    if (updated.length === 0) {
+      return res.status(404).json({ message: "Matéria não encontrada" });
+    }
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao atualizar faltas" });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {

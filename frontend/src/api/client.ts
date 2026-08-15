@@ -1,6 +1,7 @@
 import type {
   Assignment,
   AuthUser,
+  CurriculumSubject,
   DailyNote,
   Exam,
   Offering,
@@ -44,7 +45,7 @@ function crud<T, TInput>(entity: string) {
 
 export const periodsApi = crud<Period, Omit<Period, "id">>("periods");
 export const professorsApi = crud<Professor, Omit<Professor, "id">>("professors");
-export const subjectsApi = crud<Subject, Omit<Subject, "id">>("subjects");
+export const subjectsApi = crud<Subject, Omit<Subject, "id" | "absences">>("subjects");
 export const schedulesApi = crud<Schedule, Omit<Schedule, "id">>("schedules");
 export const assignmentsApi = crud<Assignment, Omit<Assignment, "id">>("assignments");
 export const examsApi = crud<Exam, Omit<Exam, "id">>("exams");
@@ -53,6 +54,16 @@ export const dailyNotesApi = crud<DailyNote, Omit<DailyNote, "id">>("daily-notes
 
 export const getSubjectDetails = (id: number) =>
   request<SubjectDetails>(`/subjects/${id}/details`);
+
+export const updateSubjectAbsences = (id: number, absences: number) =>
+  request<Subject[]>(`/subjects/${id}/absences`, {
+    method: "PATCH",
+    body: JSON.stringify({ absences }),
+  });
+
+export const curriculumSubjectsApi = crud<CurriculumSubject, Omit<CurriculumSubject, "id">>(
+  "curriculum-subjects",
+);
 
 export const authApi = {
   register: (body: { name: string; email: string; password: string }) =>

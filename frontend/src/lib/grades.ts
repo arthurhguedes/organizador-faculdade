@@ -18,6 +18,10 @@ export function subjectAverage(assignments: Assignment[], exams: Exam[]): number
   return weightedSum / totalWeight;
 }
 
+export function maxAbsences(workload: number): number {
+  return Math.floor(workload * 0.25);
+}
+
 export function formatGrade(value: number | null): string {
   return value === null ? "—" : value.toFixed(1);
 }
