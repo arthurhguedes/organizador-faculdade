@@ -4,8 +4,10 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
+  // Campos exigidos pelo modelo `user` do Better Auth.
+  emailVerified: boolean("email_verified").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
   // Plano da conta. Hoje é trocado manualmente pelo próprio usuário (prévia,
   // sem cobrança real); quando o pagamento existir de verdade, é essa mesma
   // coluna que um webhook do provedor vai atualizar.
@@ -26,6 +28,45 @@ export const users = pgTable("users", {
   // futuramente pro sistema de ranking/amigos. Postgres permite múltiplos
   // NULL num índice unique, então não obriga todo mundo a ter um.
   username: text("username").unique(),
+});
+
+// Tabelas do Better Auth — sessão ativa (cookie) e contas de login (uma por
+// provider: "credential" pra email+senha, "google" pra OAuth). Um mesmo
+// usuário pode ter as duas ao mesmo tempo.
+export const sessions = pgTable("sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const accounts = pgTable("accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  accountId: text("account_id").notNull(),
+  providerId: text("provider_id").notNull(), // "credential" | "google"
+  password: text("password"), // hash bcrypt, só em contas "credential"
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  idToken: text("id_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at"),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  scope: text("scope"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const verifications = pgTable("verifications", {
+  id: serial("id").primaryKey(),
+  identifier: text("identifier").notNull(),
+  value: text("value").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const periods = pgTable("periods", {

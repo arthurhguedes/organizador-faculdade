@@ -65,12 +65,9 @@ export const curriculumSubjectsApi = crud<CurriculumSubject, Omit<CurriculumSubj
   "curriculum-subjects",
 );
 
+// Cadastro, login, logout e sessão são geridos pelo Better Auth (ver
+// ../lib/authClient.ts) — este objeto só cobre o perfil/dados do app.
 export const authApi = {
-  register: (body: { name: string; email: string; password: string }) =>
-    request<AuthUser>("/auth/register", { method: "POST", body: JSON.stringify(body) }),
-  login: (body: { email: string; password: string }) =>
-    request<AuthUser>("/auth/login", { method: "POST", body: JSON.stringify(body) }),
-  logout: () => request<{ message: string }>("/auth/logout", { method: "POST" }),
   me: () => request<AuthUser>("/auth/me"),
   updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) =>
     request<AuthUser>("/auth/me/plan", { method: "PATCH", body: JSON.stringify(body) }),

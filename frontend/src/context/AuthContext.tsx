@@ -1,6 +1,20 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { authApi } from "../api/client";
+import { authApi, ApiError } from "../api/client";
+import { authClient } from "../lib/authClient";
 import type { AuthUser } from "../api/types";
+
+// O Better Auth devolve códigos genéricos em inglês — traduzido aqui pra
+// manter a mensagem que os ErrorBanner de Login/Register já mostravam.
+const ERROR_MESSAGES: Record<string, string> = {
+  INVALID_EMAIL_OR_PASSWORD: "Email ou senha inválidos",
+  USER_ALREADY_EXISTS: "Email já cadastrado",
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Email já cadastrado",
+};
+
+function authErrorMessage(error: { code?: string; message?: string } | null, fallback: string): string {
+  if (!error) return fallback;
+  return (error.code && ERROR_MESSAGES[error.code]) || error.message || fallback;
+}
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -8,6 +22,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<AuthUser>;
   register: (name: string, email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => Promise<AuthUser>;
   updateProfile: (body: Parameters<typeof authApi.updateProfile>[0]) => Promise<AuthUser>;
   updateUsername: (username: string) => Promise<AuthUser>;
@@ -28,20 +43,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const loggedUser = await authApi.login({ email, password });
+    const { error } = await authClient.signIn.email({ email, password });
+    if (error) throw new ApiError(authErrorMessage(error, "Não foi possível entrar. Tente novamente."));
+    const loggedUser = await authApi.me();
     setUser(loggedUser);
     return loggedUser;
   };
 
   const register = async (name: string, email: string, password: string) => {
-    const newUser = await authApi.register({ name, email, password });
+    const { error } = await authClient.signUp.email({ email, password, name });
+    if (error) throw new ApiError(authErrorMessage(error, "Não foi possível criar sua conta. Tente novamente."));
+    const newUser = await authApi.me();
     setUser(newUser);
     return newUser;
   };
 
   const logout = async () => {
-    await authApi.logout();
+    await authClient.signOut();
     setUser(null);
+  };
+
+  // Redireciona pro Google; ao voltar (callbackURL) o AuthProvider recarrega
+  // e o useEffect acima busca o perfil normalmente.
+  const loginWithGoogle = async () => {
+    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
   };
 
   const updatePlan = async (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => {
@@ -64,7 +89,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, updatePlan, updateProfile, updateUsername }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        loginWithGoogle,
+        updatePlan,
+        updateProfile,
+        updateUsername,
+      }}
     >
       {children}
     </AuthContext.Provider>

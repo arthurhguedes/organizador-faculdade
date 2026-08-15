@@ -3088,6 +3088,27 @@
   margin-top: var(--space-2);
 }
 
+.auth-google-btn {
+  justify-content: center;
+  width: 100%;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
 .auth-card__footer {
   text-align: center;
   font-size: var(--text-sm);

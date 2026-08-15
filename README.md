@@ -52,18 +52,23 @@ Edite o `.env` e preencha:
 
 ```
 DATABASE_URL=postgresql://usuario:senha@host/banco?sslmode=require
-JWT_SECRET=qualquer-string-aleatoria-longa
+BETTER_AUTH_SECRET=qualquer-string-aleatoria-longa
 ```
 
 - `DATABASE_URL`: a connection string copiada do Neon no passo anterior.
-- `JWT_SECRET`: qualquer string aleatória (ex: gere uma com `openssl rand -hex 32`). É obrigatório — sem ele, criar conta e logar falham com erro 500.
-- `FRONTEND_URL`: pode deixar comentado/ausente em dev (default `http://localhost:5173`); só precisa ser setado em produção, com a URL do front-end.
+- `BETTER_AUTH_SECRET`: qualquer string aleatória (ex: gere uma com `openssl rand -hex 32`). É obrigatório — sem ele, criar conta e logar falham.
+- `FRONTEND_URL`/`BACKEND_URL`: podem ficar com o default em dev (`http://localhost:5173`/`http://localhost:3000`); só precisam ser setados em produção, com as URLs reais.
+- `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`: só necessários pro botão "Continuar com Google". Sem eles o app funciona normalmente (só com email/senha). Pra criar:
+  1. [console.cloud.google.com](https://console.cloud.google.com/) → criar/selecionar um projeto.
+  2. **APIs & Services → OAuth consent screen**: tipo *External*, nome do app, seu email de suporte.
+  3. **Credentials → Create credentials → OAuth client ID**, tipo *Web application*.
+  4. **Authorized redirect URI**: `{BACKEND_URL}/api/auth/callback/google` (`http://localhost:3000/api/auth/callback/google` em dev).
+  5. Copie o Client ID e o Client Secret gerados pro `.env`.
 
-Com o banco configurado, gere e aplique as migrations do Drizzle (cria as tabelas no Neon):
+Com o banco configurado, aplique o schema do Drizzle (cria/atualiza as tabelas no Neon):
 
 ```bash
-npx drizzle-kit generate
-npx drizzle-kit migrate
+npx drizzle-kit push
 ```
 
 Suba o servidor em modo desenvolvimento:
@@ -144,5 +149,5 @@ Tema preto+vinho (escuro, padrão) e branco+vinho (claro), com toggle. Direção
 
 - [x] Back-end: CRUD completo + catálogo de ofertas, testado contra o banco real
 - [x] Front-end: navegação, dashboard, matérias, catálogo/montador de grade, tema
-- [ ] Autenticação de verdade
+- [x] Autenticação real (email/senha + Google, via Better Auth)
 - [ ] Coeficiente de rendimento geral
