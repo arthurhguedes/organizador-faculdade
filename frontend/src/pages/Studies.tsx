@@ -4,7 +4,7 @@ import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useEntityList } from "../hooks/useEntityList";
 import { subjectsApi, studySessionsApi, dailyNotesApi } from "../api/client";
-import { formatDate, todayISO } from "../lib/grades";
+import { formatDate, formatHours, todayISO } from "../lib/grades";
 import type { DailyNote, StudySession } from "../api/types";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -15,14 +15,6 @@ import { Badge } from "../components/ui/Badge";
 import { ConfirmDelete } from "../components/ui/ConfirmDelete";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
 import { PomodoroTimer } from "../components/studies/PomodoroTimer";
-
-function formatHours(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}min`;
-  if (m === 0) return `${h}h`;
-  return `${h}h${String(m).padStart(2, "0")}`;
-}
 
 export function Studies() {
   usePageTitle("Estudos");

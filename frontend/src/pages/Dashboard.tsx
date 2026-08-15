@@ -3,11 +3,12 @@ import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight, X } from "luc
 import { useEffect, useState } from "react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
+import { useAuth } from "../context/AuthContext";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
-import { useGamification } from "../hooks/useGamification";
+import { useAcademicStats } from "../hooks/useAcademicStats";
 import { useToast } from "../context/ToastContext";
-import { subjectAverage, formatGrade, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
+import { subjectAverage, formatGrade, formatHours, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
 import { assignmentsApi, examsApi, ApiError } from "../api/client";
 import type { SubjectDetails } from "../api/types";
 import type { CSSProperties } from "react";
@@ -17,11 +18,16 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { ErrorBanner } from "../components/ui/ErrorBanner";
-import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { PeriodFilterMenu, describePeriodSelection } from "../components/dashboard/PeriodFilterMenu";
-import { ProgressBoard } from "../components/gamification/ProgressBoard";
 
 type QuickAddKind = "assignment" | "exam";
+
+function greetingForHour(hour: number) {
+  if (hour < 6) return "Boa noite";
+  if (hour < 12) return "Bom dia";
+  if (hour < 18) return "Boa tarde";
+  return "Boa noite";
+}
 
 function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; index: number }) {
   const average = subjectAverage(subject.assignments, subject.exams);
@@ -53,8 +59,11 @@ function DashboardSubjectCard({ subject, index }: { subject: SubjectDetails; ind
 
 export function Dashboard() {
   usePageTitle("Dashboard");
-  const { selectedPeriodId, loading: periodsLoading, periods } = usePeriods();
-  const { streak, weekActivity, xp, level, statsLoading: gamificationLoading } = useGamification();
+  const { user } = useAuth();
+  const firstName = user?.name.split(" ")[0];
+  const { selectedPeriodId, selectedPeriod, loading: periodsLoading, periods } = usePeriods();
+  const { loading: academicStatsLoading, courseAverage, currentPeriodAverage, coefficient, totalStudyMinutes } =
+    useAcademicStats(selectedPeriodId);
 
   const [filterPeriodIds, setFilterPeriodIds] = useState<Set<number> | null>(null);
 
@@ -144,41 +153,54 @@ export function Dashboard() {
     );
   }
 
-  const weekBlocks: WeeklyGridBlock[] = subjects.flatMap((subject) =>
-    subject.schedules.map((slot) => ({
-      id: `${subject.id}-${slot.id}`,
-      label: subject.name,
-      weekday: slot.weekday,
-      startTime: slot.startTime,
-      endTime: slot.endTime,
-      tone: "accent" as const,
-    })),
-  );
-
   return (
     <div className="dashboard">
+      <div className="dashboard__greeting">
+        <h1>
+          {greetingForHour(new Date().getHours())}{firstName ? `, ${firstName}` : ""}
+        </h1>
+        <p>Como podemos ajudar hoje?</p>
+      </div>
+
       {error && <ErrorBanner message={error} />}
 
-      {!gamificationLoading && (
-        <section className="dashboard__section">
-          <div className="dashboard__section-header">
-            <h3>Seu progresso</h3>
-            <Link to="/perfil" className="link-with-icon">
-              Ver conquistas <ArrowRight size={14} strokeWidth={2} />
-            </Link>
+      <section className="dashboard__section">
+        <div className="dashboard__section-header">
+          <h3>Seu desempenho</h3>
+        </div>
+        {academicStatsLoading ? (
+          <SkeletonCards cards={4} />
+        ) : (
+          <div className="stat-grid">
+            <div className="stat-card">
+              <span className="stat-card__label">Média geral do curso</span>
+              <span className="stat-card__value" data-empty={courseAverage === null}>
+                {formatGrade(courseAverage)}
+              </span>
+              <span className="stat-card__hint">Todos os períodos</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-card__label">Média do período atual</span>
+              <span className="stat-card__value" data-empty={currentPeriodAverage === null}>
+                {formatGrade(currentPeriodAverage)}
+              </span>
+              <span className="stat-card__hint">{selectedPeriod?.label ?? "—"}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-card__label">Horas de estudo</span>
+              <span className="stat-card__value">{formatHours(totalStudyMinutes)}</span>
+              <span className="stat-card__hint">Total acumulado</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-card__label">Coeficiente</span>
+              <span className="stat-card__value" data-empty={coefficient === null}>
+                {formatGrade(coefficient)}
+              </span>
+              <span className="stat-card__hint">Ponderado por carga horária</span>
+            </div>
           </div>
-          <ProgressBoard streak={streak} weekActivity={weekActivity} xp={xp} level={level} />
-        </section>
-      )}
-
-      {!loading && weekBlocks.length > 0 && (
-        <section className="dashboard__section">
-          <div className="dashboard__section-header">
-            <h3>Sua semana</h3>
-          </div>
-          <WeeklyGrid blocks={weekBlocks} />
-        </section>
-      )}
+        )}
+      </section>
 
       <section className="dashboard__section">
         <div className="dashboard__section-header">
