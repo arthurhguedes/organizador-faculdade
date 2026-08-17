@@ -13,6 +13,7 @@ import type {
   SubjectDetails,
 } from "./types";
 import type { ParsedOffering } from "../lib/offeringsImport";
+import type { SyllabusPdfEntry } from "../lib/planoDeEnsinoImport";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
@@ -94,5 +95,14 @@ export const offeringsApi = {
     request<{ message: string }>("/offerings/import", {
       method: "POST",
       body: JSON.stringify({ offerings }),
+    }),
+};
+
+export const syllabusEntriesApi = {
+  remove: (id: number) => request<{ message: string }>(`/syllabus-entries/${id}`, { method: "DELETE" }),
+  import: (subjectId: number, entries: SyllabusPdfEntry[]) =>
+    request<{ message: string }>("/syllabus-entries/import", {
+      method: "POST",
+      body: JSON.stringify({ subjectId, entries }),
     }),
 };

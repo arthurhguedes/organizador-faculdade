@@ -1095,6 +1095,11 @@
   color: var(--accent);
 }
 
+.month-calendar__event--lesson {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
 .month-calendar__more {
   font-size: 10px;
   color: var(--text-tertiary);

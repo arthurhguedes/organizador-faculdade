@@ -54,6 +54,12 @@ export function Calendar() {
       title: e.title,
       subjectName: subject.name,
     })),
+    ...subject.syllabusEntries.map((l) => ({
+      date: l.date,
+      kind: "lesson" as const,
+      title: `Aula ${l.lessonNumber}: ${l.content}`,
+      subjectName: subject.name,
+    })),
   ]);
 
   return (
@@ -77,7 +83,7 @@ export function Calendar() {
           </section>
 
           <section>
-            <h3 className="calendar-layout__heading">Provas e atividades</h3>
+            <h3 className="calendar-layout__heading">Provas, atividades e aulas</h3>
             <MonthCalendar events={events} />
           </section>
         </div>

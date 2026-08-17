@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type CalendarEvent = {
   date: string; // YYYY-MM-DD
-  kind: "assignment" | "exam";
+  kind: "assignment" | "exam" | "lesson";
   title: string;
   subjectName: string;
 };

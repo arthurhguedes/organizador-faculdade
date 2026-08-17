@@ -126,6 +126,20 @@ export const exams = pgTable("exams", {
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
+// Plano de ensino — cronograma de aulas importado do PDF que o professor
+// disponibiliza (uma linha por aula: número, tipo, data, conteúdo previsto).
+// Import = replace total por matéria, mesmo raciocínio de `course_offerings`:
+// é sempre o cronograma vigente, não um histórico de versões.
+export const syllabusEntries = pgTable("syllabus_entries", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  lessonNumber: integer("lesson_number").notNull(),
+  kind: text("kind"), // "T" (teórica) | "P" (prática) | null (ex: feriado)
+  date: date("date").notNull(),
+  content: text("content").notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
 // Blocos de estudo — registrados manualmente ou automaticamente ao completar
 // um ciclo de foco do Pomodoro. "topic" é texto livre (assunto dentro da
 // matéria), sem tabela própria: não precisa ser reaproveitado em outro lugar.

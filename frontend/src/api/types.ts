@@ -80,10 +80,20 @@ export type DailyNote = {
   done: boolean;
 };
 
+export type SyllabusEntry = {
+  id: number;
+  subjectId: number;
+  lessonNumber: number;
+  kind: "T" | "P" | null;
+  date: string;
+  content: string;
+};
+
 export type SubjectDetails = Subject & {
   schedules: Schedule[];
   assignments: Assignment[];
   exams: Exam[];
+  syllabusEntries: SyllabusEntry[];
 };
 
 export type OfferingScheduleSlot = {

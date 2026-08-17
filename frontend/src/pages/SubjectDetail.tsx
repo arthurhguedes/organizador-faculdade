@@ -12,6 +12,7 @@ import { subjectAverage, formatGrade } from "../lib/grades";
 import { AttendanceSection } from "./subject-detail/AttendanceSection";
 import { ScheduleSection } from "./subject-detail/ScheduleSection";
 import { EvaluationSection } from "./subject-detail/EvaluationSection";
+import { SyllabusSection } from "./subject-detail/SyllabusSection";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { ConfirmDelete } from "../components/ui/ConfirmDelete";
@@ -171,6 +172,8 @@ export function SubjectDetail() {
       />
 
       <ScheduleSection subjectId={subjectId} schedules={details.schedules} onChange={reload} />
+
+      <SyllabusSection subjectId={subjectId} entries={details.syllabusEntries} onChange={reload} />
 
       <EvaluationSection
         kind="assignment"
