@@ -1,0 +1,5 @@
+# TODO: trocar notary.exemplo.com pelo domínio real assim que o app tiver um deploy público
+User-agent: *
+Allow: /
+
+Sitemap: https://notary.exemplo.com/sitemap.xml

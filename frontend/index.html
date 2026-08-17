@@ -3,12 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Notary — sua vida acadêmica em um só lugar: matérias, horários, atividades, provas e notas." />
-    <title>Notary</title>
+    <meta name="theme-color" content="#120d0e" />
+
+    <title>Notary — Organize sua vida acadêmica</title>
+    <meta
+      name="description"
+      content="Matérias, horários, provas, atividades e notas num só painel. Importe automaticamente a matrícula, o histórico e o plano de ensino da sua faculdade em PDF — sem digitar tudo de novo. Grátis pra começar."
+    />
+
+    <!-- TODO: trocar https://notary.exemplo.com pelo domínio real assim que o app tiver um deploy público -->
+    <link rel="canonical" href="https://notary.exemplo.com/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Notary" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:url" content="https://notary.exemplo.com/" />
+    <meta property="og:title" content="Notary — Organize sua vida acadêmica" />
+    <meta
+      property="og:description"
+      content="Matérias, horários, provas, atividades e notas num só painel. Importe automaticamente a matrícula, o histórico e o plano de ensino da sua faculdade em PDF."
+    />
+    <meta property="og:image" content="https://notary.exemplo.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Notary — Organize sua vida acadêmica" />
+    <meta
+      name="twitter:description"
+      content="Matérias, horários, provas, atividades e notas num só painel, com importação automática de PDF/planilha da faculdade."
+    />
+    <meta name="twitter:image" content="https://notary.exemplo.com/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Notary",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web",
+        "description": "Organize matérias, horários, provas, atividades e notas num só painel, com importação automática de matrícula, histórico e plano de ensino em PDF.",
+        "offers": [
+          { "@type": "Offer", "name": "Gratuito", "price": "0", "priceCurrency": "BRL" },
+          { "@type": "Offer", "name": "Premium", "price": "20", "priceCurrency": "BRL" }
+        ],
+        "inLanguage": "pt-BR"
+      }
+    </script>
+
+    <script type="module" src="/src/main.tsx"></script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
