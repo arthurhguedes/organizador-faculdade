@@ -3,3 +3,12 @@ node_modules/
 dist/
 drizzle/
 .claude/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
