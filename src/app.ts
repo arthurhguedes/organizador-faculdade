@@ -15,6 +15,7 @@ import syllabusRouter from "./routes/syllabus.js";
 import studySessionsRouter from "./routes/studySessions.js";
 import dailyNotesRouter from "./routes/dailyNotes.js";
 import curriculumSubjectsRouter from "./routes/curriculumSubjects.js";
+import academicRequestsRouter from "./routes/academicRequests.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 
 export const app = express();
@@ -44,6 +45,7 @@ app.use("/syllabus-entries", requireAuth, syllabusRouter);
 app.use("/study-sessions", requireAuth, studySessionsRouter);
 app.use("/daily-notes", requireAuth, dailyNotesRouter);
 app.use("/curriculum-subjects", requireAuth, curriculumSubjectsRouter);
+app.use("/academic-requests", requireAuth, academicRequestsRouter);
 
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error(err);

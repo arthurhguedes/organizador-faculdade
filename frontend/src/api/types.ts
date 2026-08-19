@@ -132,6 +132,25 @@ export type CurriculumSubject = {
   status: CurriculumStatus;
 };
 
+export type AcademicRequestType =
+  | "prerequisite_waiver"
+  | "enrollment_adjustment"
+  | "leave_of_absence"
+  | "credit_recognition";
+
+export type AcademicRequestStatus = "pendente" | "aprovado" | "recusado";
+
+export type AcademicRequest = {
+  id: number;
+  type: AcademicRequestType;
+  subjectId: number | null;
+  requirements: string | null;
+  status: AcademicRequestStatus;
+  submittedAt: string;
+  resolvedAt: string | null;
+  rejectionReason: string | null;
+};
+
 export const WEEKDAYS = [
   "segunda",
   "terça",

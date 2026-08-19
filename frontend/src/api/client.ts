@@ -1,4 +1,5 @@
 import type {
+  AcademicRequest,
   Assignment,
   AuthUser,
   CurriculumSubject,
@@ -64,6 +65,10 @@ export const updateSubjectAbsences = (id: number, absences: number) =>
 
 export const curriculumSubjectsApi = crud<CurriculumSubject, Omit<CurriculumSubject, "id">>(
   "curriculum-subjects",
+);
+
+export const academicRequestsApi = crud<AcademicRequest, Omit<AcademicRequest, "id">>(
+  "academic-requests",
 );
 
 // Cadastro, login, logout e sessão são geridos pelo Better Auth (ver

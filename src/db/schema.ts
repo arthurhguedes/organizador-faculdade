@@ -206,3 +206,20 @@ export const curriculumSubjects = pgTable("curriculum_subjects", {
   status: text("status").notNull().default("pendente"), // "pendente" | "cursando" | "concluida"
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
+
+// Requerimentos acadêmicos — pedidos formais feitos à faculdade (quebra de
+// pré-requisito, ajuste de matrícula, trancamento, aproveitamento de
+// disciplina), cada um com seu próprio ciclo de vida até ser aprovado ou
+// recusado. subjectId é opcional: nem todo requerimento se refere a uma
+// matéria específica (ex: trancamento de período inteiro).
+export const academicRequests = pgTable("academic_requests", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "prerequisite_waiver" | "enrollment_adjustment" | "leave_of_absence" | "credit_recognition"
+  subjectId: integer("subject_id").references(() => subjects.id),
+  requirements: text("requirements"), // texto livre: o que precisa apresentar/cumprir pra ter chance de aprovação
+  status: text("status").notNull().default("pendente"), // "pendente" | "aprovado" | "recusado"
+  submittedAt: date("submitted_at").notNull(),
+  resolvedAt: date("resolved_at"),
+  rejectionReason: text("rejection_reason"), // só preenchido quando status = "recusado"
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
