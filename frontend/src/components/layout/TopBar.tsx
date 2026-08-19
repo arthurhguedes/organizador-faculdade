@@ -1,6 +1,7 @@
 import { Menu } from "lucide-react";
 import { PeriodSwitcher } from "./PeriodSwitcher";
 import { NotificationBell } from "./NotificationBell";
+import { PomodoroMiniWidget } from "./PomodoroMiniWidget";
 import { StreakChip } from "./StreakChip";
 
 export function TopBar({ title, onMenuClick }: { title: string; onMenuClick: () => void }) {
@@ -11,6 +12,7 @@ export function TopBar({ title, onMenuClick }: { title: string; onMenuClick: () 
       </button>
       <h1 className="topbar__title">{title}</h1>
       <div className="topbar__spacer" />
+      <PomodoroMiniWidget />
       <StreakChip />
       <NotificationBell />
       <PeriodSwitcher />

@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, ListChecks, Plus, Trash2, X } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
+import { usePomodoro } from "../context/PomodoroContext";
 import { useEntityList } from "../hooks/useEntityList";
 import { subjectsApi, studySessionsApi, dailyNotesApi } from "../api/client";
 import { formatDate, formatHours, todayISO } from "../lib/grades";
+import { assignSeriesColors } from "../lib/chartColors";
+import { DailyTrendChart } from "../components/studies/StudyCharts";
 import type { DailyNote, StudySession } from "../api/types";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -20,6 +23,8 @@ export function Studies() {
   usePageTitle("Estudos");
   const { selectedPeriod, selectedPeriodId } = usePeriods();
 
+  const { lastSessionCreatedAt } = usePomodoro();
+
   const { items: subjects, loading: subjectsLoading } = useEntityList(subjectsApi);
   const {
     items: sessions,
@@ -28,6 +33,7 @@ export function Studies() {
     create: createSession,
     update: updateSession,
     remove: removeSession,
+    reload: reloadSessions,
   } = useEntityList(studySessionsApi);
   const {
     items: notes,
@@ -57,8 +63,11 @@ export function Studies() {
     .filter(isInSelectedPeriod)
     .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
 
+  const UNLINKED_ID = -1;
+
   const totalsBySubject = periodSubjects
     .map((s) => ({
+      id: s.id,
       label: s.name,
       minutes: periodSessions.filter((sess) => sess.subjectId === s.id).reduce((sum, sess) => sum + sess.durationMinutes, 0),
     }))
@@ -66,29 +75,23 @@ export function Studies() {
 
   const unlinkedMinutes = periodSessions.filter((s) => s.subjectId === null).reduce((sum, s) => sum + s.durationMinutes, 0);
   if (unlinkedMinutes > 0) {
-    totalsBySubject.push({ label: "Sem matéria vinculada", minutes: unlinkedMinutes });
+    totalsBySubject.push({ id: UNLINKED_ID, label: "Sem matéria vinculada", minutes: unlinkedMinutes });
   }
   totalsBySubject.sort((a, b) => b.minutes - a.minutes);
 
+  const seriesColors = assignSeriesColors(totalsBySubject.map((t) => t.id));
   const maxMinutes = Math.max(1, ...totalsBySubject.map((t) => t.minutes));
   const totalMinutesAll = periodSessions.reduce((sum, s) => sum + s.durationMinutes, 0);
 
   const [linkingSessionId, setLinkingSessionId] = useState<number | null>(null);
 
-  const handlePomodoroComplete = ({
-    subjectId,
-    topic,
-    durationMinutes,
-  }: {
-    subjectId: number | null;
-    topic: string;
-    durationMinutes: number;
-  }) => {
-    createSession(
-      { subjectId, topic: topic || null, date: todayISO(), durationMinutes, source: "pomodoro" },
-      `Sessão de foco registrada: ${durationMinutes} min`,
-    );
-  };
+  // O Pomodoro vive no PomodoroContext (persiste entre navegações), então
+  // pode criar uma study_session com esta página desmontada — recarrega a
+  // lista quando isso acontece pra refletir sem precisar de F5.
+  useEffect(() => {
+    if (lastSessionCreatedAt !== null) reloadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastSessionCreatedAt]);
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,11 +159,7 @@ export function Studies() {
         <div className="hub-section__header">
           <h3>Pomodoro</h3>
         </div>
-        {subjectsLoading ? (
-          <SkeletonRows rows={3} />
-        ) : (
-          <PomodoroTimer subjects={periodSubjects} onSessionComplete={handlePomodoroComplete} />
-        )}
+        <PomodoroTimer />
       </section>
 
       <section className="hub-section">
@@ -205,20 +204,24 @@ export function Studies() {
           />
         ) : (
           <>
+            <DailyTrendChart sessions={periodSessions} />
+
             <div className="study-totals">
               <p className="study-totals__summary">
                 Total no período: <strong>{formatHours(totalMinutesAll)}</strong>
               </p>
-              {totalsBySubject.map(({ label, minutes }) => (
-                <div key={label} className="study-totals__row">
+              {totalsBySubject.map(({ id, label, minutes }) => (
+                <div key={id} className="study-totals__row">
                   <span className="study-totals__label">{label}</span>
                   <div className="study-totals__bar">
-                    <div className="study-totals__bar-fill" style={{ width: `${(minutes / maxMinutes) * 100}%` }} />
+                    <div
+                      className="study-totals__bar-fill"
+                      style={{ width: `${(minutes / maxMinutes) * 100}%`, background: seriesColors.get(id) }}
+                    />
                   </div>
                   <span className="study-totals__value">{formatHours(minutes)}</span>
                 </div>
               ))}
-              <p className="field__hint">Gráficos mais completos chegam em breve por aqui.</p>
             </div>
 
             <table className="eval-table">

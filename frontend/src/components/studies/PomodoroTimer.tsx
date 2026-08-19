@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
 import { Play, Pause, RotateCcw, SkipForward } from "lucide-react";
 import { Button } from "../ui/Button";
-import type { Subject } from "../../api/types";
+import { usePomodoro, type PomodoroPhase } from "../../context/PomodoroContext";
 
-type Phase = "focus" | "short-break" | "long-break";
-
-const PHASE_LABEL: Record<Phase, string> = {
+const PHASE_LABEL: Record<PomodoroPhase, string> = {
   focus: "Foco",
   "short-break": "Pausa curta",
   "long-break": "Pausa longa",
@@ -17,70 +14,32 @@ function formatClock(totalSeconds: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-export function PomodoroTimer({
-  subjects,
-  onSessionComplete,
-}: {
-  subjects: Subject[];
-  onSessionComplete: (input: { subjectId: number | null; topic: string; durationMinutes: number }) => void;
-}) {
-  const [focusMin, setFocusMin] = useState(25);
-  const [breakMin, setBreakMin] = useState(5);
-  const [longBreakMin, setLongBreakMin] = useState(15);
+export function PomodoroTimer() {
+  const {
+    phase,
+    running,
+    secondsLeft,
+    phaseDurationSeconds,
+    cyclesCompleted,
+    focusMin,
+    breakMin,
+    longBreakMin,
+    subjectId,
+    topic,
+    subjects,
+    setFocusMin,
+    setBreakMin,
+    setLongBreakMin,
+    setSubjectId,
+    setTopic,
+    start,
+    pause,
+    reset,
+    skipToBreak,
+    skipToFocus,
+  } = usePomodoro();
 
-  const [phase, setPhase] = useState<Phase>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(focusMin * 60);
-  const [running, setRunning] = useState(false);
-  const [cyclesCompleted, setCyclesCompleted] = useState(0);
-
-  const [subjectId, setSubjectId] = useState("");
-  const [topic, setTopic] = useState("");
-
-  const phaseDuration = phase === "focus" ? focusMin : phase === "short-break" ? breakMin : longBreakMin;
-
-  useEffect(() => {
-    if (running) return;
-    setSecondsLeft(phaseDuration * 60);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusMin, breakMin, longBreakMin, phase]);
-
-  useEffect(() => {
-    if (!running) return;
-    if (secondsLeft <= 0) {
-      if (phase === "focus") {
-        onSessionComplete({ subjectId: subjectId ? Number(subjectId) : null, topic: topic.trim(), durationMinutes: focusMin });
-        const nextCycles = cyclesCompleted + 1;
-        setCyclesCompleted(nextCycles);
-        const isLong = nextCycles % 4 === 0;
-        setPhase(isLong ? "long-break" : "short-break");
-        setSecondsLeft((isLong ? longBreakMin : breakMin) * 60);
-      } else {
-        setPhase("focus");
-        setSecondsLeft(focusMin * 60);
-        setRunning(false);
-      }
-      return;
-    }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [running, secondsLeft]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleReset = () => {
-    setRunning(false);
-    setSecondsLeft(phaseDuration * 60);
-  };
-
-  const skipToBreak = () => {
-    setPhase("short-break");
-    setSecondsLeft(breakMin * 60);
-  };
-
-  const skipToFocus = () => {
-    setPhase("focus");
-    setSecondsLeft(focusMin * 60);
-  };
-
-  const progressPct = ((phaseDuration * 60 - secondsLeft) / (phaseDuration * 60)) * 100;
+  const progressPct = ((phaseDurationSeconds - secondsLeft) / phaseDurationSeconds) * 100;
 
   return (
     <div className="pomodoro">
@@ -97,14 +56,10 @@ export function PomodoroTimer({
       </div>
 
       <div className="pomodoro__controls">
-        <Button
-          variant="primary"
-          icon={running ? Pause : Play}
-          onClick={() => setRunning((r) => !r)}
-        >
+        <Button variant="primary" icon={running ? Pause : Play} onClick={() => (running ? pause() : start())}>
           {running ? "Pausar" : "Iniciar"}
         </Button>
-        <Button variant="ghost" icon={RotateCcw} onClick={handleReset}>
+        <Button variant="ghost" icon={RotateCcw} onClick={reset}>
           Reiniciar
         </Button>
         {phase === "focus" ? (
@@ -162,7 +117,7 @@ export function PomodoroTimer({
             min="1"
             value={focusMin}
             disabled={running}
-            onChange={(e) => setFocusMin(Math.max(1, Number(e.target.value) || 1))}
+            onChange={(e) => setFocusMin(Number(e.target.value) || 1)}
           />
         </label>
         <label className="field field--tiny">
@@ -173,7 +128,7 @@ export function PomodoroTimer({
             min="1"
             value={breakMin}
             disabled={running}
-            onChange={(e) => setBreakMin(Math.max(1, Number(e.target.value) || 1))}
+            onChange={(e) => setBreakMin(Number(e.target.value) || 1)}
           />
         </label>
         <label className="field field--tiny">
@@ -184,7 +139,7 @@ export function PomodoroTimer({
             min="1"
             value={longBreakMin}
             disabled={running}
-            onChange={(e) => setLongBreakMin(Math.max(1, Number(e.target.value) || 1))}
+            onChange={(e) => setLongBreakMin(Number(e.target.value) || 1)}
           />
         </label>
       </div>

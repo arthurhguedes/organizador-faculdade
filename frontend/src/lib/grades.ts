@@ -49,6 +49,12 @@ export function todayISO(): string {
   return new Date(now.getTime() - offset * 60_000).toISOString().slice(0, 10);
 }
 
+export function addDaysISO(dateISO: string, days: number): string {
+  const d = new Date(`${dateISO}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
 export function relativeDayLabel(dateStr: string): string | null {
   const target = new Date(dateStr);
   const today = new Date(new Date().toDateString());

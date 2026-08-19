@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import { PeriodProvider } from "./context/PeriodContext";
+import { PomodoroProvider } from "./context/PomodoroContext";
 import { ToastProvider } from "./context/ToastContext";
 import { PageTitleProvider } from "./context/PageTitleContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -30,11 +31,13 @@ import "./App.css";
 function AuthenticatedShell() {
   return (
     <PeriodProvider>
-      <GradeBuilderProvider>
-        <PageTitleProvider>
-          <Outlet />
-        </PageTitleProvider>
-      </GradeBuilderProvider>
+      <PomodoroProvider>
+        <GradeBuilderProvider>
+          <PageTitleProvider>
+            <Outlet />
+          </PageTitleProvider>
+        </GradeBuilderProvider>
+      </PomodoroProvider>
     </PeriodProvider>
   );
 }

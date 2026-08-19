@@ -207,9 +207,9 @@ Modelo de dados completo (17 tabelas) e as decisões de produto por trás de cad
 
 ## Roadmap
 
-- [ ] Exportar dados / notificações
-- [ ] Gráficos de horas de estudo
-- [ ] Timer do Pomodoro persistir entre navegações/em background
+- [x] Exportar dados / notificações
+- [x] Gráficos de horas de estudo
+- [x] Timer do Pomodoro persistir entre navegações/em background
 
 ---
 
