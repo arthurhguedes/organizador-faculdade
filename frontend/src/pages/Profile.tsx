@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { useState, type ChangeEvent, type ComponentType, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Users, Camera } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
@@ -14,6 +14,7 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
 import { FeatureRow } from "../components/ui/FeatureRow";
+import { GithubIcon, InstagramIcon, LinkedinIcon, XIcon } from "../components/ui/SocialIcons";
 import { ProgressBoard } from "../components/gamification/ProgressBoard";
 import { AchievementGrid } from "../components/gamification/AchievementGrid";
 
@@ -33,6 +34,20 @@ type SocialDraft = {
   instagramUrl: string;
   xUrl: string;
 };
+
+const SOCIAL_FIELDS: Array<{
+  key: keyof SocialDraft;
+  label: string;
+  placeholder: string;
+  Icon: ComponentType<{ size?: number }>;
+}> = [
+  { key: "linkedinUrl", label: "LinkedIn", placeholder: "https://linkedin.com/in/...", Icon: LinkedinIcon },
+  { key: "githubUrl", label: "GitHub", placeholder: "https://github.com/...", Icon: GithubIcon },
+  { key: "instagramUrl", label: "Instagram", placeholder: "https://instagram.com/...", Icon: InstagramIcon },
+  { key: "xUrl", label: "X (Twitter)", placeholder: "https://x.com/...", Icon: XIcon },
+];
+
+const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 function calculateAge(birthDate: string): number {
   const birth = new Date(birthDate);
@@ -85,6 +100,10 @@ export function Profile() {
       .join("") || "?";
 
   const age = user?.birthDate ? calculateAge(user.birthDate) : null;
+  const usernameFormatValid = usernameDraft.length === 0 || USERNAME_PATTERN.test(usernameDraft);
+  const socialLinks = SOCIAL_FIELDS.map((field) => ({ ...field, url: user?.[field.key] })).filter(
+    (field): field is (typeof SOCIAL_FIELDS)[number] & { url: string } => Boolean(field.url),
+  );
 
   const startEditing = () => {
     setPersonalDraft({
@@ -291,31 +310,25 @@ export function Profile() {
           )}
 
           {activeSection === "social" && (
-            <form className="inline-form inline-form--stack" onSubmit={handleSaveSocial}>
-              <Field
-                label="LinkedIn"
-                placeholder="https://linkedin.com/in/..."
-                value={socialDraft.linkedinUrl}
-                onChange={(e) => setSocialDraft({ ...socialDraft, linkedinUrl: e.target.value })}
-              />
-              <Field
-                label="GitHub"
-                placeholder="https://github.com/..."
-                value={socialDraft.githubUrl}
-                onChange={(e) => setSocialDraft({ ...socialDraft, githubUrl: e.target.value })}
-              />
-              <Field
-                label="Instagram"
-                placeholder="https://instagram.com/..."
-                value={socialDraft.instagramUrl}
-                onChange={(e) => setSocialDraft({ ...socialDraft, instagramUrl: e.target.value })}
-              />
-              <Field
-                label="X (Twitter)"
-                placeholder="https://x.com/..."
-                value={socialDraft.xUrl}
-                onChange={(e) => setSocialDraft({ ...socialDraft, xUrl: e.target.value })}
-              />
+            <form className="inline-form inline-form--stack profile-personal-form" onSubmit={handleSaveSocial}>
+              <div className="profile-form-grid">
+                {SOCIAL_FIELDS.map(({ key, label, placeholder, Icon }) => (
+                  <label className="field" key={key}>
+                    <span className="field__label">{label}</span>
+                    <div className="social-field">
+                      <span className="social-field__icon">
+                        <Icon size={16} />
+                      </span>
+                      <input
+                        type="url"
+                        placeholder={placeholder}
+                        value={socialDraft[key]}
+                        onChange={(e) => setSocialDraft({ ...socialDraft, [key]: e.target.value })}
+                      />
+                    </div>
+                  </label>
+                ))}
+              </div>
               <div className="profile-edit-actions">
                 <Button type="submit" variant="primary" loading={saving} loadingText="Salvando...">
                   Salvar
@@ -329,18 +342,39 @@ export function Profile() {
 
           {activeSection === "username" && (
             <form className="inline-form inline-form--stack" onSubmit={handleSaveUsername}>
-              <Field
-                label="Nome de usuário"
-                placeholder="ex: arthur_g23"
-                value={usernameDraft}
-                onChange={(e) => {
-                  setUsernameDraft(e.target.value);
-                  setUsernameError(null);
-                }}
-                hint={usernameError ?? "3–20 caracteres: letras minúsculas, números ou _. Usado no futuro sistema de ranking e amizades."}
-              />
+              {user?.username && (
+                <p className="profile-username-current">
+                  Atual: <strong>@{user.username}</strong>
+                </p>
+              )}
+              <label className="field">
+                <span className="field__label">Nome de usuário</span>
+                <div className={`username-field ${usernameDraft && !usernameFormatValid ? "username-field--error" : ""}`}>
+                  <span className="username-field__at">@</span>
+                  <input
+                    placeholder="arthur_g23"
+                    value={usernameDraft}
+                    onChange={(e) => {
+                      setUsernameDraft(e.target.value.toLowerCase());
+                      setUsernameError(null);
+                    }}
+                  />
+                </div>
+                <span className={`field__hint ${usernameError || (usernameDraft && !usernameFormatValid) ? "field__hint--error" : ""}`}>
+                  {usernameError ??
+                    (usernameDraft && !usernameFormatValid
+                      ? "3–20 caracteres: letras minúsculas, números ou _"
+                      : "3–20 caracteres: letras minúsculas, números ou _. Usado no futuro sistema de ranking e amizades.")}
+                </span>
+              </label>
               <div className="profile-edit-actions">
-                <Button type="submit" variant="primary" loading={saving} loadingText="Salvando...">
+                <Button
+                  type="submit"
+                  variant="primary"
+                  loading={saving}
+                  loadingText="Salvando..."
+                  disabled={!usernameDraft || !usernameFormatValid}
+                >
                   Salvar
                 </Button>
                 <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)}>
@@ -363,6 +397,23 @@ export function Profile() {
               {age !== null ? ` · ${age} anos` : ""}
             </p>
             {user?.username && <p className="profile-card__username">@{user.username}</p>}
+            {socialLinks.length > 0 && (
+              <div className="profile-social-links">
+                {socialLinks.map(({ key, label, url, Icon }) => (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="profile-social-link"
+                    title={label}
+                    aria-label={label}
+                  >
+                    <Icon size={16} />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
           <Button variant="ghost" icon={Pencil} onClick={startEditing}>
             Editar perfil
