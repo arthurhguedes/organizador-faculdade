@@ -291,3 +291,37 @@ export function rememberOfferingsMapping(headers: string[], mapping: ColumnMappi
     // localStorage indisponível (modo privado, quota) — não é crítico, só perde a memorização
   }
 }
+
+function institutionKey(userId: number, institution: string): string {
+  return `${MAPPING_STORAGE_PREFIX}institution:${userId}:${institution.trim().toLowerCase()}`;
+}
+
+export function recallInstitutionMapping(userId: number, institution: string | null): ColumnMapping | null {
+  if (!institution || !institution.trim()) return null;
+  try {
+    const raw = localStorage.getItem(institutionKey(userId, institution));
+    return raw ? (JSON.parse(raw) as ColumnMapping) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function rememberInstitutionMapping(userId: number, institution: string | null, mapping: ColumnMapping): void {
+  if (!institution || !institution.trim()) return;
+  try {
+    localStorage.setItem(institutionKey(userId, institution), JSON.stringify(mapping));
+  } catch {
+    // localStorage indisponível — não é crítico, só perde a memorização
+  }
+}
+
+// Mantém só os campos cuja coluna lembrada existe nesta planilha — a faculdade pode ter mudado colunas entre semestres.
+export function applyInstitutionMapping(headers: string[], institutionMapping: ColumnMapping): ColumnMapping {
+  const headerSet = new Set(headers);
+  const applied: ColumnMapping = {};
+  for (const field of OFFERING_FIELDS) {
+    const header = institutionMapping[field];
+    if (header && headerSet.has(header)) applied[field] = header;
+  }
+  return applied;
+}

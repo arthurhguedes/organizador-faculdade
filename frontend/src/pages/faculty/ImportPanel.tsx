@@ -1,9 +1,12 @@
 import { useRef, useState } from "react";
 import { Upload, RefreshCw } from "lucide-react";
 import {
+  applyInstitutionMapping,
   parseOfferingsRows,
   readOfferingsSheet,
+  recallInstitutionMapping,
   recallOfferingsMapping,
+  rememberInstitutionMapping,
   rememberOfferingsMapping,
   suggestOfferingsMapping,
   type ColumnMapping,
@@ -12,6 +15,7 @@ import {
 } from "../../lib/offeringsImport";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../context/AuthContext";
 import { OfferingsMappingPanel } from "./OfferingsMappingPanel";
 
 export function ImportPanel({
@@ -25,10 +29,13 @@ export function ImportPanel({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
-  const [pendingSheet, setPendingSheet] = useState<{ sheet: RawOfferingsSheet; mapping: ColumnMapping } | null>(
-    null,
-  );
+  const [pendingSheet, setPendingSheet] = useState<{
+    sheet: RawOfferingsSheet;
+    mapping: ColumnMapping;
+    fromInstitution: boolean;
+  } | null>(null);
   const { notify } = useToast();
+  const { user } = useAuth();
 
   const runImport = async (sheet: RawOfferingsSheet, mapping: ColumnMapping) => {
     const parsed = parseOfferingsRows(sheet.rows, mapping);
@@ -37,7 +44,10 @@ export function ImportPanel({
       return;
     }
     const ok = await onImport(parsed);
-    if (ok) rememberOfferingsMapping(sheet.headers, mapping);
+    if (ok) {
+      rememberOfferingsMapping(sheet.headers, mapping);
+      if (user) rememberInstitutionMapping(user.id, user.institution, mapping);
+    }
   };
 
   const handleFile = async (file: File) => {
@@ -55,7 +65,12 @@ export function ImportPanel({
         return;
       }
 
-      setPendingSheet({ sheet, mapping: remembered ?? suggestOfferingsMapping(sheet.headers) });
+      const institutionMapping = user ? recallInstitutionMapping(user.id, user.institution) : null;
+      const fromInstitution = institutionMapping ? applyInstitutionMapping(sheet.headers, institutionMapping) : {};
+      const hasInstitutionHints = Object.keys(fromInstitution).length > 0;
+      const mapping = { ...suggestOfferingsMapping(sheet.headers), ...fromInstitution };
+
+      setPendingSheet({ sheet, mapping, fromInstitution: hasInstitutionHints });
     } catch {
       notify("Não consegui ler esse arquivo. Confira se é uma planilha de oferta de disciplinas (.xlsx, .xls ou .csv).", "error");
     } finally {
@@ -71,6 +86,7 @@ export function ImportPanel({
       <OfferingsMappingPanel
         sheet={pendingSheet.sheet}
         initialMapping={pendingSheet.mapping}
+        institutionHint={pendingSheet.fromInstitution ? user?.institution ?? null : null}
         busy={importing}
         onCancel={() => setPendingSheet(null)}
         onConfirm={async (mapping) => {

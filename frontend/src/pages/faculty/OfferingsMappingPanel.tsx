@@ -36,12 +36,14 @@ const REQUIRED_FIELDS: OfferingField[] = ["subjectCode", "subjectName"];
 export function OfferingsMappingPanel({
   sheet,
   initialMapping,
+  institutionHint,
   busy,
   onConfirm,
   onCancel,
 }: {
   sheet: RawOfferingsSheet;
   initialMapping: ColumnMapping;
+  institutionHint?: string | null;
   busy: boolean;
   onConfirm: (mapping: ColumnMapping) => void;
   onCancel: () => void;
@@ -64,6 +66,11 @@ export function OfferingsMappingPanel({
           Cada faculdade organiza a planilha de um jeito — associe cada campo à coluna correspondente. A gente
           lembra dessa escolha pras próximas importações dessa mesma planilha.
         </p>
+        {institutionHint && (
+          <p className="offerings-mapping__institution-hint">
+            Pré-preenchido com o mapeamento que você já confirmou pra {institutionHint} — confira antes de importar.
+          </p>
+        )}
       </div>
 
       {OFFERING_FIELD_GROUPS.map((group) => (
