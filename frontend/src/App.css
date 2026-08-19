@@ -1968,6 +1968,95 @@
   margin-top: 2px;
 }
 
+.offerings-mapping {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  margin-bottom: var(--space-6);
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.offerings-mapping__header .import-panel__meta {
+  margin-top: var(--space-1);
+}
+
+.offerings-mapping__group-title {
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-2);
+}
+
+.offerings-mapping__fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.offerings-mapping__field {
+  flex: 1 1 180px;
+}
+
+.offerings-mapping__preview {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.offerings-mapping__preview-title {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.offerings-mapping__preview-empty {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.offerings-mapping__preview-table-wrap {
+  overflow-x: auto;
+}
+
+.offerings-mapping__preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.offerings-mapping__preview-table th,
+.offerings-mapping__preview-table td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.offerings-mapping__preview-table th {
+  background: var(--bg-elevated);
+  color: var(--text-tertiary);
+  font-weight: 600;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.offerings-mapping__preview-table tr:last-child td {
+  border-bottom: none;
+}
+
+.offerings-mapping__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
 .enrollment-import-row {
   margin-bottom: var(--space-3);
 }

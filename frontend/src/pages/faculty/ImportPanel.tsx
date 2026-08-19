@@ -1,8 +1,18 @@
 import { useRef, useState } from "react";
 import { Upload, RefreshCw } from "lucide-react";
-import { parseOfferingsWorkbook } from "../../lib/offeringsImport";
+import {
+  parseOfferingsRows,
+  readOfferingsSheet,
+  recallOfferingsMapping,
+  rememberOfferingsMapping,
+  suggestOfferingsMapping,
+  type ColumnMapping,
+  type ParsedOffering,
+  type RawOfferingsSheet,
+} from "../../lib/offeringsImport";
 import { Button } from "../../components/ui/Button";
 import { useToast } from "../../context/ToastContext";
+import { OfferingsMappingPanel } from "./OfferingsMappingPanel";
 
 export function ImportPanel({
   lastImportedAt,
@@ -11,23 +21,43 @@ export function ImportPanel({
 }: {
   lastImportedAt: string | null;
   importing: boolean;
-  onImport: (parsed: Awaited<ReturnType<typeof parseOfferingsWorkbook>>) => Promise<boolean>;
+  onImport: (parsed: ParsedOffering[]) => Promise<boolean>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
+  const [pendingSheet, setPendingSheet] = useState<{ sheet: RawOfferingsSheet; mapping: ColumnMapping } | null>(
+    null,
+  );
   const { notify } = useToast();
+
+  const runImport = async (sheet: RawOfferingsSheet, mapping: ColumnMapping) => {
+    const parsed = parseOfferingsRows(sheet.rows, mapping);
+    if (parsed.length === 0) {
+      notify("Não encontrei nenhuma linha reconhecível com esse mapeamento de colunas", "error");
+      return;
+    }
+    const ok = await onImport(parsed);
+    if (ok) rememberOfferingsMapping(sheet.headers, mapping);
+  };
 
   const handleFile = async (file: File) => {
     setParsing(true);
     try {
-      const parsed = await parseOfferingsWorkbook(file);
-      if (parsed.length === 0) {
-        notify("Não encontrei nenhuma linha reconhecível na planilha", "error");
+      const sheet = await readOfferingsSheet(file);
+      if (sheet.rows.length === 0) {
+        notify("Não encontrei nenhuma linha nessa planilha", "error");
         return;
       }
-      await onImport(parsed);
+
+      const remembered = recallOfferingsMapping(sheet.headers);
+      if (remembered && parseOfferingsRows(sheet.rows, remembered).length > 0) {
+        await runImport(sheet, remembered);
+        return;
+      }
+
+      setPendingSheet({ sheet, mapping: remembered ?? suggestOfferingsMapping(sheet.headers) });
     } catch {
-      notify("Não consegui ler esse arquivo. Confira se é a planilha de encargos da faculdade.", "error");
+      notify("Não consegui ler esse arquivo. Confira se é uma planilha de oferta de disciplinas (.xlsx, .xls ou .csv).", "error");
     } finally {
       setParsing(false);
       if (inputRef.current) inputRef.current.value = "";
@@ -35,6 +65,21 @@ export function ImportPanel({
   };
 
   const busy = parsing || importing;
+
+  if (pendingSheet) {
+    return (
+      <OfferingsMappingPanel
+        sheet={pendingSheet.sheet}
+        initialMapping={pendingSheet.mapping}
+        busy={importing}
+        onCancel={() => setPendingSheet(null)}
+        onConfirm={async (mapping) => {
+          await runImport(pendingSheet.sheet, mapping);
+          setPendingSheet(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="import-panel">
@@ -49,7 +94,7 @@ export function ImportPanel({
       <input
         ref={inputRef}
         type="file"
-        accept=".xlsx,.xls"
+        accept=".xlsx,.xls,.csv"
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0];
