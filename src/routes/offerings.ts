@@ -65,41 +65,57 @@ router.post("/import", async (req, res) => {
 
   try {
     const userId = req.userId!;
+    const CHUNK_SIZE = 500;
 
     await db.transaction(async (tx) => {
       await tx.delete(schema.offeringSchedules).where(eq(schema.offeringSchedules.userId, userId));
       await tx.delete(schema.courseOfferings).where(eq(schema.courseOfferings.userId, userId));
 
-      for (const offering of offerings as ImportOffering[]) {
-        const [inserted] = await tx
-          .insert(schema.courseOfferings)
-          .values({
-            professorName: offering.professorName,
-            subjectCode: offering.subjectCode,
-            subjectName: offering.subjectName,
-            turma: offering.turma,
-            curso: offering.curso,
-            vagas: offering.vagas,
-            depto: offering.depto,
-            workloadHours: offering.workloadHours,
-            theoryHours: offering.theoryHours,
-            practiceHours: offering.practiceHours,
-            userId,
-          })
-          .returning();
+      const typedOfferings = offerings as ImportOffering[];
+      const allSchedules: (ImportSchedule & { offeringId: number })[] = [];
 
-        if (inserted && offering.schedules.length > 0) {
-          await tx.insert(schema.offeringSchedules).values(
-            offering.schedules.map((slot) => ({
-              offeringId: inserted.id,
-              weekday: slot.weekday,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-              kind: slot.kind,
+      for (let i = 0; i < typedOfferings.length; i += CHUNK_SIZE) {
+        const chunk = typedOfferings.slice(i, i + CHUNK_SIZE);
+        const inserted = await tx
+          .insert(schema.courseOfferings)
+          .values(
+            chunk.map((offering) => ({
+              professorName: offering.professorName,
+              subjectCode: offering.subjectCode,
+              subjectName: offering.subjectName,
+              turma: offering.turma,
+              curso: offering.curso,
+              vagas: offering.vagas,
+              depto: offering.depto,
+              workloadHours: offering.workloadHours,
+              theoryHours: offering.theoryHours,
+              practiceHours: offering.practiceHours,
               userId,
             })),
-          );
-        }
+          )
+          .returning();
+
+        chunk.forEach((offering, index) => {
+          const offeringId = inserted[index]?.id;
+          if (!offeringId) return;
+          for (const slot of offering.schedules) {
+            allSchedules.push({ ...slot, offeringId });
+          }
+        });
+      }
+
+      for (let i = 0; i < allSchedules.length; i += CHUNK_SIZE) {
+        const chunk = allSchedules.slice(i, i + CHUNK_SIZE);
+        await tx.insert(schema.offeringSchedules).values(
+          chunk.map((slot) => ({
+            offeringId: slot.offeringId,
+            weekday: slot.weekday,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
+            kind: slot.kind,
+            userId,
+          })),
+        );
       }
     });
 
