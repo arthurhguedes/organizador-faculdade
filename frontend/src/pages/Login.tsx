@@ -11,7 +11,7 @@ import { GoogleIcon } from "../components/ui/GoogleIcon";
 export function Login() {
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -19,11 +19,11 @@ export function Login() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!identifier || !password) return;
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       navigate("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Não foi possível entrar. Tente novamente.");
@@ -71,11 +71,11 @@ export function Login() {
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <Field
-            label="Email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="Email ou usuário"
+            type="text"
+            autoComplete="username"
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             required
           />
           <Field

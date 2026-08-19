@@ -24,10 +24,17 @@ export const users = pgTable("users", {
   githubUrl: text("github_url"),
   instagramUrl: text("instagram_url"),
   xUrl: text("x_url"),
-  // Único entre usuários, mas opcional (nulo até o usuário escolher) — usado
-  // futuramente pro sistema de ranking/amigos. Postgres permite múltiplos
-  // NULL num índice unique, então não obriga todo mundo a ter um.
+  // Único entre usuários. Escolhido obrigatoriamente no cadastro por
+  // email/senha (ver plugin `username` em src/auth.ts); contas criadas via
+  // Google ficam sem um até o usuário definir no Perfil — por isso a coluna
+  // continua nullable (Postgres permite múltiplos NULL num índice unique).
+  // Usado futuramente pro sistema de ranking/amigos, e hoje também pra logar
+  // com usuário em vez de email.
   username: text("username").unique(),
+  // Mantém a capitalização original digitada no cadastro; `username` guarda
+  // sempre a versão normalizada (minúscula) usada pra unicidade/login. O
+  // plugin `username` do Better Auth é quem gerencia as duas.
+  displayUsername: text("display_username"),
 });
 
 // Tabelas do Better Auth — sessão ativa (cookie) e contas de login (uma por

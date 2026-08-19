@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { username } from "better-auth/plugins";
 import bcrypt from "bcryptjs";
 import { db } from "./db/index.js";
 import * as schema from "./db/schema.js";
@@ -65,4 +66,16 @@ export const auth = betterAuth({
   rateLimit: {
     enabled: process.env.NODE_ENV !== "test",
   },
+  // Mesmo padrão (3–20 chars, minúsculo/número/_) já usado no username do
+  // Perfil (`USERNAME_PATTERN` em src/routes/auth.ts) — valida a versão já
+  // normalizada (minúscula) pra não recusar "Arthur_G23" só por causa da
+  // maiúscula, já que ela vira minúscula de qualquer forma antes de salvar.
+  plugins: [
+    username({
+      minUsernameLength: 3,
+      maxUsernameLength: 20,
+      usernameValidator: (value) => /^[a-z0-9_]+$/.test(value),
+      validationOrder: { username: "post-normalization" },
+    }),
+  ],
 });

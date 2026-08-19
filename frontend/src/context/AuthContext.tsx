@@ -7,8 +7,13 @@ import type { AuthUser } from "../api/types";
 // manter a mensagem que os ErrorBanner de Login/Register já mostravam.
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "Email ou senha inválidos",
+  INVALID_USERNAME_OR_PASSWORD: "Usuário ou senha inválidos",
   USER_ALREADY_EXISTS: "Email já cadastrado",
   USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: "Email já cadastrado",
+  USERNAME_IS_ALREADY_TAKEN: "Esse nome de usuário já está em uso",
+  USERNAME_TOO_SHORT: "Nome de usuário muito curto",
+  USERNAME_TOO_LONG: "Nome de usuário muito longo",
+  INVALID_USERNAME: "Nome de usuário deve ter 3–20 caracteres: letras minúsculas, números ou _",
 };
 
 function authErrorMessage(error: { code?: string; message?: string } | null, fallback: string): string {
@@ -19,8 +24,8 @@ function authErrorMessage(error: { code?: string; message?: string } | null, fal
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<AuthUser>;
-  register: (name: string, email: string, password: string) => Promise<AuthUser>;
+  login: (identifier: string, password: string) => Promise<AuthUser>;
+  register: (name: string, email: string, username: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => Promise<AuthUser>;
@@ -42,16 +47,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await authClient.signIn.email({ email, password });
+  // Login aceita email ou nome de usuário no mesmo campo — decide qual
+  // endpoint do Better Auth chamar pelo formato do que foi digitado.
+  const login = async (identifier: string, password: string) => {
+    const { error } = identifier.includes("@")
+      ? await authClient.signIn.email({ email: identifier, password })
+      : await authClient.signIn.username({ username: identifier, password });
     if (error) throw new ApiError(authErrorMessage(error, "Não foi possível entrar. Tente novamente."));
     const loggedUser = await authApi.me();
     setUser(loggedUser);
     return loggedUser;
   };
 
-  const register = async (name: string, email: string, password: string) => {
-    const { error } = await authClient.signUp.email({ email, password, name });
+  const register = async (name: string, email: string, username: string, password: string) => {
+    const { error } = await authClient.signUp.email({ email, password, name, username });
     if (error) throw new ApiError(authErrorMessage(error, "Não foi possível criar sua conta. Tente novamente."));
     const newUser = await authApi.me();
     setUser(newUser);

@@ -140,7 +140,7 @@ router.patch("/me/username", requireAuth, async (req, res) => {
   try {
     const [updated] = await db
       .update(schema.users)
-      .set({ username })
+      .set({ username, displayUsername: username })
       .where(eq(schema.users.id, req.userId!))
       .returning();
     if (!updated) {

@@ -115,6 +115,71 @@ describe("cadastro e login por email/senha", () => {
   });
 });
 
+describe("cadastro e login por username", () => {
+  function uniqueUsername() {
+    // Precisa caber no limite de 20 chars do plugin (minUsernameLength/maxUsernameLength em src/auth.ts).
+    return `u${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
+  }
+
+  it("cadastra com username e loga com ele em vez do email", async () => {
+    const email = trackedEmail();
+    const uname = uniqueUsername();
+
+    const signUpRes = await request(app)
+      .post("/api/auth/sign-up/email")
+      .send({ email, password: "senha12345", name: "Teste", username: uname });
+    expect(signUpRes.status).toBe(200);
+
+    const agent = request.agent(app);
+    const loginRes = await agent.post("/api/auth/sign-in/username").send({ username: uname, password: "senha12345" });
+    expect(loginRes.status).toBe(200);
+
+    const meRes = await agent.get("/auth/me");
+    expect(meRes.status).toBe(200);
+    expect(meRes.body.email).toBe(email);
+    expect(meRes.body.username).toBe(uname);
+  });
+
+  it("rejeita cadastro com username já em uso", async () => {
+    const uname = uniqueUsername();
+    await request(app)
+      .post("/api/auth/sign-up/email")
+      .send({ email: trackedEmail(), password: "senha12345", name: "Teste", username: uname });
+
+    const dupRes = await request(app)
+      .post("/api/auth/sign-up/email")
+      .send({ email: trackedEmail(), password: "outrasenha123", name: "Outro", username: uname });
+    expect(dupRes.status).toBeGreaterThanOrEqual(400);
+  });
+
+  it("normaliza o username pra minúsculo e continua logando com ele em minúsculo", async () => {
+    const email = trackedEmail();
+    const uname = uniqueUsername();
+
+    await request(app)
+      .post("/api/auth/sign-up/email")
+      .send({ email, password: "senha12345", name: "Teste", username: uname.toUpperCase() });
+
+    const agent = request.agent(app);
+    const loginRes = await agent.post("/api/auth/sign-in/username").send({ username: uname, password: "senha12345" });
+    expect(loginRes.status).toBe(200);
+  });
+
+  it("rejeita login com username errado e não seta cookie", async () => {
+    const email = trackedEmail();
+    const uname = uniqueUsername();
+    await request(app)
+      .post("/api/auth/sign-up/email")
+      .send({ email, password: "senha12345", name: "Teste", username: uname });
+
+    const res = await request(app)
+      .post("/api/auth/sign-in/username")
+      .send({ username: uname, password: "senhaerrada" });
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.headers["set-cookie"]).toBeUndefined();
+  });
+});
+
 describe("proteção de rotas", () => {
   it("bloqueia rota protegida sem sessão", async () => {
     const res = await request(app).get("/periods");
