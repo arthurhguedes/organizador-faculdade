@@ -19,7 +19,22 @@ import academicRequestsRouter from "./routes/academicRequests.js";
 import { requireAuth } from "./middleware/requireAuth.js";
 
 export const app = express();
+app.disable("x-powered-by");
 app.use(cors({ origin: process.env.FRONTEND_URL ?? "http://localhost:5173", credentials: true }));
+
+// O Better Auth faz o próprio parse do corpo da requisição (não dá pra usar
+// express.json() na frente, ver comentário abaixo), então essas rotas não
+// passam pelo limite de 2mb configurado mais adiante — sem isso, dava pra
+// mandar um payload de qualquer tamanho pro /sign-up/email (testado com um
+// campo "name" de 5MB aceito de boa) e estourar memória/banco.
+const MAX_AUTH_BODY_BYTES = 100_000;
+app.use("/api/auth", (req, res, next) => {
+  const contentLength = Number(req.headers["content-length"] ?? 0);
+  if (contentLength > MAX_AUTH_BODY_BYTES) {
+    return res.status(413).json({ message: "Corpo da requisição muito grande" });
+  }
+  next();
+});
 
 // Precisa vir antes do express.json(): o Better Auth faz o próprio parse do
 // corpo da requisição, e um body-parser rodando antes consome o stream e

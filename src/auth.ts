@@ -56,4 +56,13 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: process.env.BACKEND_URL ?? "http://localhost:3000",
   trustedOrigins: [process.env.FRONTEND_URL ?? "http://localhost:5173"],
+  // Sem isso, o rate limit do Better Auth (3 tentativas de login/10s por IP,
+  // padrão da lib) só liga sozinho quando NODE_ENV=production — em dev fica
+  // desligado, e em produção depende de o host setar essa env var certinho.
+  // Deixa explícito e sempre ligado (exceto em teste — os testes de
+  // src/auth.test.ts fazem vários sign-up/sign-in em sequência rápida a
+  // partir da mesma origem e cairiam no próprio limite).
+  rateLimit: {
+    enabled: process.env.NODE_ENV !== "test",
+  },
 });
