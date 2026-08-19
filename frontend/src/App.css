@@ -2465,7 +2465,19 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  max-width: 560px;
+  max-width: 640px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .profile-card {
@@ -2552,15 +2564,61 @@
   color: var(--accent);
 }
 
+.profile-personal-form {
+  max-width: none;
+}
+
 .profile-avatar-picker {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-4);
+}
+
+.profile-avatar-picker__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.profile-avatar--editable {
+  position: relative;
+  cursor: pointer;
+}
+
+.profile-avatar__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 150ms ease;
+}
+
+.profile-avatar--editable:hover .profile-avatar__overlay,
+.profile-avatar--editable:focus-within .profile-avatar__overlay {
+  opacity: 1;
+}
+
+.profile-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+@media (max-width: 520px) {
+  .profile-form-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .profile-edit-actions {
   display: flex;
   gap: var(--space-3);
+  padding-top: var(--space-1);
 }
 
 .profile-stats {

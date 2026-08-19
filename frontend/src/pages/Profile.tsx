@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Users } from "lucide-react";
+import { Pencil, X, Lock, LogOut, BookOpen, CalendarRange, Users, Camera } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
@@ -9,6 +9,7 @@ import { useEntityList } from "../hooks/useEntityList";
 import { useGamification } from "../hooks/useGamification";
 import { subjectsApi, professorsApi, ApiError } from "../api/client";
 import { resizeImageToDataUrl } from "../lib/avatarImage";
+import { ALL_INSTITUTIONS, INSTITUTION_GROUPS, OTHER_INSTITUTION_VALUE } from "../lib/institutions";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
 import { Badge } from "../components/ui/Badge";
@@ -73,6 +74,7 @@ export function Profile() {
   });
   const [usernameDraft, setUsernameDraft] = useState("");
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [customInstitution, setCustomInstitution] = useState(false);
 
   const initials =
     (user?.name ?? "")
@@ -100,8 +102,20 @@ export function Profile() {
     });
     setUsernameDraft(user?.username ?? "");
     setUsernameError(null);
+    setCustomInstitution(Boolean(user?.institution) && !ALL_INSTITUTIONS.includes(user?.institution ?? ""));
     setActiveSection("personal");
     setEditing(true);
+  };
+
+  const handleInstitutionSelect = (e: ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === OTHER_INSTITUTION_VALUE) {
+      setCustomInstitution(true);
+      setPersonalDraft((prev) => ({ ...prev, institution: "" }));
+    } else {
+      setCustomInstitution(false);
+      setPersonalDraft((prev) => ({ ...prev, institution: value }));
+    }
   };
 
   const handleLogout = async () => {
@@ -199,37 +213,72 @@ export function Profile() {
           </div>
 
           {activeSection === "personal" && (
-            <form className="inline-form inline-form--stack" onSubmit={handleSavePersonal}>
-              <label className="field">
-                <span className="field__label">Foto de perfil</span>
-                <div className="profile-avatar-picker">
-                  <div className="profile-avatar">
-                    {personalDraft.avatarImage ? <img src={personalDraft.avatarImage} alt="" /> : initials}
-                  </div>
-                  <input type="file" accept="image/*" onChange={handleAvatarChange} />
+            <form className="inline-form inline-form--stack profile-personal-form" onSubmit={handleSavePersonal}>
+              <div className="profile-avatar-picker">
+                <label className="profile-avatar profile-avatar--editable">
+                  {personalDraft.avatarImage ? <img src={personalDraft.avatarImage} alt="" /> : initials}
+                  <span className="profile-avatar__overlay">
+                    <Camera size={18} strokeWidth={1.75} />
+                  </span>
+                  <input type="file" accept="image/*" className="sr-only" onChange={handleAvatarChange} />
+                </label>
+                <div className="profile-avatar-picker__text">
+                  <span className="field__label">Foto de perfil</span>
+                  <span className="field__hint">Clique na imagem pra trocar</span>
                 </div>
-              </label>
-              <Field
-                label="Nome completo"
-                value={personalDraft.name}
-                onChange={(e) => setPersonalDraft({ ...personalDraft, name: e.target.value })}
-              />
-              <Field
-                label="Instituição de ensino"
-                value={personalDraft.institution}
-                onChange={(e) => setPersonalDraft({ ...personalDraft, institution: e.target.value })}
-              />
-              <Field
-                label="Curso"
-                value={personalDraft.course}
-                onChange={(e) => setPersonalDraft({ ...personalDraft, course: e.target.value })}
-              />
-              <Field
-                label="Data de nascimento"
-                type="date"
-                value={personalDraft.birthDate}
-                onChange={(e) => setPersonalDraft({ ...personalDraft, birthDate: e.target.value })}
-              />
+              </div>
+
+              <div className="profile-form-grid">
+                <Field
+                  label="Nome completo"
+                  value={personalDraft.name}
+                  onChange={(e) => setPersonalDraft({ ...personalDraft, name: e.target.value })}
+                />
+                <Field
+                  label="Data de nascimento"
+                  type="date"
+                  value={personalDraft.birthDate}
+                  onChange={(e) => setPersonalDraft({ ...personalDraft, birthDate: e.target.value })}
+                />
+              </div>
+
+              <div className="profile-form-grid">
+                <label className="field">
+                  <span className="field__label">Instituição de ensino</span>
+                  <select
+                    className="field__input"
+                    value={customInstitution ? OTHER_INSTITUTION_VALUE : personalDraft.institution}
+                    onChange={handleInstitutionSelect}
+                  >
+                    <option value="">Selecione sua instituição</option>
+                    {INSTITUTION_GROUPS.map((group) => (
+                      <optgroup key={group.label} label={group.label}>
+                        {group.options.map((option) => (
+                          <option key={option} value={option}>
+                            {option}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                    <option value={OTHER_INSTITUTION_VALUE}>Outra instituição</option>
+                  </select>
+                </label>
+                <Field
+                  label="Curso"
+                  value={personalDraft.course}
+                  onChange={(e) => setPersonalDraft({ ...personalDraft, course: e.target.value })}
+                />
+              </div>
+
+              {customInstitution && (
+                <Field
+                  label="Nome da instituição"
+                  placeholder="Digite o nome da sua instituição"
+                  value={personalDraft.institution}
+                  onChange={(e) => setPersonalDraft({ ...personalDraft, institution: e.target.value })}
+                />
+              )}
+
               <div className="profile-edit-actions">
                 <Button type="submit" variant="primary" loading={saving} loadingText="Salvando...">
                   Salvar
