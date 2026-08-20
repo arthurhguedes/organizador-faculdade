@@ -213,12 +213,6 @@ frontend/src/                 front-end
                                planoDeEnsinoImport.ts
 ```
 
-## Roadmap
-
-- [x] Exportar dados / notificações
-- [x] Gráficos de horas de estudo
-- [x] Timer do Pomodoro persistir entre navegações/em background
-
 ---
 
 <p align="center">Projeto pessoal para organizar a própria vida acadêmica.</p>
