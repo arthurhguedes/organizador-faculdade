@@ -11,6 +11,10 @@
 [![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F?style=flat&logo=drizzle&logoColor=black)](#stack)
 [![Better Auth](https://img.shields.io/badge/Auth-Better_Auth-black?style=flat)](#stack)
 
+### [🔗 Acessar o Notary](https://notary-arthurhguedes-projects.vercel.app)
+
+> O back-end roda no free tier do Render e "dorme" após 15min sem acesso — o primeiro carregamento pode levar ~50s enquanto ele acorda sozinho. Os acessos seguintes são instantâneos.
+
 </div>
 
 <br>
