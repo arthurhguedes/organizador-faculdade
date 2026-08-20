@@ -25,11 +25,11 @@ const before = [
   "Notas espalhadas entre prints, planilhas soltas e conversa de WhatsApp",
   "Prazo de prova ou atividade perdido porque ninguém avisou",
   "Preencher matrícula e histórico à mão de novo, todo semestre",
-  "Abrir cinco abas do portal só pra montar a grade sem bater horário",
+  "Abrir cinco abas do portal só para montar a grade sem bater horário",
 ];
 
 const after = [
-  "Toda matéria, horário, prazo e nota num painel só",
+  "Toda matéria, horário, prazo e nota em um só painel",
   "Média de cada matéria calculada sozinha, com o peso que cada professor usa",
   "Matrícula, histórico e plano de ensino importados do PDF em segundos",
   "Grade montada a partir do catálogo da faculdade, sem conflito de horário",
@@ -49,7 +49,7 @@ const compactFeatures: { icon: typeof BookOpen; title: string; description: stri
   {
     icon: ClipboardCheck,
     title: "Peso de prova é seu",
-    description: "Cada professor pesa diferente — você define o peso, o Notary só faz a conta.",
+    description: "Cada professor pesa diferente — você define o peso, o Notary faz o cálculo por você.",
   },
   {
     icon: GraduationCap,
@@ -75,9 +75,9 @@ const faqItems: { question: string; answer: string }[] = [
       "No seu próprio banco de dados na nuvem, vinculado só à sua conta. Nada é compartilhado com outros usuários ou com a faculdade.",
   },
   {
-    question: "O app ainda tá em desenvolvimento — dá pra confiar?",
+    question: "O app ainda está em desenvolvimento — dá para confiar?",
     answer:
-      "Dá. É um projeto real, em uso e evolução constante — não uma maquete. O que ainda não existe aparece como \"Em breve\", nunca escondido ou quebrado.",
+      "Sim. É um projeto real, em uso e evolução constante — não uma maquete. O que ainda não existe aparece como \"Em breve\", nunca escondido ou quebrado.",
   },
 ];
 
@@ -117,7 +117,7 @@ export function Landing() {
             type="button"
             className="landing__theme-toggle"
             onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Mudar pro tema claro" : "Mudar pro tema escuro"}
+            aria-label={theme === "dark" ? "Mudar para o tema claro" : "Mudar para o tema escuro"}
           >
             {theme === "dark" ? <Sun size={17} strokeWidth={2} /> : <Moon size={17} strokeWidth={2} />}
           </button>
@@ -136,12 +136,12 @@ export function Landing() {
         <Section className="landing__hero">
           <div className="landing__hero-copy">
             <h1>
-              Chega de portal de faculdade bagunçado.
-              <span>Organize tudo num lugar só.</span>
+              Chega de portal de faculdade desorganizado.
+              <span>Organize tudo em um só lugar.</span>
             </h1>
             <p>
-              Matérias, horários, provas, atividades e notas — o Notary junta o que sua faculdade deveria mostrar
-              direito e não mostra. Cadastre uma vez, acompanhe o semestre inteiro.
+              Matérias, horários, provas, atividades e notas — o Notary reúne o que sua faculdade deveria mostrar com
+              clareza e não mostra. Cadastre uma vez, acompanhe o semestre inteiro.
             </p>
             <div className="landing__hero-ctas">
               <Link to="/registrar" className="btn btn--primary landing__hero-cta">
@@ -152,7 +152,7 @@ export function Landing() {
                 Já tenho conta
               </Link>
             </div>
-            <p className="landing__hero-meta">Leva menos de 1 minuto pra criar sua conta.</p>
+            <p className="landing__hero-meta">Leva menos de 1 minuto para criar sua conta.</p>
           </div>
 
           <div className="landing__hero-visual">
@@ -212,8 +212,8 @@ export function Landing() {
 
         <Section id="recursos" className="landing__spotlight">
           <div className="landing__section-head">
-            <h2>Feito pra resolver os dois maiores incômodos</h2>
-            <p>Não é só uma lista bonita de matérias — o Notary faz o trabalho manual por você.</p>
+            <h2>Feito para resolver os dois maiores incômodos</h2>
+            <p>Não é apenas uma lista de matérias — o Notary automatiza o trabalho manual por você.</p>
           </div>
 
           <div className="landing__spotlight-row">
@@ -246,10 +246,10 @@ export function Landing() {
 
           <div className="landing__spotlight-row landing__spotlight-row--reverse">
             <div className="landing__spotlight-copy">
-              <h3>Monte a grade sem bater horário</h3>
+              <h3>Monte a grade sem conflito de horário</h3>
               <p>
                 Importe a planilha de oferta que a sua faculdade já disponibiliza por semestre, filtre por professor
-                e escolha as turmas — o Notary avisa na hora se duas batem no mesmo horário.
+                e escolha as turmas — o Notary avisa imediatamente se duas turmas coincidem no mesmo horário.
               </p>
             </div>
             <div className="landing__spotlight-visual">
@@ -303,12 +303,12 @@ export function Landing() {
           <p>
             O site da faculdade não oferece exportação de dados e é difícil de navegar — então os dados ficam
             espalhados entre prints, planilhas e conversas de WhatsApp. O Notary nasceu como um projeto pessoal,
-            construído enquanto eu mesmo curso a faculdade, pra resolver exatamente esse problema: um lugar só,
-            feito pra estudante, pra guardar matérias, horários, provas e notas.
+            construído enquanto eu mesmo curso a faculdade, para resolver exatamente esse problema: um único lugar,
+            feito para estudante, para guardar matérias, horários, provas e notas.
           </p>
           <p className="landing__about-pullquote">
-            Nada de planilha solta pra manter atualizada — <strong>o que sua faculdade já te entrega em PDF ou
-            planilha, o Notary importa sozinho.</strong>
+            Nada de planilha solta para manter atualizada — <strong>o que sua faculdade já entrega em PDF ou
+            planilha, o Notary importa automaticamente.</strong>
           </p>
         </Section>
 
@@ -328,7 +328,7 @@ export function Landing() {
         </Section>
 
         <Section className="landing__final-cta">
-          <h2>Pronto pra parar de anotar tudo espalhado?</h2>
+          <h2>Pronto para parar de anotar tudo espalhado?</h2>
           <p>Cadastre suas matérias em minutos e deixe o Notary calcular o resto.</p>
           <Link to="/registrar" className="btn btn--primary landing__hero-cta">
             Criar conta grátis
@@ -342,7 +342,7 @@ export function Landing() {
           <img src="/favicon.svg" alt="" width={22} height={22} />
           <span>Notary</span>
         </div>
-        <p>Projeto pessoal em desenvolvimento — sua vida acadêmica organizada num só lugar.</p>
+        <p>Projeto pessoal em desenvolvimento — sua vida acadêmica organizada em um só lugar.</p>
       </footer>
     </div>
   );
