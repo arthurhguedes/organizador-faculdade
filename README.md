@@ -216,3 +216,9 @@ frontend/src/                 front-end
 ---
 
 <p align="center">Projeto pessoal para organizar a própria vida acadêmica.</p>
+
+<p align="center">
+  <a href="https://www.linkedin.com/in/arthurhenriqueguedes/">LinkedIn</a> ·
+  <a href="https://github.com/arthurhguedes">GitHub</a> ·
+  <a href="https://www.instagram.com/arthur.guedes7">Instagram</a>
+</p>
