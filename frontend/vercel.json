@@ -2,5 +2,21 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://notary-api-ox0u.onrender.com/api/:path*" },
+    { "source": "/auth/:path*", "destination": "https://notary-api-ox0u.onrender.com/auth/:path*" },
+    { "source": "/periods/:path*", "destination": "https://notary-api-ox0u.onrender.com/periods/:path*" },
+    { "source": "/professors/:path*", "destination": "https://notary-api-ox0u.onrender.com/professors/:path*" },
+    { "source": "/subjects/:path*", "destination": "https://notary-api-ox0u.onrender.com/subjects/:path*" },
+    { "source": "/schedules/:path*", "destination": "https://notary-api-ox0u.onrender.com/schedules/:path*" },
+    { "source": "/assignments/:path*", "destination": "https://notary-api-ox0u.onrender.com/assignments/:path*" },
+    { "source": "/exams/:path*", "destination": "https://notary-api-ox0u.onrender.com/exams/:path*" },
+    { "source": "/offerings/:path*", "destination": "https://notary-api-ox0u.onrender.com/offerings/:path*" },
+    { "source": "/syllabus-entries/:path*", "destination": "https://notary-api-ox0u.onrender.com/syllabus-entries/:path*" },
+    { "source": "/study-sessions/:path*", "destination": "https://notary-api-ox0u.onrender.com/study-sessions/:path*" },
+    { "source": "/daily-notes/:path*", "destination": "https://notary-api-ox0u.onrender.com/daily-notes/:path*" },
+    { "source": "/curriculum-subjects/:path*", "destination": "https://notary-api-ox0u.onrender.com/curriculum-subjects/:path*" },
+    { "source": "/academic-requests/:path*", "destination": "https://notary-api-ox0u.onrender.com/academic-requests/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

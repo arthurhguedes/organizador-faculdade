@@ -16,7 +16,11 @@ import type {
 import type { ParsedOffering } from "../lib/offeringsImport";
 import type { SyllabusPdfEntry } from "../lib/planoDeEnsinoImport";
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+// Em produção, o front chama o próprio domínio (Vercel faz proxy reverso pro
+// Render, ver frontend/vercel.json) em vez do domínio do backend direto —
+// senão o cookie de sessão é de terceiros e navegadores como Safari bloqueiam
+// por padrão. Em dev, front e back são domínios/portas diferentes mesmo.
+const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "" : "http://localhost:3000");
 
 export class ApiError extends Error {}
 
