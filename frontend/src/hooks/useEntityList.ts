@@ -9,10 +9,7 @@ type ListApi<T, TInput> = {
   remove: (id: number) => Promise<{ message: string }>;
 };
 
-export function useEntityList<T extends { id: number }, TInput>(
-  api: ListApi<T, TInput>,
-  deps: unknown[] = [],
-) {
+export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, TInput>) {
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +24,7 @@ export function useEntityList<T extends { id: number }, TInput>(
       .catch((err) => setError(err instanceof Error ? err.message : "Erro ao carregar"))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, []);
 
   useEffect(() => {
     load();

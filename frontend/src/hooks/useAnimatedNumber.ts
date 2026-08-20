@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 
-export function useAnimatedNumber(target: number, duration?: number): number;
-export function useAnimatedNumber(target: number | null, duration?: number): number | null;
 export function useAnimatedNumber(target: number | null, duration = 500) {
   const [value, setValue] = useState(target);
   const prevRef = useRef(target);

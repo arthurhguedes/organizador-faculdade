@@ -7,7 +7,6 @@ const STORAGE_KEY = "notary:theme";
 type ThemeContextValue = {
   theme: Theme;
   toggleTheme: () => void;
-  setTheme: (theme: Theme) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -25,12 +24,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
 
-  const setTheme = (next: Theme) => setThemeState(next);
   const toggleTheme = () => setThemeState((current) => (current === "dark" ? "light" : "dark"));
 
-  return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
