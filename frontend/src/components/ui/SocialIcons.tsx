@@ -2,8 +2,8 @@ type IconProps = { size?: number };
 
 // lucide-react só traz glifos genéricos (sem logos de marca) — ícones de rede
 // social precisam ser desenhados à mão. Um único tom (currentColor) em vez das
-// cores oficiais de cada marca, pra combinar com o resto do app (regra do
-// acento único do DESIGN.md — logos coloridos aqui quebrariam essa regra).
+// cores oficiais de cada marca, pra manter o acento único do tema — logos
+// coloridos aqui quebrariam essa regra.
 
 export function LinkedinIcon({ size = 16 }: IconProps) {
   return (
