@@ -2,8 +2,6 @@ export type AuthUser = {
   id: number;
   name: string;
   email: string;
-  plan: "free" | "premium";
-  planBillingCycle: "monthly" | "yearly" | null;
   institution: string | null;
   course: string | null;
   birthDate: string | null;

@@ -14,7 +14,6 @@ import {
   Settings,
   Sun,
   Moon,
-  Crown,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
@@ -33,7 +32,6 @@ const links = [
 
 const footerLinks = [
   { to: "/perfil", label: "Perfil", icon: UserRound },
-  { to: "/planos", label: "Planos", icon: Crown },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 

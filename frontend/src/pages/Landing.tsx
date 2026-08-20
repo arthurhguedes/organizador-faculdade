@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -13,8 +13,6 @@ import {
   Minus,
   AlertTriangle,
   CheckCircle,
-  Sparkles,
-  Crown,
   Sun,
   Moon,
   LogIn,
@@ -22,8 +20,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useTheme } from "../context/ThemeContext";
-
-type Billing = "monthly" | "yearly";
 
 const before = [
   "Notas espalhadas entre prints, planilhas soltas e conversa de WhatsApp",
@@ -74,15 +70,6 @@ const compactFeatures: { icon: typeof BookOpen; title: string; description: stri
 
 const faqItems: { question: string; answer: string }[] = [
   {
-    question: "É de graça?",
-    answer:
-      "É. O plano Gratuito não tem prazo de expiração nem limite de matérias, horários, provas ou atividades — dá pra usar o semestre inteiro sem pagar nada.",
-  },
-  {
-    question: "Preciso de cartão de crédito pra criar conta?",
-    answer: "Não. Criar conta e usar o plano Gratuito não pede nenhum dado de pagamento.",
-  },
-  {
     question: "Meus dados ficam salvos onde?",
     answer:
       "No seu próprio banco de dados na nuvem, vinculado só à sua conta. Nada é compartilhado com outros usuários ou com a faculdade.",
@@ -94,23 +81,6 @@ const faqItems: { question: string; answer: string }[] = [
   },
 ];
 
-const freeFeatures = [
-  "Matérias, horários, atividades e provas sem limite",
-  "Cálculo de média por matéria",
-  "Montador de grade com detecção de conflito",
-  "Importação de matrícula, histórico e plano de ensino",
-];
-
-const premiumFeatures = [
-  "Tudo do plano Gratuito",
-  "Matriz curricular com progresso do curso",
-  "Coeficiente de rendimento geral entre matérias",
-  "Notificações de prazos chegando perto",
-  "Exportar dados em PDF e CSV",
-];
-
-const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
 function Section({ id, className, children }: { id?: string; className: string; children: ReactNode }) {
   return (
     <section id={id} className={className}>
@@ -121,13 +91,10 @@ function Section({ id, className, children }: { id?: string; className: string; 
 
 export function Landing() {
   const { theme, toggleTheme } = useTheme();
-  const [billing, setBilling] = useState<Billing>("monthly");
 
   useEffect(() => {
     document.title = "Notary — Organize sua vida acadêmica";
   }, []);
-
-  const premiumMonthly = billing === "monthly" ? 20 : 192 / 12;
 
   return (
     <div className="landing">
@@ -143,7 +110,6 @@ export function Landing() {
           <a href="#recursos">Recursos</a>
           <a href="#sobre">Sobre</a>
           <a href="#duvidas">Dúvidas</a>
-          <a href="#planos">Planos</a>
         </nav>
 
         <div className="landing__nav-actions">
@@ -186,9 +152,7 @@ export function Landing() {
                 Já tenho conta
               </Link>
             </div>
-            <p className="landing__hero-meta">
-              Leva menos de 1 minuto pra criar sua conta. Sempre gratuito no plano básico, sem cartão de crédito.
-            </p>
+            <p className="landing__hero-meta">Leva menos de 1 minuto pra criar sua conta.</p>
           </div>
 
           <div className="landing__hero-visual">
@@ -360,93 +324,6 @@ export function Landing() {
                 <p>{answer}</p>
               </details>
             ))}
-          </div>
-        </Section>
-
-        <Section id="planos" className="landing__plans">
-          <div className="landing__section-head">
-            <h2>Planos</h2>
-            <p>Comece de graça. Assine o Premium quando quiser o curso inteiro num painel só.</p>
-          </div>
-
-          <div className="billing-toggle" role="tablist" aria-label="Ciclo de cobrança">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={billing === "monthly"}
-              className={`billing-toggle__option${billing === "monthly" ? " billing-toggle__option--active" : ""}`}
-              onClick={() => setBilling("monthly")}
-            >
-              Mensal
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={billing === "yearly"}
-              className={`billing-toggle__option${billing === "yearly" ? " billing-toggle__option--active" : ""}`}
-              onClick={() => setBilling("yearly")}
-            >
-              Anual
-              <span className="billing-toggle__save">-20%</span>
-            </button>
-            <span className={`billing-toggle__thumb billing-toggle__thumb--${billing}`} />
-          </div>
-
-          <div className="landing__plans-grid">
-            <div className="landing__plan-card">
-              <div className="landing__plan-card-header">
-                <span className="landing__plan-icon">
-                  <Sparkles size={18} strokeWidth={2} />
-                </span>
-                <p className="landing__plan-name">Gratuito</p>
-              </div>
-              <p className="landing__plan-price">
-                <span>R$ 0</span>/mês
-              </p>
-              <p className="landing__plan-price-note">Sempre gratuito</p>
-              <ul className="landing__plan-features">
-                {freeFeatures.map((f) => (
-                  <li key={f}>
-                    <Check size={13} strokeWidth={3} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/registrar" className="btn btn--secondary landing__plan-cta">
-                Criar conta grátis
-              </Link>
-            </div>
-
-            <div className="landing__plan-card landing__plan-card--featured">
-              <span className="landing__plan-ribbon">
-                <Crown size={12} strokeWidth={2.5} />
-                Mais completo
-              </span>
-              <div className="landing__plan-card-header">
-                <span className="landing__plan-icon">
-                  <Crown size={18} strokeWidth={2} />
-                </span>
-                <p className="landing__plan-name">Premium</p>
-              </div>
-              <p className="landing__plan-price">
-                <span>R$ {premiumMonthly.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                /mês
-              </p>
-              <p className="landing__plan-price-note">
-                {billing === "yearly" ? `Cobrado ${currency.format(192)} por ano` : "Cobrado mensalmente"}
-              </p>
-              <ul className="landing__plan-features">
-                {premiumFeatures.map((f) => (
-                  <li key={f}>
-                    <Check size={13} strokeWidth={3} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link to="/registrar" className="btn btn--primary landing__plan-cta">
-                Assinar Premium
-              </Link>
-            </div>
           </div>
         </Section>
 

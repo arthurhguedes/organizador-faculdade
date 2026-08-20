@@ -16,8 +16,6 @@ function toPublicUser(user: typeof schema.users.$inferSelect) {
     id: user.id,
     name: user.name,
     email: user.email,
-    plan: user.plan,
-    planBillingCycle: user.planBillingCycle,
     institution: user.institution,
     course: user.course,
     birthDate: user.birthDate,
@@ -42,44 +40,6 @@ router.get("/me", requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao buscar usuário" });
-  }
-});
-
-// Ainda não existe cobrança de verdade — este endpoint é o que a página de
-// Planos chama pra simular a assinatura. Quando o pagamento existir, é essa
-// mesma coluna que o webhook do provedor vai atualizar em vez do usuário.
-router.patch("/me/plan", requireAuth, async (req, res) => {
-  const { plan, billingCycle } = req.body ?? {};
-  if (plan !== "free" && plan !== "premium") {
-    return res.status(400).json({ message: "plan precisa ser 'free' ou 'premium'" });
-  }
-  if (plan === "premium" && billingCycle !== "monthly" && billingCycle !== "yearly") {
-    return res.status(400).json({ message: "billingCycle precisa ser 'monthly' ou 'yearly'" });
-  }
-
-  try {
-    const [current] = await db.select().from(schema.users).where(eq(schema.users.id, req.userId!));
-    if (!current) {
-      return res.status(401).json({ message: "Não autenticado" });
-    }
-
-    const [updated] = await db
-      .update(schema.users)
-      .set({
-        plan,
-        planBillingCycle: plan === "premium" ? billingCycle : null,
-        premiumSince: plan === "premium" ? (current.premiumSince ?? new Date()) : null,
-      })
-      .where(eq(schema.users.id, req.userId!))
-      .returning();
-
-    if (!updated) {
-      return res.status(401).json({ message: "Não autenticado" });
-    }
-    res.json(toPublicUser(updated));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Erro ao atualizar plano" });
   }
 });
 

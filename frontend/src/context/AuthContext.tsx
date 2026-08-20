@@ -28,7 +28,6 @@ type AuthContextValue = {
   register: (name: string, email: string, username: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => Promise<AuthUser>;
   updateProfile: (body: Parameters<typeof authApi.updateProfile>[0]) => Promise<AuthUser>;
   updateUsername: (username: string) => Promise<AuthUser>;
 };
@@ -78,12 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await authClient.signIn.social({ provider: "google", callbackURL: "/" });
   };
 
-  const updatePlan = async (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) => {
-    const updatedUser = await authApi.updatePlan(body);
-    setUser(updatedUser);
-    return updatedUser;
-  };
-
   const updateProfile = async (body: Parameters<typeof authApi.updateProfile>[0]) => {
     const updatedUser = await authApi.updateProfile(body);
     setUser(updatedUser);
@@ -105,7 +98,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         loginWithGoogle,
-        updatePlan,
         updateProfile,
         updateUsername,
       }}

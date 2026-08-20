@@ -75,8 +75,6 @@ export const academicRequestsApi = crud<AcademicRequest, Omit<AcademicRequest, "
 // ../lib/authClient.ts) — este objeto só cobre o perfil/dados do app.
 export const authApi = {
   me: () => request<AuthUser>("/auth/me"),
-  updatePlan: (body: { plan: "free" | "premium"; billingCycle?: "monthly" | "yearly" }) =>
-    request<AuthUser>("/auth/me/plan", { method: "PATCH", body: JSON.stringify(body) }),
   updateProfile: (
     body: Partial<{
       name: string;

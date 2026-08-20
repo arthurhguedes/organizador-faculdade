@@ -197,7 +197,7 @@ frontend/src/                 front-end
     ui/                       primitivos (Button, Badge, EmptyState, Skeleton, ...)
   pages/                      Landing, Dashboard, Calendar, Subjects/SubjectDetail, CurriculumMatrix,
                                Evaluations, Studies, Periods, Professors, FacultyProfessors (catálogo +
-                               montador de grade), Profile, Plans, Settings
+                               montador de grade), Profile, Settings
   lib/                        grades.ts, curriculum.ts, offeringsImport.ts, confirmGrade.ts,
                                scheduleConflicts.ts, historicoImport.ts, enrollmentImport.ts,
                                planoDeEnsinoImport.ts
@@ -213,5 +213,5 @@ Modelo de dados completo (17 tabelas) e as decisões de produto por trás de cad
 
 ---
 
-<p align="center">Projeto pessoal — organizar a própria vida acadêmica, com potencial de virar produto.</p>
+<p align="center">Projeto pessoal para organizar a própria vida acadêmica.</p>
 </content>

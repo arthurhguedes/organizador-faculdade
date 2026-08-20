@@ -46,7 +46,6 @@ describe("cadastro e login por email/senha", () => {
     expect(meRes.status).toBe(200);
     expect(meRes.body.email).toBe(email);
     expect(meRes.body.name).toBe("Teste");
-    expect(meRes.body.plan).toBe("free");
   });
 
   it("rejeita cadastro com email já em uso", async () => {

@@ -6,17 +6,13 @@ import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
 import { useAuth } from "../context/AuthContext";
 import { useEntityList } from "../hooks/useEntityList";
-import { useGamification } from "../hooks/useGamification";
 import { subjectsApi, professorsApi, ApiError } from "../api/client";
 import { resizeImageToDataUrl } from "../lib/avatarImage";
 import { ALL_INSTITUTIONS, INSTITUTION_GROUPS, OTHER_INSTITUTION_VALUE } from "../lib/institutions";
 import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
-import { Badge } from "../components/ui/Badge";
 import { FeatureRow } from "../components/ui/FeatureRow";
 import { GithubIcon, InstagramIcon, LinkedinIcon, XIcon } from "../components/ui/SocialIcons";
-import { ProgressBoard } from "../components/gamification/ProgressBoard";
-import { AchievementGrid } from "../components/gamification/AchievementGrid";
 
 type ProfileSection = "personal" | "social" | "username";
 
@@ -67,9 +63,6 @@ export function Profile() {
   const { periods } = usePeriods();
   const { items: subjects } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
-  const { streak, weekActivity, xp, level, achievements, statsLoading: gamificationLoading, premium } = useGamification();
-  const unlockedCount = achievements.filter((a) => a.unlocked).length;
-
   const [editing, setEditing] = useState(false);
   const [activeSection, setActiveSection] = useState<ProfileSection>("personal");
   const [saving, setSaving] = useState(false);
@@ -438,26 +431,6 @@ export function Profile() {
           <span className="profile-stat__label">professor{professors.length !== 1 ? "es" : ""}</span>
         </div>
       </div>
-
-      {!gamificationLoading && (
-        <section className="hub-section">
-          <div className="hub-section__header">
-            <h3>Progresso</h3>
-            {premium && <Badge tone="accent">Premium: XP em dobro</Badge>}
-          </div>
-          <ProgressBoard streak={streak} weekActivity={weekActivity} xp={xp} level={level} />
-        </section>
-      )}
-
-      {!gamificationLoading && (
-        <section className="hub-section">
-          <div className="hub-section__header">
-            <h3>Conquistas</h3>
-            <Badge tone="muted">{unlockedCount}/{achievements.length}</Badge>
-          </div>
-          <AchievementGrid achievements={achievements} />
-        </section>
-      )}
 
       <section className="hub-section">
         <h3>Conta</h3>
