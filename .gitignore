@@ -4,6 +4,11 @@ dist/
 drizzle/
 .claude/
 
+# Contexto de trabalho com Claude Code — só local, não vai pro GitHub
+CLAUDE.md
+PRODUCT.md
+DESIGN.md
+
 # Logs
 *.log
 npm-debug.log*

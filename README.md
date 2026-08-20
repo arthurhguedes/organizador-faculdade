@@ -70,6 +70,16 @@ Como a faculdade não oferece exportação, os dados podem ser digitados na mão
 </tr>
 </table>
 
+## Destaques técnicos
+
+Pontos do projeto que exigiram mais do que CRUD:
+
+- **Importação de PDF sem backend** — atestado de matrícula, histórico escolar e plano de ensino são parseados 100% no navegador com `pdfjs-dist`. O parser do plano de ensino é o mais complexo: a célula "Aula/Data" fica centralizada verticalmente quando o conteúdo da aula quebra em várias linhas, então o algoritmo agrupa itens de texto em blocos por proximidade vertical (não por "número no início da linha") antes de extrair cada registro — validado contra um PDF real, 36/36 aulas corretas.
+- **Importação de planilha genérica por faculdade** — em vez de fazer parsing hardcoded pro formato de uma faculdade específica, o usuário mapeia cada coluna da própria planilha (com sugestão automática por dicionário de sinônimos) e esse mapeamento fica lembrado por instituição em `localStorage`, então reimportações do semestre seguinte são um clique só.
+- **Timer Pomodoro resistente a background throttling** — em vez de decrementar por `setInterval` (que o Chrome joga pra baixo em abas em segundo plano), a contagem deriva de um timestamp de término (`Date.now()` vs. `phaseEndAt`), então o relógio se autocorrige assim que a aba volta ao foco. Estado persiste em `localStorage` e sobrevive a reload de página inteira.
+- **Autenticação real multi-tenant** — [Better Auth](https://www.better-auth.com/) com email/senha + Google OAuth, sessão em cookie httpOnly, e as 13 tabelas de dados pessoais isoladas por `user_id` no banco (17 tabelas no total, modeladas com Drizzle ORM).
+- **Montador de grade com detecção de conflito** — cruza os horários das turmas escolhidas no catálogo da faculdade e sinaliza sobreposição em tempo real, com filtro por professor/disciplina/turno.
+
 ## Stack
 
 - **Linguagem:** TypeScript em tudo (front e back)
@@ -203,8 +213,6 @@ frontend/src/                 front-end
                                planoDeEnsinoImport.ts
 ```
 
-Modelo de dados completo (17 tabelas) e as decisões de produto por trás de cada feature estão documentados em [`CLAUDE.md`](CLAUDE.md). Direção visual e tokens de tema em [`DESIGN.md`](DESIGN.md).
-
 ## Roadmap
 
 - [x] Exportar dados / notificações
@@ -214,4 +222,3 @@ Modelo de dados completo (17 tabelas) e as decisões de produto por trás de cad
 ---
 
 <p align="center">Projeto pessoal para organizar a própria vida acadêmica.</p>
-</content>
