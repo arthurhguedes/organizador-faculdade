@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, MapPin, Plus, X } from "lucide-react";
+import { Check, Clock, MapPin, Pencil, Plus, X } from "lucide-react";
 import { schedulesApi } from "../../api/client";
 import { ApiError } from "../../api/client";
 import { WEEKDAYS } from "../../api/types";
@@ -27,8 +27,7 @@ export function ScheduleSection({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [room, setRoom] = useState("");
-  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
-  const [roomDraft, setRoomDraft] = useState("");
+
   // Sobrescreve o `room` vindo de `schedules` assim que salva, sem esperar o
   // reload do hub inteiro — evita um round-trip extra só pra refletir uma
   // troca de sala, que sozinha não muda mais nada no resto da página.
@@ -36,6 +35,13 @@ export function ScheduleSection({
   // Salas já usadas em qualquer matéria do usuário, pra sugerir no campo em
   // vez de digitar de novo — buscado uma vez, não depende desta matéria.
   const [knownRooms, setKnownRooms] = useState<string[]>([]);
+
+  // Edição em lote: entra no modo, mexe na sala de quantos horários quiser,
+  // e só grava tudo de uma vez no "Salvar" — nada é enviado ao digitar/sair
+  // do campo (era o comportamento antigo, ruim pra editar vários de uma vez).
+  const [editingRooms, setEditingRooms] = useState(false);
+  const [roomDrafts, setRoomDrafts] = useState<Record<number, string>>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     schedulesApi
@@ -60,31 +66,61 @@ export function ScheduleSection({
     return [...rooms].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [knownRooms, schedules, roomOverrides]);
 
-  const startEditingRoom = (schedule: Schedule) => {
-    setEditingRoomId(schedule.id);
-    setRoomDraft(effectiveRoom(schedule) ?? "");
+  const startEditingRooms = () => {
+    const drafts: Record<number, string> = {};
+    for (const s of schedules) drafts[s.id] = effectiveRoom(s) ?? "";
+    setRoomDrafts(drafts);
+    setEditingRooms(true);
   };
 
-  const handleSaveRoom = async (schedule: Schedule) => {
-    const newRoom = roomDraft || null;
-    if (newRoom === effectiveRoom(schedule)) {
-      setEditingRoomId(null);
+  const cancelEditingRooms = () => {
+    setEditingRooms(false);
+    setRoomDrafts({});
+  };
+
+  const handleSaveRooms = async () => {
+    const changed = schedules.filter((s) => (roomDrafts[s.id] ?? "") !== (effectiveRoom(s) ?? ""));
+    if (changed.length === 0) {
+      setEditingRooms(false);
       return;
     }
-    try {
-      await schedulesApi.update(schedule.id, {
-        subjectId: schedule.subjectId,
-        weekday: schedule.weekday,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        room: newRoom,
+
+    setSaving(true);
+    const results = await Promise.allSettled(
+      changed.map((s) =>
+        schedulesApi.update(s.id, {
+          subjectId: s.subjectId,
+          weekday: s.weekday,
+          startTime: s.startTime,
+          endTime: s.endTime,
+          room: roomDrafts[s.id] || null,
+        }),
+      ),
+    );
+
+    const succeededIds = new Set<number>();
+    let failures = 0;
+    results.forEach((result, i) => {
+      if (result.status === "fulfilled") succeededIds.add(changed[i].id);
+      else failures++;
+    });
+
+    if (succeededIds.size > 0) {
+      setRoomOverrides((prev) => {
+        const next = { ...prev };
+        for (const s of changed) if (succeededIds.has(s.id)) next[s.id] = roomDrafts[s.id] || null;
+        return next;
       });
-      setRoomOverrides((prev) => ({ ...prev, [schedule.id]: newRoom }));
-      notify("Sala atualizada", "success");
-      setEditingRoomId(null);
-    } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Erro ao atualizar sala", "error");
     }
+
+    if (failures === 0) {
+      notify(`${succeededIds.size} sala(s) atualizada(s)`, "success");
+    } else {
+      notify(`${succeededIds.size} sala(s) salva(s), ${failures} falharam`, "error");
+    }
+
+    setSaving(false);
+    setEditingRooms(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,12 +154,32 @@ export function ScheduleSection({
     <section className="hub-section">
       <div className="hub-section__header">
         <h3>Horários</h3>
-        <Button variant="ghost" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
-          {formOpen ? "Cancelar" : "Adicionar"}
-        </Button>
+        <div className="hub-section__header-actions">
+          {editingRooms ? (
+            <>
+              <Button variant="ghost" icon={X} onClick={cancelEditingRooms} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button variant="primary" icon={Check} onClick={handleSaveRooms} loading={saving} loadingText="Salvando...">
+                Salvar
+              </Button>
+            </>
+          ) : (
+            <>
+              {schedules.length > 0 && (
+                <Button variant="ghost" icon={Pencil} onClick={startEditingRooms}>
+                  Editar salas
+                </Button>
+              )}
+              <Button variant="ghost" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
+                {formOpen ? "Cancelar" : "Adicionar"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {formOpen && (
+      {formOpen && !editingRooms && (
         <form className="inline-form inline-form--compact" onSubmit={handleSubmit}>
           <label className="field">
             <span className="field__label">Dia da semana</span>
@@ -163,41 +219,22 @@ export function ScheduleSection({
               <span className="schedule-chip__time">
                 {schedule.startTime}–{schedule.endTime}
               </span>
-              {editingRoomId === schedule.id ? (
-                <form
-                  className="schedule-chip__room-form"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    (e.target as HTMLFormElement).querySelector("input")?.blur();
-                  }}
-                >
-                  <input
-                    className="schedule-chip__room-input"
-                    autoFocus
-                    placeholder="Ex: 203"
-                    list={ROOM_DATALIST_ID}
-                    value={roomDraft}
-                    onChange={(e) => setRoomDraft(e.target.value)}
-                    onBlur={() => handleSaveRoom(schedule)}
-                  />
-                </form>
+              {editingRooms ? (
+                <input
+                  className="schedule-chip__room-input"
+                  placeholder="Ex: 203"
+                  list={ROOM_DATALIST_ID}
+                  value={roomDrafts[schedule.id] ?? ""}
+                  onChange={(e) => setRoomDrafts((prev) => ({ ...prev, [schedule.id]: e.target.value }))}
+                  disabled={saving}
+                />
               ) : effectiveRoom(schedule) ? (
-                <button
-                  type="button"
-                  className="schedule-chip__room"
-                  onClick={() => startEditingRoom(schedule)}
-                  title="Editar sala"
-                >
+                <span className="schedule-chip__room">
                   <MapPin size={12} strokeWidth={2} />
                   {effectiveRoom(schedule)}
-                </button>
-              ) : (
-                <button type="button" className="schedule-chip__room schedule-chip__room--empty" onClick={() => startEditingRoom(schedule)}>
-                  <MapPin size={12} strokeWidth={2} />
-                  Adicionar sala
-                </button>
-              )}
-              <ConfirmDelete onConfirm={() => handleDelete(schedule.id)} label="Remover horário" />
+                </span>
+              ) : null}
+              {!editingRooms && <ConfirmDelete onConfirm={() => handleDelete(schedule.id)} label="Remover horário" />}
             </li>
           ))}
         </ul>

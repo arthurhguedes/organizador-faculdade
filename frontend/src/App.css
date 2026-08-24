@@ -1761,27 +1761,9 @@ button.month-calendar__event {
   gap: 4px;
   padding: 2px var(--space-2);
   background: var(--bg-elevated);
-  border: none;
   border-radius: var(--radius-sm);
   color: var(--accent);
   font-weight: 600;
-  font-size: inherit;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background-color 150ms ease;
-}
-
-.schedule-chip__room:hover {
-  background: var(--bg-hover);
-}
-
-.schedule-chip__room--empty {
-  color: var(--text-tertiary);
-  font-weight: 400;
-}
-
-.schedule-chip__room-form {
-  display: flex;
 }
 
 .schedule-chip__room-input {
