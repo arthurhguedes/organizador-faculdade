@@ -934,6 +934,12 @@
   margin-bottom: var(--space-4);
 }
 
+.calendar-layout__hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+}
+
 .month-calendar {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -1017,12 +1023,21 @@
 }
 
 .month-calendar__event {
+  display: block;
+  width: 100%;
+  font-family: inherit;
   font-size: 10.5px;
   padding: 1px 4px;
+  border: none;
   border-radius: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: left;
+}
+
+button.month-calendar__event {
+  cursor: pointer;
 }
 
 .month-calendar__event--assignment {
@@ -1038,6 +1053,12 @@
 .month-calendar__event--lesson {
   background: var(--warning-soft);
   color: var(--warning);
+}
+
+.month-calendar__event--marked {
+  background: var(--danger-soft);
+  color: var(--danger);
+  text-decoration: line-through;
 }
 
 .month-calendar__more {

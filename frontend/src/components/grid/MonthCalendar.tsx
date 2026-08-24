@@ -6,6 +6,10 @@ export type CalendarEvent = {
   kind: "assignment" | "exam" | "lesson";
   title: string;
   subjectName: string;
+  // lesson-only: presença desses campos habilita marcar/desmarcar falta.
+  subjectId?: number;
+  scheduleId?: number | null;
+  markId?: number | null;
 };
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -14,7 +18,13 @@ function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export function MonthCalendar({ events }: { events: CalendarEvent[] }) {
+export function MonthCalendar({
+  events,
+  onToggleLesson,
+}: {
+  events: CalendarEvent[];
+  onToggleLesson?: (event: CalendarEvent) => void;
+}) {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
   const year = cursor.getFullYear();
@@ -77,15 +87,35 @@ export function MonthCalendar({ events }: { events: CalendarEvent[] }) {
             <div key={key} className={`month-calendar__cell${key === todayKey ? " month-calendar__cell--today" : ""}`}>
               <span className="month-calendar__day-number">{date.getDate()}</span>
               <div className="month-calendar__events">
-                {dayEvents.slice(0, 3).map((event, i) => (
-                  <span
-                    key={i}
-                    className={`month-calendar__event month-calendar__event--${event.kind}`}
-                    title={`${event.title} — ${event.subjectName}`}
-                  >
-                    {event.title}
-                  </span>
-                ))}
+                {dayEvents.slice(0, 3).map((event, i) => {
+                  const canToggle = onToggleLesson && event.kind === "lesson" && event.subjectId !== undefined;
+                  const marked = Boolean(event.markId);
+                  const className = `month-calendar__event month-calendar__event--${event.kind}${marked ? " month-calendar__event--marked" : ""}`;
+                  const title = marked
+                    ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
+                    : canToggle
+                      ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
+                      : `${event.title} — ${event.subjectName}`;
+
+                  if (canToggle) {
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className={className}
+                        title={title}
+                        onClick={() => onToggleLesson(event)}
+                      >
+                        {event.title}
+                      </button>
+                    );
+                  }
+                  return (
+                    <span key={i} className={className} title={title}>
+                      {event.title}
+                    </span>
+                  );
+                })}
                 {dayEvents.length > 3 && <span className="month-calendar__more">+{dayEvents.length - 3}</span>}
               </div>
             </div>

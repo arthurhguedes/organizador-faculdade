@@ -180,6 +180,23 @@ export const syllabusAssessments = pgTable("syllabus_assessments", {
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
+// Marca uma aula específica (matéria + data + horário, quando derivado de
+// `schedules`) como falta, clicada direto no Calendário. `scheduleId` é
+// nulo quando a ocorrência vem de um plano de ensino aula-a-aula (uma linha
+// por data, sem ambiguidade de qual horário da matéria é); quando vem da
+// expansão de `schedules` (matéria sem plano aula-a-aula, ex: formato
+// semanal), guarda qual horário específico foi faltado, já que o mesmo dia
+// pode ter mais de um bloco de aula da mesma matéria. Puramente aditivo ao
+// contador manual que já existe em `subjects.absences` — marcar/desmarcar
+// aqui soma/subtrai 1 desse mesmo contador, não substitui o +/- manual.
+export const attendanceMarks = pgTable("attendance_marks", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "cascade" }).notNull(),
+  scheduleId: integer("schedule_id").references(() => schedules.id, { onDelete: "cascade" }),
+  date: date("date").notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
 // Blocos de estudo — registrados manualmente ou automaticamente ao completar
 // um ciclo de foco do Pomodoro. "topic" é texto livre (assunto dentro da
 // matéria), sem tabela própria: não precisa ser reaproveitado em outro lugar.

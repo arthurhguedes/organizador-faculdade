@@ -181,6 +181,13 @@ export type AcademicRequest = {
   rejectionReason: string | null;
 };
 
+export type AttendanceMark = {
+  id: number;
+  subjectId: number;
+  scheduleId: number | null;
+  date: string;
+};
+
 export const WEEKDAYS = [
   "segunda",
   "terça",
