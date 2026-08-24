@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export type CalendarEvent = {
@@ -30,10 +30,12 @@ export function MonthCalendar({
   events,
   onToggleLesson,
   onEventDrop,
+  subjectColors,
 }: {
   events: CalendarEvent[];
   onToggleLesson?: (event: CalendarEvent) => void;
   onEventDrop?: (event: CalendarEvent, newDate: string) => void;
+  subjectColors?: Map<number, string>;
 }) {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
@@ -93,6 +95,8 @@ export function MonthCalendar({
           }
           const key = toDateKey(date);
           const dayEvents = eventsByDate.get(key) ?? [];
+          const pillEvents = dayEvents.filter((e) => e.kind !== "lesson");
+          const lessonEvents = dayEvents.filter((e) => e.kind === "lesson");
           return (
             <div
               key={key}
@@ -122,32 +126,13 @@ export function MonthCalendar({
             >
               <span className="month-calendar__day-number">{date.getDate()}</span>
               <div className="month-calendar__events">
-                {dayEvents.slice(0, 3).map((event, i) => {
-                  const canToggle = onToggleLesson && event.kind === "lesson" && event.subjectId !== undefined;
-                  const canDrag = onEventDrop && event.kind !== "lesson" && event.id !== undefined;
-                  const marked = Boolean(event.markId);
-                  const className = `month-calendar__event month-calendar__event--${event.kind}${marked ? " month-calendar__event--marked" : ""}${canDrag ? " month-calendar__event--draggable" : ""}`;
-                  const title = marked
-                    ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
-                    : canToggle
-                      ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
-                      : canDrag
-                        ? `${event.title} — ${event.subjectName} (arraste pra outro dia pra mudar a data)`
-                        : `${event.title} — ${event.subjectName}`;
+                {pillEvents.slice(0, 3).map((event, i) => {
+                  const canDrag = onEventDrop && event.id !== undefined;
+                  const className = `month-calendar__event month-calendar__event--${event.kind}${canDrag ? " month-calendar__event--draggable" : ""}`;
+                  const title = canDrag
+                    ? `${event.title} — ${event.subjectName} (arraste pra outro dia pra mudar a data)`
+                    : `${event.title} — ${event.subjectName}`;
 
-                  if (canToggle) {
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        className={className}
-                        title={title}
-                        onClick={() => onToggleLesson(event)}
-                      >
-                        {event.title}
-                      </button>
-                    );
-                  }
                   return (
                     <span
                       key={i}
@@ -167,8 +152,34 @@ export function MonthCalendar({
                     </span>
                   );
                 })}
-                {dayEvents.length > 3 && <span className="month-calendar__more">+{dayEvents.length - 3}</span>}
+                {pillEvents.length > 3 && <span className="month-calendar__more">+{pillEvents.length - 3}</span>}
               </div>
+              {lessonEvents.length > 0 && (
+                <div className="month-calendar__lessons">
+                  {lessonEvents.map((event, i) => {
+                    const canToggle = onToggleLesson && event.subjectId !== undefined;
+                    const marked = Boolean(event.markId);
+                    const dotColor = event.subjectId !== undefined ? subjectColors?.get(event.subjectId) : undefined;
+                    const title = marked
+                      ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
+                      : canToggle
+                        ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
+                        : `${event.title} — ${event.subjectName}`;
+
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`month-calendar__lesson-dot${marked ? " month-calendar__lesson-dot--marked" : ""}`}
+                        style={dotColor ? ({ "--dot-color": dotColor } as CSSProperties) : undefined}
+                        title={title}
+                        disabled={!canToggle}
+                        onClick={canToggle ? () => onToggleLesson(event) : undefined}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}

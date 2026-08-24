@@ -7,6 +7,7 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import { attendanceMarksApi, assignmentsApi, examsApi, ApiError } from "../api/client";
 import type { AttendanceMark } from "../api/types";
 import { buildLessonOccurrences, occurrenceKey } from "../lib/lessonOccurrences";
+import { assignSeriesColors } from "../lib/chartColors";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { MonthCalendar, type CalendarEvent } from "../components/grid/MonthCalendar";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -110,6 +111,7 @@ export function Calendar() {
   );
 
   const marksByOccurrence = new Map(marks.map((m) => [occurrenceKey(m.subjectId, m.date, m.scheduleId), m]));
+  const subjectColors = assignSeriesColors(subjects.map((s) => s.id));
 
   const events: CalendarEvent[] = [
     ...subjects.flatMap((subject) => [
@@ -173,7 +175,12 @@ export function Calendar() {
             <p className="calendar-layout__hint">
               Clique numa aula pra marcar ou desmarcar falta. Arraste uma prova ou atividade pra outro dia pra mudar a data.
             </p>
-            <MonthCalendar events={events} onToggleLesson={handleToggleLesson} onEventDrop={handleEventDrop} />
+            <MonthCalendar
+              events={events}
+              onToggleLesson={handleToggleLesson}
+              onEventDrop={handleEventDrop}
+              subjectColors={subjectColors}
+            />
           </section>
         </div>
       )}

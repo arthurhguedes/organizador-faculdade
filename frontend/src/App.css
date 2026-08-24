@@ -1074,6 +1074,33 @@ button.month-calendar__event {
   color: var(--text-tertiary);
 }
 
+.month-calendar__lessons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 2px;
+}
+
+.month-calendar__lesson-dot {
+  width: 7px;
+  height: 7px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--dot-color, var(--warning));
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.month-calendar__lesson-dot:disabled {
+  cursor: default;
+}
+
+.month-calendar__lesson-dot--marked {
+  background: var(--danger);
+}
+
 /* ---------- Dashboard ---------- */
 
 .dashboard {
