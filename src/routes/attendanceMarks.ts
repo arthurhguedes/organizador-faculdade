@@ -22,6 +22,7 @@ router.get("/", async (req, res) => {
         subjectId: schema.attendanceMarks.subjectId,
         scheduleId: schema.attendanceMarks.scheduleId,
         date: schema.attendanceMarks.date,
+        kind: schema.attendanceMarks.kind,
       })
       .from(schema.attendanceMarks)
       .where(eq(schema.attendanceMarks.userId, req.userId!));
@@ -33,7 +34,7 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, date, scheduleId } = req.body ?? {};
+  const { subjectId, date, scheduleId, kind } = req.body ?? {};
   const parsedSubjectId = parseId(String(subjectId));
   if (parsedSubjectId === null) {
     return res.status(400).json({ message: "subjectId é obrigatório" });
@@ -45,6 +46,10 @@ router.post("/", async (req, res) => {
   if (scheduleId != null && parsedScheduleId === null) {
     return res.status(400).json({ message: "scheduleId inválido" });
   }
+  const parsedKind = kind ?? "falta";
+  if (parsedKind !== "falta" && parsedKind !== "sem_aula") {
+    return res.status(400).json({ message: 'kind deve ser "falta" ou "sem_aula"' });
+  }
 
   try {
     const userId = req.userId!;
@@ -55,8 +60,11 @@ router.post("/", async (req, res) => {
     const result = await db.transaction(async (tx) => {
       const [mark] = await tx
         .insert(schema.attendanceMarks)
-        .values({ subjectId: parsedSubjectId, scheduleId: parsedScheduleId, date, userId })
+        .values({ subjectId: parsedSubjectId, scheduleId: parsedScheduleId, date, kind: parsedKind, userId })
         .returning();
+      if (parsedKind !== "falta") {
+        return { mark, absences: null };
+      }
       const [subject] = await tx
         .update(schema.subjects)
         .set({ absences: sql`${schema.subjects.absences} + 1` })
@@ -86,6 +94,9 @@ router.delete("/:id", async (req, res) => {
         .where(and(eq(schema.attendanceMarks.id, id), eq(schema.attendanceMarks.userId, userId)))
         .returning();
       if (!deleted) return null;
+      if (deleted.kind !== "falta") {
+        return { absences: null };
+      }
 
       const [subject] = await tx
         .update(schema.subjects)
@@ -98,10 +109,10 @@ router.delete("/:id", async (req, res) => {
     if (!result) {
       return res.status(404).json({ message: "Falta marcada não encontrada" });
     }
-    res.json({ message: "Falta desmarcada com sucesso", absences: result.absences });
+    res.json({ message: "Marcação removida com sucesso", absences: result.absences });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Erro ao desmarcar falta" });
+    res.status(500).json({ message: "Erro ao remover marcação" });
   }
 });
 

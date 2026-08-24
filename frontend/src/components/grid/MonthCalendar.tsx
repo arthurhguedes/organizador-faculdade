@@ -10,6 +10,9 @@ export type CalendarEvent = {
   subjectId?: number;
   scheduleId?: number | null;
   markId?: number | null;
+  markKind?: "falta" | "sem_aula" | null;
+  startTime?: string;
+  endTime?: string;
   // assignment/exam-only: presença de `id` habilita arrastar pra outro dia.
   id?: number;
   weight?: number;
@@ -31,11 +34,15 @@ export function MonthCalendar({
   onToggleLesson,
   onEventDrop,
   subjectColors,
+  selectedDate,
+  onSelectDate,
 }: {
   events: CalendarEvent[];
   onToggleLesson?: (event: CalendarEvent) => void;
   onEventDrop?: (event: CalendarEvent, newDate: string) => void;
   subjectColors?: Map<number, string>;
+  selectedDate?: string | null;
+  onSelectDate?: (date: string) => void;
 }) {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
@@ -100,7 +107,8 @@ export function MonthCalendar({
           return (
             <div
               key={key}
-              className={`month-calendar__cell${key === todayKey ? " month-calendar__cell--today" : ""}`}
+              className={`month-calendar__cell${key === todayKey ? " month-calendar__cell--today" : ""}${key === selectedDate ? " month-calendar__cell--selected" : ""}${onSelectDate ? " month-calendar__cell--clickable" : ""}`}
+              onClick={onSelectDate ? () => onSelectDate(key) : undefined}
               onDragOver={
                 onEventDrop
                   ? (ev) => {
@@ -158,19 +166,27 @@ export function MonthCalendar({
                 <div className="month-calendar__lessons">
                   {lessonEvents.map((event, i) => {
                     const canToggle = onToggleLesson && event.subjectId !== undefined;
-                    const marked = Boolean(event.markId);
                     const dotColor = event.subjectId !== undefined ? subjectColors?.get(event.subjectId) : undefined;
-                    const title = marked
-                      ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
-                      : canToggle
-                        ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
-                        : `${event.title} — ${event.subjectName}`;
+                    const stateClass =
+                      event.markKind === "falta"
+                        ? " month-calendar__lesson-dot--marked"
+                        : event.markKind === "sem_aula"
+                          ? " month-calendar__lesson-dot--no-class"
+                          : "";
+                    const title =
+                      event.markKind === "falta"
+                        ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
+                        : event.markKind === "sem_aula"
+                          ? `Sem aula — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
+                          : canToggle
+                            ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
+                            : `${event.title} — ${event.subjectName}`;
 
                     return (
                       <button
                         key={i}
                         type="button"
-                        className={`month-calendar__lesson-dot${marked ? " month-calendar__lesson-dot--marked" : ""}`}
+                        className={`month-calendar__lesson-dot${stateClass}`}
                         style={dotColor ? ({ "--dot-color": dotColor } as CSSProperties) : undefined}
                         title={title}
                         disabled={!canToggle}

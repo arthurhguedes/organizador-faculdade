@@ -10,6 +10,7 @@ import { buildLessonOccurrences, occurrenceKey } from "../lib/lessonOccurrences"
 import { assignSeriesColors } from "../lib/chartColors";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { MonthCalendar, type CalendarEvent } from "../components/grid/MonthCalendar";
+import { DayDetailPanel } from "../components/grid/DayDetailPanel";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
 import { SkeletonRows } from "../components/ui/Skeleton";
@@ -22,6 +23,7 @@ export function Calendar() {
   const { subjects, loading, refresh } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
   const { notify } = useToast();
   const [marks, setMarks] = useState<AttendanceMark[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     attendanceMarksApi
@@ -69,7 +71,7 @@ export function Calendar() {
       if (event.markId) {
         await attendanceMarksApi.remove(event.markId);
         setMarks((prev) => prev.filter((m) => m.id !== event.markId));
-        notify(`Falta desmarcada — ${event.date.split("-").reverse().join("/")}`, "success");
+        notify(`Marcação removida — ${event.date.split("-").reverse().join("/")}`, "success");
       } else {
         const { mark } = await attendanceMarksApi.create({
           subjectId: event.subjectId,
@@ -81,6 +83,33 @@ export function Calendar() {
       }
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar falta", "error");
+    }
+  };
+
+  const handleSetLessonState = async (event: CalendarEvent, state: "presente" | "falta" | "sem_aula") => {
+    if (event.subjectId === undefined) return;
+    const scheduleId = event.scheduleId ?? null;
+    const targetKind = state === "presente" ? null : state;
+    if ((event.markKind ?? null) === targetKind) return;
+
+    try {
+      if (event.markId) {
+        await attendanceMarksApi.remove(event.markId);
+        setMarks((prev) => prev.filter((m) => m.id !== event.markId));
+      }
+      if (targetKind) {
+        const { mark } = await attendanceMarksApi.create({
+          subjectId: event.subjectId,
+          date: event.date,
+          scheduleId,
+          kind: targetKind,
+        });
+        setMarks((prev) => [...prev, mark]);
+      }
+      const label = targetKind === "falta" ? "Falta marcada" : targetKind === "sem_aula" ? "Sem aula marcada" : "Marcação removida";
+      notify(`${label} — ${event.date.split("-").reverse().join("/")}`, "success");
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao atualizar", "error");
     }
   };
 
@@ -138,6 +167,10 @@ export function Calendar() {
     ]),
     ...buildLessonOccurrences(subjects, selectedPeriod).map((occurrence) => {
       const mark = marksByOccurrence.get(occurrenceKey(occurrence.subjectId, occurrence.date, occurrence.scheduleId));
+      const schedule =
+        occurrence.scheduleId !== null
+          ? subjects.find((s) => s.id === occurrence.subjectId)?.schedules.find((sc) => sc.id === occurrence.scheduleId)
+          : undefined;
       return {
         date: occurrence.date,
         kind: "lesson" as const,
@@ -146,6 +179,9 @@ export function Calendar() {
         subjectId: occurrence.subjectId,
         scheduleId: occurrence.scheduleId,
         markId: mark?.id ?? null,
+        markKind: mark?.kind ?? null,
+        startTime: schedule?.startTime,
+        endTime: schedule?.endTime,
       };
     }),
   ];
@@ -180,7 +216,19 @@ export function Calendar() {
               onToggleLesson={handleToggleLesson}
               onEventDrop={handleEventDrop}
               subjectColors={subjectColors}
+              selectedDate={selectedDate}
+              onSelectDate={(date) => setSelectedDate((prev) => (prev === date ? null : date))}
             />
+            {selectedDate && (
+              <DayDetailPanel
+                date={selectedDate}
+                lessons={events.filter((e) => e.date === selectedDate && e.kind === "lesson")}
+                otherEvents={events.filter((e) => e.date === selectedDate && e.kind !== "lesson")}
+                subjectColors={subjectColors}
+                onSetLessonState={handleSetLessonState}
+                onClose={() => setSelectedDate(null)}
+              />
+            )}
           </section>
         </div>
       )}

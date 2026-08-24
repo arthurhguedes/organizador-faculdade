@@ -132,11 +132,11 @@ export const roomAllocationsApi = {
 
 export const attendanceMarksApi = {
   list: () => request<AttendanceMark[]>("/attendance-marks"),
-  create: (input: { subjectId: number; date: string; scheduleId: number | null }) =>
-    request<{ mark: AttendanceMark; absences: number }>("/attendance-marks", {
+  create: (input: { subjectId: number; date: string; scheduleId: number | null; kind?: "falta" | "sem_aula" }) =>
+    request<{ mark: AttendanceMark; absences: number | null }>("/attendance-marks", {
       method: "POST",
       body: JSON.stringify(input),
     }),
   remove: (id: number) =>
-    request<{ message: string; absences: number }>(`/attendance-marks/${id}`, { method: "DELETE" }),
+    request<{ message: string; absences: number | null }>(`/attendance-marks/${id}`, { method: "DELETE" }),
 };

@@ -202,6 +202,7 @@ export type AttendanceMark = {
   subjectId: number;
   scheduleId: number | null;
   date: string;
+  kind: "falta" | "sem_aula";
 };
 
 export const WEEKDAYS = [
