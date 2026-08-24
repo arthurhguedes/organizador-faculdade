@@ -126,4 +126,18 @@ router.post("/import", async (req, res) => {
   }
 });
 
+router.delete("/", async (req, res) => {
+  try {
+    const userId = req.userId!;
+    await db.transaction(async (tx) => {
+      await tx.delete(schema.offeringSchedules).where(eq(schema.offeringSchedules.userId, userId));
+      await tx.delete(schema.courseOfferings).where(eq(schema.courseOfferings.userId, userId));
+    });
+    res.json({ message: "Catálogo de ofertas removido" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao remover ofertas" });
+  }
+});
+
 export default router;

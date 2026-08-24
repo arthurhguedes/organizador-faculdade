@@ -7,8 +7,8 @@ import type { SyllabusEntry, SyllabusEntryPerAula } from "../../api/types";
 import { useToast } from "../../context/ToastContext";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { Button } from "../../components/ui/Button";
-import { Badge } from "../../components/ui/Badge";
 import { ConfirmDelete } from "../../components/ui/ConfirmDelete";
+import { Badge } from "../../components/ui/Badge";
 
 function kindLabel(kind: SyllabusEntryPerAula["kind"]): string | null {
   if (kind === "T") return "Teórica";
@@ -58,6 +58,16 @@ export function SyllabusSection({
     }
   };
 
+  const handleClearAll = async () => {
+    try {
+      await syllabusEntriesApi.clearForSubject(subjectId);
+      notify("Plano de ensino removido", "success");
+      onChange();
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao remover plano de ensino", "error");
+    }
+  };
+
   const format = entries[0]?.format;
   const sorted =
     format === "weekly"
@@ -78,9 +88,14 @@ export function SyllabusSection({
             if (file) handleFile(file);
           }}
         />
-        <Button variant="ghost" icon={FileCheck} loading={parsing} onClick={() => inputRef.current?.click()}>
-          {parsing ? "Lendo PDF..." : entries.length === 0 ? "Importar plano de ensino (PDF)" : "Reimportar (PDF)"}
-        </Button>
+        <div className="hub-section__header-actions">
+          <Button variant="ghost" icon={FileCheck} loading={parsing} onClick={() => inputRef.current?.click()}>
+            {parsing ? "Lendo PDF..." : entries.length === 0 ? "Importar plano de ensino (PDF)" : "Reimportar (PDF)"}
+          </Button>
+          {entries.length > 0 && (
+            <ConfirmDelete onConfirm={handleClearAll} label="Remover plano de ensino" confirmText="Remover tudo?" />
+          )}
+        </div>
       </div>
 
       {sorted.length === 0 ? (

@@ -104,10 +104,13 @@ export const offeringsApi = {
       method: "POST",
       body: JSON.stringify({ offerings }),
     }),
+  clear: () => request<{ message: string }>("/offerings", { method: "DELETE" }),
 };
 
 export const syllabusEntriesApi = {
   remove: (id: number) => request<{ message: string }>(`/syllabus-entries/${id}`, { method: "DELETE" }),
+  clearForSubject: (subjectId: number) =>
+    request<{ message: string }>(`/syllabus-entries/subject/${subjectId}`, { method: "DELETE" }),
   import: (subjectId: number, parsed: SyllabusPdfImport) =>
     request<{ message: string }>("/syllabus-entries/import", {
       method: "POST",

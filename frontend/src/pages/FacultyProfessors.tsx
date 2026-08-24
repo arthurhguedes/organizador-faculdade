@@ -13,8 +13,14 @@ import { EnrollmentImportButton } from "./faculty/EnrollmentImportButton";
 
 export function FacultyProfessors() {
   usePageTitle("Montar Grade");
-  const { offerings, loading, error, importing, importOfferings } = useOfferings();
+  const { offerings, loading, error, importing, importOfferings, clearOfferings } = useOfferings();
   const { selectedIds, isSelected, toggle, clear } = useGradeBuilder();
+
+  const handleClearOfferings = async () => {
+    const ok = await clearOfferings();
+    if (ok) clear();
+    return ok;
+  };
 
   const lastImportedAt = offerings[0]?.importedAt ?? null;
   const selectedOfferings = offerings.filter((o) => selectedIds.has(o.id));
@@ -28,7 +34,12 @@ export function FacultyProfessors() {
 
       {error && <ErrorBanner message={error} />}
 
-      <ImportPanel lastImportedAt={lastImportedAt} importing={importing} onImport={importOfferings} />
+      <ImportPanel
+        lastImportedAt={lastImportedAt}
+        importing={importing}
+        onImport={importOfferings}
+        onClear={handleClearOfferings}
+      />
 
       {loading ? (
         <SkeletonRows rows={5} />

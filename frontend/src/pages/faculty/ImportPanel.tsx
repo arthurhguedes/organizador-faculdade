@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Upload, RefreshCw } from "lucide-react";
+import { ConfirmDelete } from "../../components/ui/ConfirmDelete";
 import {
   applyInstitutionMapping,
   parseOfferingsRows,
@@ -22,10 +23,12 @@ export function ImportPanel({
   lastImportedAt,
   importing,
   onImport,
+  onClear,
 }: {
   lastImportedAt: string | null;
   importing: boolean;
   onImport: (parsed: ParsedOffering[]) => Promise<boolean>;
+  onClear: () => Promise<boolean>;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
@@ -117,14 +120,19 @@ export function ImportPanel({
           if (file) handleFile(file);
         }}
       />
-      <Button
-        variant="secondary"
-        icon={lastImportedAt ? RefreshCw : Upload}
-        loading={busy}
-        onClick={() => inputRef.current?.click()}
-      >
-        {busy ? "Processando..." : lastImportedAt ? "Reimportar planilha" : "Importar planilha"}
-      </Button>
+      <div className="hub-section__header-actions">
+        <Button
+          variant="secondary"
+          icon={lastImportedAt ? RefreshCw : Upload}
+          loading={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          {busy ? "Processando..." : lastImportedAt ? "Reimportar planilha" : "Importar planilha"}
+        </Button>
+        {lastImportedAt && (
+          <ConfirmDelete onConfirm={onClear} label="Remover catálogo importado" confirmText="Remover catálogo?" />
+        )}
+      </div>
     </div>
   );
 }

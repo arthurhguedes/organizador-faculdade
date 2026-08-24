@@ -222,6 +222,32 @@ router.post("/import", async (req, res) => {
   }
 });
 
+router.delete("/subject/:subjectId", async (req, res) => {
+  const subjectId = parseId(req.params.subjectId);
+  if (subjectId === null) {
+    return res.status(400).json({ message: "subjectId inválido" });
+  }
+
+  try {
+    const userId = req.userId!;
+    await db.transaction(async (tx) => {
+      await tx
+        .delete(schema.syllabusEntries)
+        .where(and(eq(schema.syllabusEntries.subjectId, subjectId), eq(schema.syllabusEntries.userId, userId)));
+      await tx
+        .delete(schema.syllabusTopics)
+        .where(and(eq(schema.syllabusTopics.subjectId, subjectId), eq(schema.syllabusTopics.userId, userId)));
+      await tx
+        .delete(schema.syllabusAssessments)
+        .where(and(eq(schema.syllabusAssessments.subjectId, subjectId), eq(schema.syllabusAssessments.userId, userId)));
+    });
+    res.json({ message: "Plano de ensino removido" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao remover plano de ensino" });
+  }
+});
+
 router.delete("/:id", async (req, res) => {
   const id = parseId(req.params.id);
   if (id === null) {

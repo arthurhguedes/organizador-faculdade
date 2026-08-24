@@ -1537,6 +1537,12 @@ button.month-calendar__event {
   font-size: var(--text-md);
 }
 
+.hub-section__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .schedule-list {
   list-style: none;
   margin: 0;

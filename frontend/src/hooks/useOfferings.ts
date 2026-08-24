@@ -40,5 +40,17 @@ export function useOfferings() {
     }
   };
 
-  return { offerings, loading, error, importing, importOfferings, reload: load };
+  const clearOfferings = async () => {
+    try {
+      const result = await offeringsApi.clear();
+      notify(result.message, "success");
+      load();
+      return true;
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao remover ofertas", "error");
+      return false;
+    }
+  };
+
+  return { offerings, loading, error, importing, importOfferings, clearOfferings, reload: load };
 }
