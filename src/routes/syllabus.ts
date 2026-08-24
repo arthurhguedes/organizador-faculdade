@@ -33,27 +33,50 @@ router.get("/", async (req, res) => {
 });
 
 type ImportEntry = {
-  lessonNumber: number;
+  lessonNumber: number | null;
   kind: string | null;
-  date: string;
+  date: string | null;
+  weekNumber: number | null;
+  periodLabel: string | null;
   content: string;
 };
 
+type ImportTopic = { code: string; title: string; position: number };
+
+type ImportAssessment = {
+  title: string;
+  weightLabel: string | null;
+  dateLabel: string | null;
+  coverageLabel: string | null;
+  position: number;
+};
+
 router.post("/import", async (req, res) => {
-  const { subjectId, entries } = req.body ?? {};
+  const { subjectId, format, entries, topics, assessments } = req.body ?? {};
   const parsedSubjectId = parseId(String(subjectId));
 
   if (parsedSubjectId === null) {
     return res.status(400).json({ message: "subjectId é obrigatório" });
   }
+  if (format !== "per_aula" && format !== "weekly") {
+    return res.status(400).json({ message: 'format deve ser "per_aula" ou "weekly"' });
+  }
   if (!Array.isArray(entries) || entries.length === 0) {
     return res.status(400).json({ message: "entries deve ser uma lista não vazia" });
   }
   for (const entry of entries as ImportEntry[]) {
-    if (!entry.date || !entry.content || typeof entry.lessonNumber !== "number") {
-      return res.status(400).json({ message: "cada aula precisa de lessonNumber, date e content" });
+    if (!entry.content) {
+      return res.status(400).json({ message: "cada entrada precisa de content" });
+    }
+    if (format === "per_aula" && (!entry.date || typeof entry.lessonNumber !== "number")) {
+      return res.status(400).json({ message: "cada aula precisa de lessonNumber e date" });
+    }
+    if (format === "weekly" && typeof entry.weekNumber !== "number") {
+      return res.status(400).json({ message: "cada semana precisa de weekNumber" });
     }
   }
+  const topicsList = Array.isArray(topics) ? (topics as ImportTopic[]) : [];
+  const assessmentsList = Array.isArray(assessments) ? (assessments as ImportAssessment[]) : [];
 
   try {
     const userId = req.userId!;
@@ -65,20 +88,55 @@ router.post("/import", async (req, res) => {
       await tx
         .delete(schema.syllabusEntries)
         .where(and(eq(schema.syllabusEntries.subjectId, parsedSubjectId), eq(schema.syllabusEntries.userId, userId)));
+      await tx
+        .delete(schema.syllabusTopics)
+        .where(and(eq(schema.syllabusTopics.subjectId, parsedSubjectId), eq(schema.syllabusTopics.userId, userId)));
+      await tx
+        .delete(schema.syllabusAssessments)
+        .where(and(eq(schema.syllabusAssessments.subjectId, parsedSubjectId), eq(schema.syllabusAssessments.userId, userId)));
 
       await tx.insert(schema.syllabusEntries).values(
         (entries as ImportEntry[]).map((entry) => ({
           subjectId: parsedSubjectId,
+          format: format as "per_aula" | "weekly",
           lessonNumber: entry.lessonNumber,
           kind: entry.kind,
           date: entry.date,
+          weekNumber: entry.weekNumber,
+          periodLabel: entry.periodLabel,
           content: entry.content,
           userId,
         })),
       );
+
+      if (topicsList.length > 0) {
+        await tx.insert(schema.syllabusTopics).values(
+          topicsList.map((topic) => ({
+            subjectId: parsedSubjectId,
+            code: topic.code,
+            title: topic.title,
+            position: topic.position,
+            userId,
+          })),
+        );
+      }
+
+      if (assessmentsList.length > 0) {
+        await tx.insert(schema.syllabusAssessments).values(
+          assessmentsList.map((assessment) => ({
+            subjectId: parsedSubjectId,
+            title: assessment.title,
+            weightLabel: assessment.weightLabel,
+            dateLabel: assessment.dateLabel,
+            coverageLabel: assessment.coverageLabel,
+            position: assessment.position,
+            userId,
+          })),
+        );
+      }
     });
 
-    res.json({ message: `${entries.length} aula(s) importada(s) com sucesso` });
+    res.json({ message: `${entries.length} entrada(s) importada(s) com sucesso` });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao importar plano de ensino" });

@@ -13,6 +13,7 @@ import { AttendanceSection } from "./subject-detail/AttendanceSection";
 import { ScheduleSection } from "./subject-detail/ScheduleSection";
 import { EvaluationSection } from "./subject-detail/EvaluationSection";
 import { SyllabusSection } from "./subject-detail/SyllabusSection";
+import { SyllabusPlanningSection } from "./subject-detail/SyllabusPlanningSection";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { ConfirmDelete } from "../components/ui/ConfirmDelete";
@@ -174,6 +175,8 @@ export function SubjectDetail() {
       <ScheduleSection subjectId={subjectId} schedules={details.schedules} onChange={reload} />
 
       <SyllabusSection subjectId={subjectId} entries={details.syllabusEntries} onChange={reload} />
+
+      <SyllabusPlanningSection topics={details.topics} assessments={details.assessments} entries={details.syllabusEntries} />
 
       <EvaluationSection
         kind="assignment"

@@ -127,17 +127,56 @@ export const exams = pgTable("exams", {
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
-// Plano de ensino — cronograma de aulas importado do PDF que o professor
-// disponibiliza (uma linha por aula: número, tipo, data, conteúdo previsto).
+// Plano de ensino — cronograma importado do PDF que o professor disponibiliza.
 // Import = replace total por matéria, mesmo raciocínio de `course_offerings`:
-// é sempre o cronograma vigente, não um histórico de versões.
+// é sempre o cronograma vigente, não um histórico de versões. Cada professor
+// formata isso de um jeito: `format` distingue aula-a-aula (lessonNumber +
+// kind T/P + data cheia) de semanal (weekNumber + período em texto livre,
+// tipo "24-28/ago" — sem ano, não dá pra reduzir a uma `date` única). Os
+// campos específicos de cada formato ficam nullable e só um par é preenchido
+// por linha, dependendo de `format`.
 export const syllabusEntries = pgTable("syllabus_entries", {
   id: serial("id").primaryKey(),
   subjectId: integer("subject_id").references(() => subjects.id).notNull(),
-  lessonNumber: integer("lesson_number").notNull(),
-  kind: text("kind"), // "T" (teórica) | "P" (prática) | null (ex: feriado)
-  date: date("date").notNull(),
+  format: text("format").notNull().default("per_aula"), // "per_aula" | "weekly"
+  lessonNumber: integer("lesson_number"), // per_aula only
+  kind: text("kind"), // "T" (teórica) | "P" (prática) | null (ex: feriado) — per_aula only
+  date: date("date"), // per_aula only
+  weekNumber: integer("week_number"), // weekly only
+  periodLabel: text("period_label"), // weekly only, texto cru do intervalo, ex: "24-28/ago"
   content: text("content").notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
+// Conteúdo programático do plano de ensino — lista hierárquica de tópicos da
+// matéria (ex: "1" "Sistema de equações lineares e matrizes", "1.1"
+// "Eliminação Gaussiana"). Profundidade é derivada de `code` no client
+// (número de pontos), não armazenada. Import = replace total por matéria,
+// junto com `syllabusEntries`/`syllabusAssessments` na mesma importação.
+export const syllabusTopics = pgTable("syllabus_topics", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  code: text("code").notNull(), // "1", "1.1", "6.2"
+  title: text("title").notNull(),
+  position: integer("position").notNull(), // ordem de leitura no PDF
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
+// Tabela "Avaliação" do plano de ensino — puramente informativo/planejamento,
+// sem qualquer vínculo com `exams` (que continua sendo a fonte da verdade das
+// provas reais/notas do usuário). Peso/data/cobertura ficam texto livre
+// nullable porque o PDF às vezes não preenche com valores estruturados (ex:
+// peso em branco, data "Será definido posteriormente"). `coverageLabel`
+// ("Semanas 1 – 5") é resolvido em tópicos cobertos só no client, cruzando
+// com `syllabusEntries` do tipo "weekly" — não persistido aqui.
+export const syllabusAssessments = pgTable("syllabus_assessments", {
+  id: serial("id").primaryKey(),
+  subjectId: integer("subject_id").references(() => subjects.id).notNull(),
+  title: text("title").notNull(),
+  weightLabel: text("weight_label"),
+  dateLabel: text("date_label"),
+  coverageLabel: text("coverage_label"),
+  position: integer("position").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

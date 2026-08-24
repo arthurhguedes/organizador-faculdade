@@ -80,6 +80,14 @@ router.get("/:id/details", async (req, res) => {
       .select()
       .from(schema.syllabusEntries)
       .where(and(eq(schema.syllabusEntries.subjectId, id), eq(schema.syllabusEntries.userId, req.userId!)));
+    const subjectTopics = await db
+      .select()
+      .from(schema.syllabusTopics)
+      .where(and(eq(schema.syllabusTopics.subjectId, id), eq(schema.syllabusTopics.userId, req.userId!)));
+    const subjectAssessments = await db
+      .select()
+      .from(schema.syllabusAssessments)
+      .where(and(eq(schema.syllabusAssessments.subjectId, id), eq(schema.syllabusAssessments.userId, req.userId!)));
 
     res.json({
       ...subject,
@@ -87,6 +95,8 @@ router.get("/:id/details", async (req, res) => {
       assignments: subjectAssignments,
       exams: subjectExams,
       syllabusEntries: subjectSyllabus,
+      topics: subjectTopics,
+      assessments: subjectAssessments,
     });
   } catch (err) {
     console.error(err);
@@ -199,6 +209,8 @@ router.delete("/:id", async (req, res) => {
       await tx.delete(schema.assignments).where(and(eq(schema.assignments.subjectId, id), eq(schema.assignments.userId, userId)));
       await tx.delete(schema.exams).where(and(eq(schema.exams.subjectId, id), eq(schema.exams.userId, userId)));
       await tx.delete(schema.syllabusEntries).where(and(eq(schema.syllabusEntries.subjectId, id), eq(schema.syllabusEntries.userId, userId)));
+      await tx.delete(schema.syllabusTopics).where(and(eq(schema.syllabusTopics.subjectId, id), eq(schema.syllabusTopics.userId, userId)));
+      await tx.delete(schema.syllabusAssessments).where(and(eq(schema.syllabusAssessments.subjectId, id), eq(schema.syllabusAssessments.userId, userId)));
       return tx
         .delete(schema.subjects)
         .where(and(eq(schema.subjects.id, id), eq(schema.subjects.userId, userId)))

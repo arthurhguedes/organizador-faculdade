@@ -1,22 +1,59 @@
 export type SyllabusPdfEntry = {
-  lessonNumber: number;
-  kind: "T" | "P" | null;
-  date: string; // YYYY-MM-DD
+  lessonNumber: number | null; // per_aula only
+  kind: "T" | "P" | null; // per_aula only
+  date: string | null; // per_aula only, YYYY-MM-DD
+  weekNumber: number | null; // weekly only
+  periodLabel: string | null; // weekly only, texto cru do intervalo, ex: "24-28/ago"
   content: string;
 };
 
-type PdfLine = { page: number; y: number; text: string };
+export type SyllabusPdfTopic = { code: string; title: string; position: number };
 
-// Linha de aula do cronograma: "16 Teórica 21/05/2026 1ª Prova Teórica" —
-// número, tipo (Teórica/Prática/"-" pra feriado), data, início do conteúdo.
+export type SyllabusPdfAssessment = {
+  title: string;
+  weightLabel: string | null;
+  dateLabel: string | null;
+  coverageLabel: string | null;
+  position: number;
+};
+
+export type SyllabusPdfImport = {
+  format: "per_aula" | "weekly";
+  entries: SyllabusPdfEntry[];
+  topics: SyllabusPdfTopic[];
+  assessments: SyllabusPdfAssessment[];
+};
+
+type PdfItem = { x: number; str: string };
+type PdfLine = { page: number; y: number; text: string; items: PdfItem[] };
+
+// Linha de aula do cronograma aula-a-aula: "16 Teórica 21/05/2026 1ª Prova
+// Teórica" — número, tipo (Teórica/Prática/"-" pra feriado), data, início do
+// conteúdo. Só casa nesse formato (data completa dd/mm/aaaa); PDFs no formato
+// semanal (sem ano no "Período") nunca batem aqui, o que é usado pra
+// autodetectar o formato sem risco de regressão no já validado.
 const ROW_START = /^(\d{1,3})\s+([^\d]+?)\s+(\d{2})\/(\d{2})\/(\d{4})\s*(.*)$/;
-const CRONOGRAMA_START = /cronograma/i;
-const CRONOGRAMA_END = /^bibliografia/i;
+
+// Ancorado no início da linha: evita casar menções soltas a "cronograma" no
+// meio de outros parágrafos do documento (ex: "...e no cronograma da
+// disciplina." no texto de Avaliação), só o heading da seção mesmo.
+const CRONOGRAMA_START = /^cronograma\b/i;
+const CRONOGRAMA_END = /^(bibliografia|hor[aá]rio de aula)/i;
+
+const TOPICS_START = /^conte[uú]do program[aá]tico:?/i;
+const TOPICS_END = /^objetivos:?/i;
+const TOPIC_LINE = /^(\d+(?:\.\d+)*)\.?\s+(.+)$/;
+
+const AVALIACAO_TABLE_START = /^descri[çc][aã]o da\b/i;
+const HEADING_CRONOGRAMA = /^cronograma$/i;
+
+const WEEK_HEADER = /^semana\b/i;
+const WEEK_NUMBER = /^\d{1,3}$/;
 
 // Linhas dentro da mesma célula (conteúdo previsto que quebra em mais de uma
 // linha) ficam bem mais próximas verticalmente entre si (~9pt neste layout)
 // do que uma linha de tabela para a próxima (~14-15pt) — usa isso pra
-// reagrupar linhas quebradas de volta na mesma aula.
+// reagrupar linhas quebradas de volta na mesma célula/linha de tabela.
 const SAME_ROW_MAX_GAP = 11;
 
 function normalizeKind(raw: string): "T" | "P" | null {
@@ -42,7 +79,7 @@ async function extractLines(file: File): Promise<PdfLine[]> {
 
     // Text items come with x/y positions but not grouped into rows — reconstruct
     // lines by clustering items whose baseline y is close together.
-    const rows = new Map<number, { x: number; str: string }[]>();
+    const rows = new Map<number, PdfItem[]>();
     for (const item of content.items) {
       if (!("str" in item) || !item.str.trim()) continue;
       const y = Math.round(item.transform[5]);
@@ -60,16 +97,19 @@ async function extractLines(file: File): Promise<PdfLine[]> {
 
     const pageLines = [...rows.entries()]
       .sort((a, b) => b[0] - a[0]) // PDF y grows upward — descending y = top to bottom
-      .map(([y, parts]) => ({
-        page: pageNum,
-        y,
-        text: parts
-          .sort((a, b) => a.x - b.x)
-          .map((p) => p.str)
-          .join(" ")
-          .replace(/\s+/g, " ")
-          .trim(),
-      }));
+      .map(([y, parts]) => {
+        const items = parts.sort((a, b) => a.x - b.x);
+        return {
+          page: pageNum,
+          y,
+          items,
+          text: items
+            .map((p) => p.str)
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim(),
+        };
+      });
 
     lines.push(...pageLines);
   }
@@ -77,37 +117,85 @@ async function extractLines(file: File): Promise<PdfLine[]> {
   return lines;
 }
 
-// O plano de ensino tem várias tabelas (avaliações, horário de aula etc.) —
-// só a tabela "Cronograma" (aula por aula) interessa aqui.
-//
-// Quando o conteúdo previsto de uma aula quebra em mais de uma linha visual,
-// a célula "Aula/Data" fica centralizada verticalmente na altura da célula
-// de conteúdo — ou seja, a linha com o número da aula nem sempre é a
-// primeira linha do bloco, pode vir no meio. Por isso o agrupamento não pode
-// ser "a linha que começa com número inicia um registro novo, o resto
-// pertence ao registro anterior": em vez disso, agrupa linhas em blocos por
-// proximidade vertical (mesma célula = linhas bem próximas) e, dentro de
-// cada bloco, procura a linha com o marcador de aula pra extrair
-// número/tipo/data, concatenando as demais linhas do bloco como conteúdo.
-export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfEntry[]> {
-  const lines = await extractLines(file);
-
-  const startIndex = lines.findIndex((l) => CRONOGRAMA_START.test(l.text));
-  if (startIndex === -1) return [];
-  const relativeEnd = lines.slice(startIndex + 1).findIndex((l) => CRONOGRAMA_END.test(l.text));
-  const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
-
+function clusterRows(lines: PdfLine[], maxGap: number): PdfLine[][] {
   const clusters: PdfLine[][] = [];
   let prev: PdfLine | null = null;
-  for (const line of lines.slice(startIndex + 1, endIndex)) {
+  for (const line of lines) {
     const gap = prev && prev.page === line.page ? prev.y - line.y : null;
-    if (gap === null || gap > SAME_ROW_MAX_GAP) {
+    if (gap === null || gap > maxGap) {
       clusters.push([line]);
     } else {
       clusters[clusters.length - 1].push(line);
     }
     prev = line;
   }
+  return clusters;
+}
+
+// Deriva as posições x das colunas de uma tabela a partir do(s) cluster(s) de
+// cabeçalho, em vez de fixar valores — tolera pequenas variações de layout
+// entre PDFs de outras matérias/professores.
+function deriveColumnAnchors(headerLines: PdfLine[], tolerance = 20): number[] {
+  const xs = headerLines
+    .flatMap((l) => l.items.map((i) => i.x))
+    .sort((a, b) => a - b);
+  const anchors: number[] = [];
+  for (const x of xs) {
+    if (anchors.length === 0 || x - anchors[anchors.length - 1] > tolerance) {
+      anchors.push(x);
+    }
+  }
+  return anchors;
+}
+
+function nearestAnchorIndex(x: number, anchors: number[]): number {
+  let best = 0;
+  let bestDist = Math.abs(x - anchors[0]);
+  for (let i = 1; i < anchors.length; i++) {
+    const dist = Math.abs(x - anchors[i]);
+    if (dist < bestDist) {
+      best = i;
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+// Agrupa os itens de um bloco de linhas (uma linha de tabela, possivelmente
+// quebrada em várias linhas visuais) em colunas pela âncora de x mais
+// próxima. Necessário pras tabelas Avaliação/Cronograma semanal porque,
+// diferente do cronograma aula-a-aula, o conteúdo quebrado não fica sempre
+// "tudo depois da linha-marcador" — colunas diferentes podem quebrar em
+// linhas visuais diferentes dentro do mesmo bloco.
+function binCluster(cluster: PdfLine[], anchors: number[]): string[] {
+  const columns: { x: number; y: number; str: string }[][] = anchors.map(() => []);
+  for (const line of cluster) {
+    for (const item of line.items) {
+      columns[nearestAnchorIndex(item.x, anchors)].push({ x: item.x, y: line.y, str: item.str });
+    }
+  }
+  return columns.map((col) =>
+    col
+      .sort((a, b) => b.y - a.y || a.x - b.x)
+      .map((i) => i.str)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
+}
+
+// Formato aula-a-aula: cada linha do cronograma é uma aula (número, tipo,
+// data cheia). Quando o conteúdo previsto quebra em mais de uma linha visual,
+// a célula "Aula/Data" fica centralizada verticalmente na altura da célula de
+// conteúdo — ou seja, a linha com o número da aula nem sempre é a primeira
+// linha do bloco, pode vir no meio. Por isso o agrupamento não pode ser "a
+// linha que começa com número inicia um registro novo, o resto pertence ao
+// registro anterior": em vez disso, agrupa linhas em blocos por proximidade
+// vertical e, dentro de cada bloco, procura a linha com o marcador de aula
+// pra extrair número/tipo/data, concatenando as demais linhas do bloco como
+// conteúdo.
+function parsePerAulaCronograma(cronogramaLines: PdfLine[]): SyllabusPdfEntry[] {
+  const clusters = clusterRows(cronogramaLines, SAME_ROW_MAX_GAP);
 
   const entries: SyllabusPdfEntry[] = [];
   for (const cluster of clusters) {
@@ -125,9 +213,161 @@ export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfEntr
       lessonNumber: Number(lessonNumber),
       kind: normalizeKind(kindRaw),
       date: `${year}-${month}-${day}`,
+      weekNumber: null,
+      periodLabel: null,
       content,
     });
   }
 
   return entries;
+}
+
+// Formato semanal: cabeçalho "Semana | Período | Descrição", cada linha do
+// cronograma é uma semana (período em texto livre, sem ano — ex:
+// "24-28/ago"). Diferente do cronograma aula-a-aula, o espaçamento vertical
+// entre linhas de uma mesma célula não é consistentemente menor que o
+// espaçamento entre linhas de semanas diferentes neste layout — uma célula
+// com 3+ tópicos pode usar o mesmo espaçamento de "nova linha de tabela" que
+// separa duas semanas (ex: a célula da semana 15 lista 3 tópicos com o mesmo
+// gap vertical de ~14-15pt que existe entre semanas normais). Clustering por
+// proximidade vertical sozinho perderia conteúdo nesse caso. Em vez disso,
+// cada linha é individualmente colocada em coluna por x; a coluna "Semana"
+// identifica as linhas-âncora (uma por semana); qualquer linha sem marcador
+// de semana é anexada à linha-âncora mais próxima verticalmente (podendo vir
+// antes OU depois dela no PDF — mesmo raciocínio do formato aula-a-aula, em
+// que o marcador nem sempre é a primeira linha do bloco).
+function parseWeeklyCronograma(cronogramaLines: PdfLine[]): SyllabusPdfEntry[] {
+  const headerIndex = cronogramaLines.findIndex((l) => WEEK_HEADER.test(l.text));
+  if (headerIndex === -1) return [];
+
+  const anchors = deriveColumnAnchors([cronogramaLines[headerIndex]]);
+  if (anchors.length < 3) return [];
+
+  const dataLines = cronogramaLines.slice(headerIndex + 1);
+  const binned = dataLines.map((line) => ({
+    page: line.page,
+    y: line.y,
+    columns: binCluster([line], anchors),
+  }));
+
+  const weekLineIndexes = binned
+    .map((row, i) => (WEEK_NUMBER.test(row.columns[0]) ? i : -1))
+    .filter((i) => i !== -1);
+  if (weekLineIndexes.length === 0) return [];
+
+  function nearestWeekLine(i: number): number {
+    let best = weekLineIndexes[0];
+    let bestDist = Infinity;
+    for (const a of weekLineIndexes) {
+      const pageDist = Math.abs(binned[i].page - binned[a].page) * 100000;
+      const dist = pageDist + Math.abs(binned[i].y - binned[a].y);
+      if (dist < bestDist) {
+        best = a;
+        bestDist = dist;
+      }
+    }
+    return best;
+  }
+
+  const buckets = new Map<number, { period: string[]; content: string[] }>();
+  for (const i of weekLineIndexes) buckets.set(i, { period: [], content: [] });
+
+  binned.forEach((row, i) => {
+    const target = weekLineIndexes.includes(i) ? i : nearestWeekLine(i);
+    const bucket = buckets.get(target)!;
+    if (row.columns[1]) bucket.period.push(row.columns[1]);
+    if (row.columns[2]) bucket.content.push(row.columns[2]);
+  });
+
+  const entries: SyllabusPdfEntry[] = [];
+  for (const i of weekLineIndexes) {
+    const bucket = buckets.get(i)!;
+    const content = bucket.content.join(" ").replace(/\s+/g, " ").trim();
+    if (!content) continue;
+
+    entries.push({
+      lessonNumber: null,
+      kind: null,
+      date: null,
+      weekNumber: Number(binned[i].columns[0]),
+      periodLabel: bucket.period.join(" ").replace(/\s+/g, " ").trim() || null,
+      content,
+    });
+  }
+
+  return entries;
+}
+
+// Conteúdo programático: lista hierárquica de tópicos, uma linha por tópico
+// (não quebra em várias linhas visuais neste layout).
+function parseTopics(lines: PdfLine[]): SyllabusPdfTopic[] {
+  const startIndex = lines.findIndex((l) => TOPICS_START.test(l.text));
+  if (startIndex === -1) return [];
+  const relativeEnd = lines.slice(startIndex + 1).findIndex((l) => TOPICS_END.test(l.text));
+  const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
+
+  const topics: SyllabusPdfTopic[] = [];
+  let position = 0;
+  for (const line of lines.slice(startIndex + 1, endIndex)) {
+    const match = TOPIC_LINE.exec(line.text);
+    if (!match) continue;
+    topics.push({ code: match[1], title: match[2].trim(), position: position++ });
+  }
+  return topics;
+}
+
+// Tabela Avaliação: "Descrição da avaliação | Peso da avaliação (%) | Data |
+// Conteúdo avaliado". Peso/data/cobertura às vezes vêm em branco ou como
+// texto livre não estruturado (ex: peso do Exame Especial em branco, data
+// "Será definido posteriormente" dos Trabalhos), por isso o binning por
+// coluna em vez de assumir uma linha só por avaliação.
+function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
+  const startIndex = lines.findIndex((l) => AVALIACAO_TABLE_START.test(l.text));
+  if (startIndex === -1) return [];
+  const relativeEnd = lines.slice(startIndex).findIndex((l) => HEADING_CRONOGRAMA.test(l.text));
+  const endIndex = relativeEnd === -1 ? lines.length : startIndex + relativeEnd;
+
+  const headerCluster = clusterRows(lines.slice(startIndex, endIndex), SAME_ROW_MAX_GAP)[0] ?? [];
+  const anchors = deriveColumnAnchors(headerCluster);
+  if (anchors.length < 4) return [];
+
+  const dataLines = lines.slice(startIndex + headerCluster.length, endIndex);
+  const clusters = clusterRows(dataLines, SAME_ROW_MAX_GAP);
+
+  const assessments: SyllabusPdfAssessment[] = [];
+  let position = 0;
+  for (const cluster of clusters) {
+    const [title, weight, date, coverage] = binCluster(cluster, anchors);
+    if (!title) continue;
+    assessments.push({
+      title,
+      weightLabel: weight || null,
+      dateLabel: date || null,
+      coverageLabel: coverage || null,
+      position: position++,
+    });
+  }
+
+  return assessments;
+}
+
+export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfImport> {
+  const lines = await extractLines(file);
+
+  const topics = parseTopics(lines);
+  const assessments = parseAvaliacaoTable(lines);
+
+  const startIndex = lines.findIndex((l) => CRONOGRAMA_START.test(l.text));
+  if (startIndex === -1) return { format: "per_aula", entries: [], topics, assessments };
+
+  const relativeEnd = lines.slice(startIndex + 1).findIndex((l) => CRONOGRAMA_END.test(l.text));
+  const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
+  const cronogramaLines = lines.slice(startIndex + 1, endIndex);
+
+  const perAulaEntries = parsePerAulaCronograma(cronogramaLines);
+  if (perAulaEntries.length > 0) {
+    return { format: "per_aula", entries: perAulaEntries, topics, assessments };
+  }
+
+  return { format: "weekly", entries: parseWeeklyCronograma(cronogramaLines), topics, assessments };
 }

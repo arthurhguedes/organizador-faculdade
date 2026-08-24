@@ -14,7 +14,7 @@ import type {
   SubjectDetails,
 } from "./types";
 import type { ParsedOffering } from "../lib/offeringsImport";
-import type { SyllabusPdfEntry } from "../lib/planoDeEnsinoImport";
+import type { SyllabusPdfImport } from "../lib/planoDeEnsinoImport";
 
 // Em produção, o front chama o próprio domínio (Vercel faz proxy reverso pro
 // Render, ver frontend/vercel.json) em vez do domínio do backend direto —
@@ -107,9 +107,9 @@ export const offeringsApi = {
 
 export const syllabusEntriesApi = {
   remove: (id: number) => request<{ message: string }>(`/syllabus-entries/${id}`, { method: "DELETE" }),
-  import: (subjectId: number, entries: SyllabusPdfEntry[]) =>
+  import: (subjectId: number, parsed: SyllabusPdfImport) =>
     request<{ message: string }>("/syllabus-entries/import", {
       method: "POST",
-      body: JSON.stringify({ subjectId, entries }),
+      body: JSON.stringify({ subjectId, ...parsed }),
     }),
 };

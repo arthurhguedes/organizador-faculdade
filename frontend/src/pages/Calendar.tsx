@@ -3,6 +3,7 @@ import { CalendarClock } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
+import type { SyllabusEntryPerAula } from "../api/types";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
 import { MonthCalendar, type CalendarEvent } from "../components/grid/MonthCalendar";
 import { PageHeader } from "../components/ui/PageHeader";
@@ -54,12 +55,14 @@ export function Calendar() {
       title: e.title,
       subjectName: subject.name,
     })),
-    ...subject.syllabusEntries.map((l) => ({
-      date: l.date,
-      kind: "lesson" as const,
-      title: `Aula ${l.lessonNumber}: ${l.content}`,
-      subjectName: subject.name,
-    })),
+    ...subject.syllabusEntries
+      .filter((l): l is SyllabusEntryPerAula => l.format === "per_aula")
+      .map((l) => ({
+        date: l.date,
+        kind: "lesson" as const,
+        title: `Aula ${l.lessonNumber}: ${l.content}`,
+        subjectName: subject.name,
+      })),
   ]);
 
   return (

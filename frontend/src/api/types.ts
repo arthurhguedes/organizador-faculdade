@@ -78,13 +78,43 @@ export type DailyNote = {
   done: boolean;
 };
 
-export type SyllabusEntry = {
+export type SyllabusEntryPerAula = {
   id: number;
   subjectId: number;
+  format: "per_aula";
   lessonNumber: number;
   kind: "T" | "P" | null;
   date: string;
   content: string;
+};
+
+export type SyllabusEntryWeekly = {
+  id: number;
+  subjectId: number;
+  format: "weekly";
+  weekNumber: number;
+  periodLabel: string;
+  content: string;
+};
+
+export type SyllabusEntry = SyllabusEntryPerAula | SyllabusEntryWeekly;
+
+export type SyllabusTopic = {
+  id: number;
+  subjectId: number;
+  code: string;
+  title: string;
+  position: number;
+};
+
+export type SyllabusAssessment = {
+  id: number;
+  subjectId: number;
+  title: string;
+  weightLabel: string | null;
+  dateLabel: string | null;
+  coverageLabel: string | null;
+  position: number;
 };
 
 export type SubjectDetails = Subject & {
@@ -92,6 +122,8 @@ export type SubjectDetails = Subject & {
   assignments: Assignment[];
   exams: Exam[];
   syllabusEntries: SyllabusEntry[];
+  topics: SyllabusTopic[];
+  assessments: SyllabusAssessment[];
 };
 
 export type OfferingScheduleSlot = {

@@ -1617,6 +1617,39 @@
   font-variant-numeric: tabular-nums;
 }
 
+.syllabus-topics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.syllabus-topics__item {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.syllabus-topics__item--sub {
+  padding-left: var(--space-8);
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.syllabus-topics__code {
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  min-width: 2.5rem;
+}
+
+.syllabus-topics__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
 .eval-table__subject-link {
   color: var(--text);
   font-weight: 600;
