@@ -42,6 +42,7 @@ export type Schedule = {
   weekday: string;
   startTime: string;
   endTime: string;
+  room: string | null;
 };
 
 export type Assignment = {

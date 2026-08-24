@@ -173,6 +173,7 @@ export function Calendar() {
     subject.schedules.map((slot) => ({
       id: `${subject.id}-${slot.id}`,
       label: subject.name,
+      sublabel: slot.room ?? undefined,
       weekday: slot.weekday,
       startTime: slot.startTime,
       endTime: slot.endTime,

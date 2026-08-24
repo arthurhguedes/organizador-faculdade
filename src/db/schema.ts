@@ -104,6 +104,9 @@ export const schedules = pgTable("schedules", {
   weekday: text("weekday").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
+  // Sala onde a aula acontece, texto livre (ex: "203", "Lab 2") — opcional
+  // porque nem todo horário cadastrado sabe a sala de antemão.
+  room: text("room"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

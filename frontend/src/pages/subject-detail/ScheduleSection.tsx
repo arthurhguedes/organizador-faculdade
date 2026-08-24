@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Plus, X } from "lucide-react";
+import { Clock, MapPin, Plus, X } from "lucide-react";
 import { schedulesApi } from "../../api/client";
 import { ApiError } from "../../api/client";
 import { WEEKDAYS } from "../../api/types";
@@ -24,16 +24,18 @@ export function ScheduleSection({
   const [weekday, setWeekday] = useState<string>("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [room, setRoom] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!weekday || !startTime || !endTime) return;
     try {
-      await schedulesApi.create({ subjectId, weekday, startTime, endTime });
+      await schedulesApi.create({ subjectId, weekday, startTime, endTime, room: room || null });
       notify("Horário adicionado", "success");
       setWeekday("");
       setStartTime("");
       setEndTime("");
+      setRoom("");
       setFormOpen(false);
       onChange();
     } catch (err) {
@@ -77,6 +79,7 @@ export function ScheduleSection({
           </label>
           <Field label="Início" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} required />
           <Field label="Fim" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} required />
+          <Field label="Sala (opcional)" value={room} onChange={(e) => setRoom(e.target.value)} placeholder="Ex: 203" />
           <Button type="submit" variant="primary">
             Salvar
           </Button>
@@ -93,6 +96,12 @@ export function ScheduleSection({
               <span className="schedule-chip__time">
                 {schedule.startTime}–{schedule.endTime}
               </span>
+              {schedule.room && (
+                <span className="schedule-chip__room">
+                  <MapPin size={12} strokeWidth={2} />
+                  {schedule.room}
+                </span>
+              )}
               <ConfirmDelete onConfirm={() => handleDelete(schedule.id)} label="Remover horário" />
             </li>
           ))}

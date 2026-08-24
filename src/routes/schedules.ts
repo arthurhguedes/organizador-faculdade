@@ -46,7 +46,7 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, weekday, startTime, endTime } = req.body ?? {};
+  const { subjectId, weekday, startTime, endTime, room } = req.body ?? {};
   if (!subjectId || !weekday || !startTime || !endTime) {
     return res.status(400).json({ message: "subjectId, weekday, startTime e endTime são obrigatórios" });
   }
@@ -61,6 +61,7 @@ router.post("/", async (req, res) => {
       weekday,
       startTime,
       endTime,
+      room: room || null,
       userId: req.userId!,
     }).returning();
     res.json(newSchedule);
@@ -79,7 +80,7 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { subjectId, weekday, startTime, endTime } = req.body ?? {};
+  const { subjectId, weekday, startTime, endTime, room } = req.body ?? {};
   if (!subjectId || !weekday || !startTime || !endTime) {
     return res.status(400).json({ message: "subjectId, weekday, startTime e endTime são obrigatórios" });
   }
@@ -91,7 +92,7 @@ router.put("/:id", async (req, res) => {
 
     const updated = await db
       .update(schema.schedules)
-      .set({ subjectId, weekday, startTime, endTime })
+      .set({ subjectId, weekday, startTime, endTime, room: room || null })
       .where(and(eq(schema.schedules.id, id), eq(schema.schedules.userId, req.userId!)))
       .returning();
 
