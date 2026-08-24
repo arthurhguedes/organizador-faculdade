@@ -25,6 +25,30 @@ export function ScheduleSection({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [room, setRoom] = useState("");
+  const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
+  const [roomDraft, setRoomDraft] = useState("");
+
+  const startEditingRoom = (schedule: Schedule) => {
+    setEditingRoomId(schedule.id);
+    setRoomDraft(schedule.room ?? "");
+  };
+
+  const handleSaveRoom = async (schedule: Schedule) => {
+    try {
+      await schedulesApi.update(schedule.id, {
+        subjectId: schedule.subjectId,
+        weekday: schedule.weekday,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        room: roomDraft || null,
+      });
+      notify("Sala atualizada", "success");
+      setEditingRoomId(null);
+      onChange();
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao atualizar sala", "error");
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,11 +120,38 @@ export function ScheduleSection({
               <span className="schedule-chip__time">
                 {schedule.startTime}–{schedule.endTime}
               </span>
-              {schedule.room && (
-                <span className="schedule-chip__room">
+              {editingRoomId === schedule.id ? (
+                <form
+                  className="schedule-chip__room-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    (e.target as HTMLFormElement).querySelector("input")?.blur();
+                  }}
+                >
+                  <input
+                    className="schedule-chip__room-input"
+                    autoFocus
+                    placeholder="Ex: 203"
+                    value={roomDraft}
+                    onChange={(e) => setRoomDraft(e.target.value)}
+                    onBlur={() => handleSaveRoom(schedule)}
+                  />
+                </form>
+              ) : schedule.room ? (
+                <button
+                  type="button"
+                  className="schedule-chip__room"
+                  onClick={() => startEditingRoom(schedule)}
+                  title="Editar sala"
+                >
                   <MapPin size={12} strokeWidth={2} />
                   {schedule.room}
-                </span>
+                </button>
+              ) : (
+                <button type="button" className="schedule-chip__room schedule-chip__room--empty" onClick={() => startEditingRoom(schedule)}>
+                  <MapPin size={12} strokeWidth={2} />
+                  Adicionar sala
+                </button>
               )}
               <ConfirmDelete onConfirm={() => handleDelete(schedule.id)} label="Remover horário" />
             </li>
