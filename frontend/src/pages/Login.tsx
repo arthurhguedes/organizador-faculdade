@@ -86,6 +86,9 @@ export function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          <Link to="/esqueci-senha" className="auth-form__forgot-link">
+            Esqueci minha senha
+          </Link>
           <Button type="submit" variant="primary" icon={LogIn} loading={submitting}>
             {submitting ? "Entrando..." : "Entrar"}
           </Button>

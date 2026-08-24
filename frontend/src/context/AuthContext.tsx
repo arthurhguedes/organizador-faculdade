@@ -14,6 +14,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   USERNAME_TOO_SHORT: "Nome de usuário muito curto",
   USERNAME_TOO_LONG: "Nome de usuário muito longo",
   INVALID_USERNAME: "Nome de usuário deve ter 3–20 caracteres: letras minúsculas, números ou _",
+  INVALID_TOKEN: "Link inválido ou expirado. Solicite um novo.",
+  PASSWORD_TOO_SHORT: "A senha precisa ter pelo menos 8 caracteres",
+  PASSWORD_TOO_LONG: "Senha muito longa",
 };
 
 function authErrorMessage(error: { code?: string; message?: string } | null, fallback: string): string {
@@ -30,6 +33,8 @@ type AuthContextValue = {
   loginWithGoogle: () => Promise<void>;
   updateProfile: (body: Parameters<typeof authApi.updateProfile>[0]) => Promise<AuthUser>;
   updateUsername: (username: string) => Promise<AuthUser>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  resetPassword: (newPassword: string, token: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -89,6 +94,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return updatedUser;
   };
 
+  // Better Auth sempre responde com sucesso aqui, exista ou não o email
+  // (evita enumeração de contas) — o link em si só existe se o email bater
+  // com um usuário real, e hoje vai só pro log do backend (sem provedor de
+  // email configurado ainda).
+  const requestPasswordReset = async (email: string) => {
+    const { error } = await authClient.requestPasswordReset({
+      email,
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+    if (error) throw new ApiError(authErrorMessage(error, "Não foi possível solicitar a redefinição. Tente novamente."));
+  };
+
+  const resetPassword = async (newPassword: string, token: string) => {
+    const { error } = await authClient.resetPassword({ newPassword, token });
+    if (error) throw new ApiError(authErrorMessage(error, "Não foi possível redefinir sua senha. Tente novamente."));
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -100,6 +122,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginWithGoogle,
         updateProfile,
         updateUsername,
+        requestPasswordReset,
+        resetPassword,
       }}
     >
       {children}

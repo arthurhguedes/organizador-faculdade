@@ -41,6 +41,12 @@ export const auth = betterAuth({
       hash: (password) => bcrypt.hash(password, 10),
       verify: ({ hash, password }) => bcrypt.compare(password, hash),
     },
+    // Ainda sem provedor de email configurado (Resend/SMTP) — o link de
+    // redefinição só vai pro log do backend por enquanto. Trocar aqui por um
+    // envio de verdade quando tiver um domínio verificado pra isso.
+    sendResetPassword: async ({ user, url }) => {
+      console.log(`[reset-password] link de redefinição para ${user.email}: ${url}`);
+    },
   },
   // Só registra o provider se as credenciais existirem — sem isso, rodar sem
   // GOOGLE_CLIENT_ID/SECRET configurados (ex: antes do usuário criar o OAuth

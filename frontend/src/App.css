@@ -889,6 +889,11 @@
   font-size: var(--text-sm);
 }
 
+.error-banner--info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
 /* ---------- Page header ---------- */
 
 .page-header {
@@ -2841,6 +2846,19 @@
 .auth-form .btn {
   justify-content: center;
   margin-top: var(--space-2);
+}
+
+.auth-form__forgot-link {
+  align-self: flex-end;
+  margin-top: calc(var(--space-4) * -1);
+  color: var(--accent);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-form__forgot-link:hover {
+  text-decoration: underline;
 }
 
 .auth-google-btn {
