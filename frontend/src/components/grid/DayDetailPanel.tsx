@@ -27,6 +27,7 @@ export function DayDetailPanel({
   otherEvents,
   subjectColors,
   onSetLessonState,
+  isPending,
   onClose,
 }: {
   date: string;
@@ -34,6 +35,7 @@ export function DayDetailPanel({
   otherEvents: CalendarEvent[];
   subjectColors?: Map<number, string>;
   onSetLessonState: (event: CalendarEvent, state: LessonState) => void;
+  isPending?: (event: CalendarEvent) => boolean;
   onClose: () => void;
 }) {
   return (
@@ -66,6 +68,7 @@ export function DayDetailPanel({
         <div className="day-panel__lessons">
           {lessons.map((event, i) => {
             const state = lessonState(event);
+            const pending = isPending?.(event) ?? false;
             const dotColor = event.subjectId !== undefined ? subjectColors?.get(event.subjectId) : undefined;
             return (
               <div key={i} className="day-panel__lesson-row">
@@ -81,7 +84,7 @@ export function DayDetailPanel({
                     </span>
                   )}
                 </span>
-                <div className="day-panel__state-group">
+                <div className={`day-panel__state-group${pending ? " day-panel__state-group--pending" : ""}`}>
                   {(
                     [
                       ["presente", "Presente"],
@@ -93,6 +96,7 @@ export function DayDetailPanel({
                       key={value}
                       type="button"
                       className={`day-panel__state-btn${state === value ? " day-panel__state-btn--active" : ""} day-panel__state-btn--${value}`}
+                      disabled={pending}
                       onClick={() => onSetLessonState(event, value)}
                     >
                       {label}

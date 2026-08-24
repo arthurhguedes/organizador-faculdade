@@ -24,6 +24,7 @@ export function Calendar() {
   const { notify } = useToast();
   const [marks, setMarks] = useState<AttendanceMark[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [pendingOccurrences, setPendingOccurrences] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     attendanceMarksApi
@@ -31,6 +32,18 @@ export function Calendar() {
       .then(setMarks)
       .catch(() => {});
   }, [selectedPeriodId]);
+
+  const occurrenceKeyOf = (event: CalendarEvent) =>
+    occurrenceKey(event.subjectId!, event.date, event.scheduleId ?? null);
+
+  const setOccurrencePending = (key: string, pending: boolean) => {
+    setPendingOccurrences((prev) => {
+      const next = new Set(prev);
+      if (pending) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  };
 
   const handleEventDrop = async (event: CalendarEvent, newDate: string) => {
     if (event.id === undefined || event.subjectId === undefined || newDate === event.date) return;
@@ -66,11 +79,22 @@ export function Calendar() {
   const handleToggleLesson = async (event: CalendarEvent) => {
     if (event.subjectId === undefined) return;
     const scheduleId = event.scheduleId ?? null;
+    const key = occurrenceKeyOf(event);
+    if (pendingOccurrences.has(key)) return;
+    const previousMarks = marks;
+    const previousMarkId = event.markId;
+
+    // Atualização otimista: reflete a mudança na hora, antes da resposta do servidor.
+    setMarks((prev) =>
+      previousMarkId
+        ? prev.filter((m) => m.id !== previousMarkId)
+        : [...prev, { id: -Date.now(), subjectId: event.subjectId!, scheduleId, date: event.date, kind: "falta" }],
+    );
+    setOccurrencePending(key, true);
 
     try {
-      if (event.markId) {
-        await attendanceMarksApi.remove(event.markId);
-        setMarks((prev) => prev.filter((m) => m.id !== event.markId));
+      if (previousMarkId) {
+        await attendanceMarksApi.remove(previousMarkId);
         notify(`Marcação removida — ${event.date.split("-").reverse().join("/")}`, "success");
       } else {
         const { mark } = await attendanceMarksApi.create({
@@ -78,11 +102,14 @@ export function Calendar() {
           date: event.date,
           scheduleId,
         });
-        setMarks((prev) => [...prev, mark]);
+        setMarks((prev) => prev.map((m) => (m.id < 0 ? mark : m)));
         notify(`Falta marcada — ${event.date.split("-").reverse().join("/")}`, "success");
       }
     } catch (err) {
+      setMarks(previousMarks);
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar falta", "error");
+    } finally {
+      setOccurrencePending(key, false);
     }
   };
 
@@ -91,25 +118,39 @@ export function Calendar() {
     const scheduleId = event.scheduleId ?? null;
     const targetKind = state === "presente" ? null : state;
     if ((event.markKind ?? null) === targetKind) return;
+    const key = occurrenceKeyOf(event);
+    if (pendingOccurrences.has(key)) return;
+    const previousMarks = marks;
+    const previousMarkId = event.markId;
+
+    // Atualização otimista: troca o estado do botão na hora, sem esperar a rede.
+    setMarks((prev) => {
+      const withoutPrevious = previousMarkId ? prev.filter((m) => m.id !== previousMarkId) : prev;
+      return targetKind
+        ? [...withoutPrevious, { id: -Date.now(), subjectId: event.subjectId!, scheduleId, date: event.date, kind: targetKind }]
+        : withoutPrevious;
+    });
+    setOccurrencePending(key, true);
 
     try {
-      if (event.markId) {
-        await attendanceMarksApi.remove(event.markId);
-        setMarks((prev) => prev.filter((m) => m.id !== event.markId));
-      }
-      if (targetKind) {
-        const { mark } = await attendanceMarksApi.create({
-          subjectId: event.subjectId,
-          date: event.date,
-          scheduleId,
-          kind: targetKind,
-        });
-        setMarks((prev) => [...prev, mark]);
+      // Remove a marcação antiga e cria a nova em paralelo (são operações independentes
+      // no backend) em vez de sequencialmente, pra não pagar duas viagens de rede seguidas.
+      const [, created] = await Promise.all([
+        previousMarkId ? attendanceMarksApi.remove(previousMarkId) : Promise.resolve(null),
+        targetKind
+          ? attendanceMarksApi.create({ subjectId: event.subjectId, date: event.date, scheduleId, kind: targetKind })
+          : Promise.resolve(null),
+      ]);
+      if (created) {
+        setMarks((prev) => prev.map((m) => (m.id < 0 ? created.mark : m)));
       }
       const label = targetKind === "falta" ? "Falta marcada" : targetKind === "sem_aula" ? "Sem aula marcada" : "Marcação removida";
       notify(`${label} — ${event.date.split("-").reverse().join("/")}`, "success");
     } catch (err) {
+      setMarks(previousMarks);
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar", "error");
+    } finally {
+      setOccurrencePending(key, false);
     }
   };
 
@@ -218,6 +259,7 @@ export function Calendar() {
               subjectColors={subjectColors}
               selectedDate={selectedDate}
               onSelectDate={(date) => setSelectedDate((prev) => (prev === date ? null : date))}
+              isLessonPending={(event) => pendingOccurrences.has(occurrenceKeyOf(event))}
             />
             {selectedDate && (
               <DayDetailPanel
@@ -226,6 +268,7 @@ export function Calendar() {
                 otherEvents={events.filter((e) => e.date === selectedDate && e.kind !== "lesson")}
                 subjectColors={subjectColors}
                 onSetLessonState={handleSetLessonState}
+                isPending={(event) => pendingOccurrences.has(occurrenceKeyOf(event))}
                 onClose={() => setSelectedDate(null)}
               />
             )}

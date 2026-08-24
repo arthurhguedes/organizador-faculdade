@@ -36,6 +36,7 @@ export function MonthCalendar({
   subjectColors,
   selectedDate,
   onSelectDate,
+  isLessonPending,
 }: {
   events: CalendarEvent[];
   onToggleLesson?: (event: CalendarEvent) => void;
@@ -43,6 +44,7 @@ export function MonthCalendar({
   subjectColors?: Map<number, string>;
   selectedDate?: string | null;
   onSelectDate?: (date: string) => void;
+  isLessonPending?: (event: CalendarEvent) => boolean;
 }) {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
@@ -165,7 +167,8 @@ export function MonthCalendar({
               {lessonEvents.length > 0 && (
                 <div className="month-calendar__lessons">
                   {lessonEvents.map((event, i) => {
-                    const canToggle = onToggleLesson && event.subjectId !== undefined;
+                    const pending = isLessonPending?.(event) ?? false;
+                    const canToggle = onToggleLesson && event.subjectId !== undefined && !pending;
                     const dotColor = event.subjectId !== undefined ? subjectColors?.get(event.subjectId) : undefined;
                     const stateClass =
                       event.markKind === "falta"
@@ -186,7 +189,7 @@ export function MonthCalendar({
                       <button
                         key={i}
                         type="button"
-                        className={`month-calendar__lesson-dot${stateClass}`}
+                        className={`month-calendar__lesson-dot${stateClass}${pending ? " month-calendar__lesson-dot--pending" : ""}`}
                         style={dotColor ? ({ "--dot-color": dotColor } as CSSProperties) : undefined}
                         title={title}
                         disabled={!canToggle}
