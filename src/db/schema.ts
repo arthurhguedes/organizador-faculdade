@@ -104,9 +104,6 @@ export const schedules = pgTable("schedules", {
   weekday: text("weekday").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
-  // Texto livre (ex: "Bloco C - Sala 204"), preenchido manualmente — a
-  // planilha de oferta da faculdade não traz sala, então não dá pra importar.
-  room: text("room"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
@@ -192,11 +189,17 @@ export const syllabusAssessments = pgTable("syllabus_assessments", {
 // pode ter mais de um bloco de aula da mesma matéria. Puramente aditivo ao
 // contador manual que já existe em `subjects.absences` — marcar/desmarcar
 // aqui soma/subtrai 1 desse mesmo contador, não substitui o +/- manual.
+// "falta": eu não fui, conta pro contador de faltas. "sem_aula": não teve
+// aula nesse dia (feriado, professor cancelou) — registra a exceção pra não
+// confundir com presença/falta, mas não mexe no contador, já que a expansão
+// de `schedules` não sabe distinguir uma aula que de fato aconteceu de uma
+// que foi cancelada.
 export const attendanceMarks = pgTable("attendance_marks", {
   id: serial("id").primaryKey(),
   subjectId: integer("subject_id").references(() => subjects.id, { onDelete: "cascade" }).notNull(),
   scheduleId: integer("schedule_id").references(() => schedules.id, { onDelete: "cascade" }),
   date: date("date").notNull(),
+  kind: text("kind").notNull().default("falta"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 
@@ -272,6 +275,32 @@ export const curriculumSubjects = pgTable("curriculum_subjects", {
 // disciplina), cada um com seu próprio ciclo de vida até ser aprovado ou
 // recusado. subjectId é opcional: nem todo requerimento se refere a uma
 // matéria específica (ex: trancamento de período inteiro).
+// Mapa de salas — snapshot importado do PDF "S.A.S. — Sistema de Alocação de
+// Salas" que a UFOP publica por sala (professor/disciplina/turma/horário de
+// cada sala do prédio). Mesmo raciocínio de `course_offerings`: replace total
+// a cada import, é sempre o semestre vigente, não histórico. `subjectCode`
+// e `professorName` são o que permite cruzar isso com `subjects.code` (na
+// página Mapa) e `professors.name` (no perfil do professor) — sem FK, é
+// texto livre igual professorName em `course_offerings`. Nem toda linha tem
+// código/turma reconhecíveis (reservas genéricas tipo "RESERVA CURSINNHO"
+// não batem com nenhuma disciplina e ficam com subjectCode/turma nulos).
+export const roomAllocations = pgTable("room_allocations", {
+  id: serial("id").primaryKey(),
+  room: text("room").notNull(),
+  roomCapacity: integer("room_capacity"),
+  semesterLabel: text("semester_label"),
+  subjectCode: text("subject_code"),
+  turma: text("turma"),
+  subjectName: text("subject_name").notNull(),
+  professorName: text("professor_name"),
+  weekday: text("weekday").notNull(),
+  startTime: text("start_time").notNull(),
+  endTime: text("end_time").notNull(),
+  kind: text("kind"), // "T" | "P" | "T+P" | null
+  importedAt: timestamp("imported_at").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+});
+
 export const academicRequests = pgTable("academic_requests", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(), // "prerequisite_waiver" | "enrollment_adjustment" | "leave_of_absence" | "credit_recognition"

@@ -25,7 +25,6 @@ export async function confirmGrade(offerings: Offering[], periodId: number): Pro
         weekday: slot.weekday,
         startTime: slot.startTime,
         endTime: slot.endTime,
-        room: null,
       });
     }
   }

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ChevronLeft, Pencil, X, BookOpen, SearchX } from "lucide-react";
+import { ChevronLeft, Pencil, X, BookOpen, MapPin, SearchX } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useToast } from "../context/ToastContext";
 import { useEntityList } from "../hooks/useEntityList";
-import { professorsApi, subjectsApi, ApiError } from "../api/client";
-import type { Professor } from "../api/types";
+import { professorsApi, subjectsApi, roomAllocationsApi, ApiError } from "../api/client";
+import type { Professor, RoomAllocation } from "../api/types";
+import { findAllocationsForProfessor } from "../lib/roomMatch";
 import { Button } from "../components/ui/Button";
 import { Field } from "../components/ui/Field";
 import { ConfirmDelete } from "../components/ui/ConfirmDelete";
@@ -20,6 +21,14 @@ export function ProfessorDetail() {
   const { notify } = useToast();
   const { periods } = usePeriods();
   const { items: subjects } = useEntityList(subjectsApi);
+  const [allocations, setAllocations] = useState<RoomAllocation[]>([]);
+
+  useEffect(() => {
+    roomAllocationsApi
+      .list()
+      .then(setAllocations)
+      .catch(() => {});
+  }, []);
 
   const [professor, setProfessor] = useState<Professor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,6 +90,7 @@ export function ProfessorDetail() {
 
   const taughtSubjects = subjects.filter((s) => s.professorId === professorId);
   const periodLabel = (periodId: number) => periods.find((p) => p.id === periodId)?.label ?? "—";
+  const professorAllocations = findAllocationsForProfessor(professor.name, allocations);
 
   const saveProfessor = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +176,46 @@ export function ProfessorDetail() {
               </div>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="hub-section">
+        <div className="hub-section__header">
+          <h3>Salas</h3>
+        </div>
+
+        {professorAllocations.length === 0 ? (
+          <EmptyState
+            icon={MapPin}
+            title="Nenhuma sala encontrada pra esse professor"
+            description="Importe o mapa de salas no Perfil pra ver aqui onde as aulas desse professor acontecem."
+          />
+        ) : (
+          <table className="eval-table">
+            <thead>
+              <tr>
+                <th>Disciplina</th>
+                <th>Dia</th>
+                <th>Horário</th>
+                <th>Sala</th>
+              </tr>
+            </thead>
+            <tbody>
+              {professorAllocations.map((allocation) => (
+                <tr key={allocation.id}>
+                  <td>
+                    {allocation.subjectCode && <span className="subject-card__code">{allocation.subjectCode}</span>}{" "}
+                    {allocation.subjectName}
+                  </td>
+                  <td>{allocation.weekday}</td>
+                  <td>
+                    {allocation.startTime}–{allocation.endTime}
+                  </td>
+                  <td>{allocation.room}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
     </div>

@@ -13,6 +13,7 @@ import { Field } from "../components/ui/Field";
 import { Button } from "../components/ui/Button";
 import { FeatureRow } from "../components/ui/FeatureRow";
 import { GithubIcon, InstagramIcon, LinkedinIcon, XIcon } from "../components/ui/SocialIcons";
+import { RoomMapSection } from "./profile/RoomMapSection";
 
 type ProfileSection = "personal" | "social" | "username";
 
@@ -431,6 +432,8 @@ export function Profile() {
           <span className="profile-stat__label">professor{professors.length !== 1 ? "es" : ""}</span>
         </div>
       </div>
+
+      <RoomMapSection />
 
       <section className="hub-section">
         <h3>Conta</h3>

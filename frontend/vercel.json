@@ -18,6 +18,7 @@
     { "source": "/daily-notes/:path*", "destination": "https://notary-api-ox0u.onrender.com/daily-notes/:path*" },
     { "source": "/curriculum-subjects/:path*", "destination": "https://notary-api-ox0u.onrender.com/curriculum-subjects/:path*" },
     { "source": "/academic-requests/:path*", "destination": "https://notary-api-ox0u.onrender.com/academic-requests/:path*" },
+    { "source": "/room-allocations/:path*", "destination": "https://notary-api-ox0u.onrender.com/room-allocations/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
