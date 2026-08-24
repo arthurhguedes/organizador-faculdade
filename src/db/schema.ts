@@ -104,6 +104,9 @@ export const schedules = pgTable("schedules", {
   weekday: text("weekday").notNull(),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
+  // Texto livre (ex: "Bloco C - Sala 204"), preenchido manualmente — a
+  // planilha de oferta da faculdade não traz sala, então não dá pra importar.
+  room: text("room"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

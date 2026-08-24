@@ -1573,6 +1573,13 @@ button.month-calendar__event {
   font-variant-numeric: tabular-nums;
 }
 
+.schedule-chip__room {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--text-secondary);
+}
+
 .attendance-panel {
   display: flex;
   flex-direction: column;
