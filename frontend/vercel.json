@@ -13,6 +13,7 @@
     { "source": "/exams/:path*", "destination": "https://notary-api-ox0u.onrender.com/exams/:path*" },
     { "source": "/offerings/:path*", "destination": "https://notary-api-ox0u.onrender.com/offerings/:path*" },
     { "source": "/syllabus-entries/:path*", "destination": "https://notary-api-ox0u.onrender.com/syllabus-entries/:path*" },
+    { "source": "/attendance-marks/:path*", "destination": "https://notary-api-ox0u.onrender.com/attendance-marks/:path*" },
     { "source": "/study-sessions/:path*", "destination": "https://notary-api-ox0u.onrender.com/study-sessions/:path*" },
     { "source": "/daily-notes/:path*", "destination": "https://notary-api-ox0u.onrender.com/daily-notes/:path*" },
     { "source": "/curriculum-subjects/:path*", "destination": "https://notary-api-ox0u.onrender.com/curriculum-subjects/:path*" },
