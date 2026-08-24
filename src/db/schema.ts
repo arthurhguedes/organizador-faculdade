@@ -275,32 +275,6 @@ export const curriculumSubjects = pgTable("curriculum_subjects", {
 // disciplina), cada um com seu próprio ciclo de vida até ser aprovado ou
 // recusado. subjectId é opcional: nem todo requerimento se refere a uma
 // matéria específica (ex: trancamento de período inteiro).
-// Mapa de salas — snapshot importado do PDF "S.A.S. — Sistema de Alocação de
-// Salas" que a UFOP publica por sala (professor/disciplina/turma/horário de
-// cada sala do prédio). Mesmo raciocínio de `course_offerings`: replace total
-// a cada import, é sempre o semestre vigente, não histórico. `subjectCode`
-// e `professorName` são o que permite cruzar isso com `subjects.code` (na
-// página Mapa) e `professors.name` (no perfil do professor) — sem FK, é
-// texto livre igual professorName em `course_offerings`. Nem toda linha tem
-// código/turma reconhecíveis (reservas genéricas tipo "RESERVA CURSINNHO"
-// não batem com nenhuma disciplina e ficam com subjectCode/turma nulos).
-export const roomAllocations = pgTable("room_allocations", {
-  id: serial("id").primaryKey(),
-  room: text("room").notNull(),
-  roomCapacity: integer("room_capacity"),
-  semesterLabel: text("semester_label"),
-  subjectCode: text("subject_code"),
-  turma: text("turma"),
-  subjectName: text("subject_name").notNull(),
-  professorName: text("professor_name"),
-  weekday: text("weekday").notNull(),
-  startTime: text("start_time").notNull(),
-  endTime: text("end_time").notNull(),
-  kind: text("kind"), // "T" | "P" | "T+P" | null
-  importedAt: timestamp("imported_at").defaultNow().notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
-
 export const academicRequests = pgTable("academic_requests", {
   id: serial("id").primaryKey(),
   type: text("type").notNull(), // "prerequisite_waiver" | "enrollment_adjustment" | "leave_of_absence" | "credit_recognition"

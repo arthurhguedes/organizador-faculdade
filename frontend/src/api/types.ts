@@ -151,22 +151,6 @@ export type Offering = {
   schedules: OfferingScheduleSlot[];
 };
 
-export type RoomAllocation = {
-  id: number;
-  room: string;
-  roomCapacity: number | null;
-  semesterLabel: string | null;
-  subjectCode: string | null;
-  turma: string | null;
-  subjectName: string;
-  professorName: string | null;
-  weekday: string;
-  startTime: string;
-  endTime: string;
-  kind: "T" | "P" | "T+P" | null;
-  importedAt: string;
-};
-
 export type CurriculumStatus = "pendente" | "cursando" | "concluida";
 
 export type CurriculumSubject = {

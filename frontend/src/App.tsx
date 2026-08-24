@@ -14,7 +14,6 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Dashboard } from "./pages/Dashboard";
 import { Calendar } from "./pages/Calendar";
-import { Mapa } from "./pages/Mapa";
 import { Subjects } from "./pages/Subjects";
 import { SubjectDetail } from "./pages/SubjectDetail";
 import { CurriculumMatrix } from "./pages/CurriculumMatrix";
@@ -60,7 +59,6 @@ export default function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<Dashboard />} />
                     <Route path="calendario" element={<Calendar />} />
-                    <Route path="mapa" element={<Mapa />} />
                     <Route path="materias" element={<Subjects />} />
                     <Route path="materias/:id" element={<SubjectDetail />} />
                     <Route path="matriz-curricular" element={<CurriculumMatrix />} />

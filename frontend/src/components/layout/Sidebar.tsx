@@ -14,14 +14,12 @@ import {
   Settings,
   Sun,
   Moon,
-  MapPin,
 } from "lucide-react";
 import { useTheme } from "../../context/ThemeContext";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
-  { to: "/mapa", label: "Mapa", icon: MapPin },
   { to: "/materias", label: "Matérias", icon: BookOpen },
   { to: "/matriz-curricular", label: "Matriz Curricular", icon: GraduationCap },
   { to: "/requerimentos", label: "Requerimentos", icon: FileText },

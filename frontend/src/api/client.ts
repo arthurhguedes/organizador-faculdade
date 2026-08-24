@@ -9,7 +9,6 @@ import type {
   Offering,
   Period,
   Professor,
-  RoomAllocation,
   Schedule,
   StudySession,
   Subject,
@@ -17,7 +16,6 @@ import type {
 } from "./types";
 import type { ParsedOffering } from "../lib/offeringsImport";
 import type { SyllabusPdfImport } from "../lib/planoDeEnsinoImport";
-import type { ParsedRoomAllocation } from "../lib/roomMapImport";
 
 // Em produção, o front chama o próprio domínio (Vercel faz proxy reverso pro
 // Render, ver frontend/vercel.json) em vez do domínio do backend direto —
@@ -118,16 +116,6 @@ export const syllabusEntriesApi = {
       method: "POST",
       body: JSON.stringify({ subjectId, ...parsed }),
     }),
-};
-
-export const roomAllocationsApi = {
-  list: () => request<RoomAllocation[]>("/room-allocations"),
-  import: (allocations: ParsedRoomAllocation[]) =>
-    request<{ message: string }>("/room-allocations/import", {
-      method: "POST",
-      body: JSON.stringify({ allocations }),
-    }),
-  clear: () => request<{ message: string }>("/room-allocations", { method: "DELETE" }),
 };
 
 export const attendanceMarksApi = {
