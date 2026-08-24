@@ -4,7 +4,7 @@ import { CalendarClock } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
 import { useDashboardData } from "../hooks/useDashboardData";
-import { attendanceMarksApi, ApiError } from "../api/client";
+import { attendanceMarksApi, assignmentsApi, examsApi, ApiError } from "../api/client";
 import type { AttendanceMark } from "../api/types";
 import { buildLessonOccurrences, occurrenceKey } from "../lib/lessonOccurrences";
 import { WeeklyGrid, type WeeklyGridBlock } from "../components/grid/WeeklyGrid";
@@ -18,7 +18,7 @@ import { useToast } from "../context/ToastContext";
 export function Calendar() {
   usePageTitle("Calendário");
   const { selectedPeriod, selectedPeriodId, periods, loading: periodsLoading } = usePeriods();
-  const { subjects, loading } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
+  const { subjects, loading, refresh } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
   const { notify } = useToast();
   const [marks, setMarks] = useState<AttendanceMark[]>([]);
 
@@ -28,6 +28,37 @@ export function Calendar() {
       .then(setMarks)
       .catch(() => {});
   }, [selectedPeriodId]);
+
+  const handleEventDrop = async (event: CalendarEvent, newDate: string) => {
+    if (event.id === undefined || event.subjectId === undefined || newDate === event.date) return;
+    const formattedDate = newDate.split("-").reverse().join("/");
+
+    try {
+      if (event.kind === "exam") {
+        await examsApi.update(event.id, {
+          subjectId: event.subjectId,
+          title: event.title,
+          date: newDate,
+          weight: event.weight ?? 0,
+          grade: event.grade ?? null,
+        });
+      } else if (event.kind === "assignment") {
+        await assignmentsApi.update(event.id, {
+          subjectId: event.subjectId,
+          title: event.title,
+          dueDate: newDate,
+          weight: event.weight ?? 0,
+          grade: event.grade ?? null,
+        });
+      } else {
+        return;
+      }
+      notify(`Data movida para ${formattedDate}`, "success");
+      refresh();
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Erro ao mover a data", "error");
+    }
+  };
 
   const handleToggleLesson = async (event: CalendarEvent) => {
     if (event.subjectId === undefined) return;
@@ -87,12 +118,20 @@ export function Calendar() {
         kind: "assignment" as const,
         title: a.title,
         subjectName: subject.name,
+        subjectId: subject.id,
+        id: a.id,
+        weight: a.weight,
+        grade: a.grade,
       })),
       ...subject.exams.map((e) => ({
         date: e.date,
         kind: "exam" as const,
         title: e.title,
         subjectName: subject.name,
+        subjectId: subject.id,
+        id: e.id,
+        weight: e.weight,
+        grade: e.grade,
       })),
     ]),
     ...buildLessonOccurrences(subjects, selectedPeriod).map((occurrence) => {
@@ -131,8 +170,10 @@ export function Calendar() {
 
           <section>
             <h3 className="calendar-layout__heading">Provas, atividades e aulas</h3>
-            <p className="calendar-layout__hint">Clique numa aula pra marcar ou desmarcar falta.</p>
-            <MonthCalendar events={events} onToggleLesson={handleToggleLesson} />
+            <p className="calendar-layout__hint">
+              Clique numa aula pra marcar ou desmarcar falta. Arraste uma prova ou atividade pra outro dia pra mudar a data.
+            </p>
+            <MonthCalendar events={events} onToggleLesson={handleToggleLesson} onEventDrop={handleEventDrop} />
           </section>
         </div>
       )}

@@ -10,9 +10,17 @@ export type CalendarEvent = {
   subjectId?: number;
   scheduleId?: number | null;
   markId?: number | null;
+  // assignment/exam-only: presença de `id` habilita arrastar pra outro dia.
+  id?: number;
+  weight?: number;
+  grade?: number | null;
 };
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+// Identifica o evento arrastado pelo próprio dataTransfer (kind+id), em vez de
+// guardar em state — dragstart/drop podem disparar no mesmo tick, antes do
+// React re-renderizar com um state atualizado.
+const DRAG_MIME = "application/x-notary-calendar-event";
 
 function toDateKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -21,9 +29,11 @@ function toDateKey(date: Date): string {
 export function MonthCalendar({
   events,
   onToggleLesson,
+  onEventDrop,
 }: {
   events: CalendarEvent[];
   onToggleLesson?: (event: CalendarEvent) => void;
+  onEventDrop?: (event: CalendarEvent, newDate: string) => void;
 }) {
   const [cursor, setCursor] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 
@@ -84,18 +94,46 @@ export function MonthCalendar({
           const key = toDateKey(date);
           const dayEvents = eventsByDate.get(key) ?? [];
           return (
-            <div key={key} className={`month-calendar__cell${key === todayKey ? " month-calendar__cell--today" : ""}`}>
+            <div
+              key={key}
+              className={`month-calendar__cell${key === todayKey ? " month-calendar__cell--today" : ""}`}
+              onDragOver={
+                onEventDrop
+                  ? (ev) => {
+                      ev.preventDefault();
+                      ev.dataTransfer.dropEffect = "move";
+                    }
+                  : undefined
+              }
+              onDrop={
+                onEventDrop
+                  ? (ev) => {
+                      ev.preventDefault();
+                      try {
+                        const { kind, id } = JSON.parse(ev.dataTransfer.getData(DRAG_MIME));
+                        const dragged = events.find((e) => e.kind === kind && e.id === id);
+                        if (dragged) onEventDrop(dragged, key);
+                      } catch {
+                        // payload ausente/inválido — nada a mover
+                      }
+                    }
+                  : undefined
+              }
+            >
               <span className="month-calendar__day-number">{date.getDate()}</span>
               <div className="month-calendar__events">
                 {dayEvents.slice(0, 3).map((event, i) => {
                   const canToggle = onToggleLesson && event.kind === "lesson" && event.subjectId !== undefined;
+                  const canDrag = onEventDrop && event.kind !== "lesson" && event.id !== undefined;
                   const marked = Boolean(event.markId);
-                  const className = `month-calendar__event month-calendar__event--${event.kind}${marked ? " month-calendar__event--marked" : ""}`;
+                  const className = `month-calendar__event month-calendar__event--${event.kind}${marked ? " month-calendar__event--marked" : ""}${canDrag ? " month-calendar__event--draggable" : ""}`;
                   const title = marked
                     ? `Falta marcada — ${event.title} — ${event.subjectName} (clique pra desmarcar)`
                     : canToggle
                       ? `${event.title} — ${event.subjectName} (clique pra marcar falta)`
-                      : `${event.title} — ${event.subjectName}`;
+                      : canDrag
+                        ? `${event.title} — ${event.subjectName} (arraste pra outro dia pra mudar a data)`
+                        : `${event.title} — ${event.subjectName}`;
 
                   if (canToggle) {
                     return (
@@ -111,7 +149,20 @@ export function MonthCalendar({
                     );
                   }
                   return (
-                    <span key={i} className={className} title={title}>
+                    <span
+                      key={i}
+                      className={className}
+                      title={title}
+                      draggable={canDrag}
+                      onDragStart={
+                        canDrag
+                          ? (ev) => {
+                              ev.dataTransfer.effectAllowed = "move";
+                              ev.dataTransfer.setData(DRAG_MIME, JSON.stringify({ kind: event.kind, id: event.id }));
+                            }
+                          : undefined
+                      }
+                    >
                       {event.title}
                     </span>
                   );

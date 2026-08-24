@@ -1061,6 +1061,14 @@ button.month-calendar__event {
   text-decoration: line-through;
 }
 
+.month-calendar__event--draggable {
+  cursor: grab;
+}
+
+.month-calendar__event--draggable:active {
+  cursor: grabbing;
+}
+
 .month-calendar__more {
   font-size: 10px;
   color: var(--text-tertiary);

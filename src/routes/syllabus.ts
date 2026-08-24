@@ -6,12 +6,40 @@ import { parseId } from "../lib/http.js";
 
 const router = Router();
 
-async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
-  const [subject] = await db
-    .select({ id: schema.subjects.id })
+// Ano do período letivo da matéria, usado como fallback quando a data da
+// avaliação vem sem ano (ex: "07/10") — planos de ensino são sempre de um
+// semestre só, então o ano de início do período serve pra qualquer data nele.
+async function getSubjectPeriodStartYear(userId: number, subjectId: number): Promise<number | null> {
+  const [row] = await db
+    .select({ startDate: schema.periods.startDate })
     .from(schema.subjects)
+    .innerJoin(schema.periods, eq(schema.subjects.periodId, schema.periods.id))
     .where(and(eq(schema.subjects.id, subjectId), eq(schema.subjects.userId, userId)));
-  return Boolean(subject);
+  return row ? Number(row.startDate.slice(0, 4)) : null;
+}
+
+// "07/10", "07/10/2026" -> "2026-10-07". Retorna null pra texto livre sem uma
+// data real (ex: "Será definido posteriormente"), que é como o parser
+// representa avaliações do tipo Trabalhos/Exame Especial.
+function parseAssessmentDate(dateLabel: string | null, fallbackYear: number): string | null {
+  if (!dateLabel) return null;
+  const match = dateLabel.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/);
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  let year = match[3] ? Number(match[3]) : fallbackYear;
+  if (year < 100) year += 2000;
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// "25%" -> 25. Retorna null quando o peso vem em branco (ex: Exame Especial).
+function parseAssessmentWeight(weightLabel: string | null): number | null {
+  if (!weightLabel) return null;
+  const match = weightLabel.match(/(\d+(?:[.,]\d+)?)/);
+  if (!match) return null;
+  const value = Number(match[1]!.replace(",", "."));
+  return Number.isFinite(value) ? value : null;
 }
 
 router.get("/", async (req, res) => {
@@ -80,9 +108,13 @@ router.post("/import", async (req, res) => {
 
   try {
     const userId = req.userId!;
-    if (!(await ownsSubject(userId, parsedSubjectId))) {
+    const periodStartYear = await getSubjectPeriodStartYear(userId, parsedSubjectId);
+    if (periodStartYear === null) {
       return res.status(400).json({ message: "subjectId não existe" });
     }
+
+    let examsCreated = 0;
+    let examsUpdated = 0;
 
     await db.transaction(async (tx) => {
       await tx
@@ -133,10 +165,57 @@ router.post("/import", async (req, res) => {
             userId,
           })),
         );
+
+        // Linhas com data e peso reais (tipicamente "Primeira/Segunda/Terceira
+        // Prova") viram provas de verdade em `exams`, pra não precisar
+        // cadastrar tudo de novo à mão. Trabalhos/Exame Especial costumam vir
+        // sem data ou peso reais e ficam de fora dessa criação automática —
+        // find-or-create por título pra reimportação (peso/data mudou) não
+        // duplicar, preservando a nota já lançada.
+        for (const assessment of assessmentsList) {
+          const examDate = parseAssessmentDate(assessment.dateLabel, periodStartYear);
+          const examWeight = parseAssessmentWeight(assessment.weightLabel);
+          if (!examDate || examWeight === null) continue;
+
+          const [existing] = await tx
+            .select({ id: schema.exams.id })
+            .from(schema.exams)
+            .where(
+              and(
+                eq(schema.exams.subjectId, parsedSubjectId),
+                eq(schema.exams.userId, userId),
+                eq(schema.exams.title, assessment.title),
+              ),
+            );
+
+          if (existing) {
+            await tx
+              .update(schema.exams)
+              .set({ date: examDate, weight: examWeight })
+              .where(eq(schema.exams.id, existing.id));
+            examsUpdated++;
+          } else {
+            await tx.insert(schema.exams).values({
+              subjectId: parsedSubjectId,
+              title: assessment.title,
+              date: examDate,
+              weight: examWeight,
+              grade: null,
+              userId,
+            });
+            examsCreated++;
+          }
+        }
       }
     });
 
-    res.json({ message: `${entries.length} entrada(s) importada(s) com sucesso` });
+    let message = `${entries.length} entrada(s) importada(s) com sucesso`;
+    const examParts: string[] = [];
+    if (examsCreated > 0) examParts.push(`${examsCreated} prova(s) criada(s)`);
+    if (examsUpdated > 0) examParts.push(`${examsUpdated} prova(s) atualizada(s)`);
+    if (examParts.length > 0) message += ` — ${examParts.join(", ")} automaticamente`;
+
+    res.json({ message });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao importar plano de ensino" });
