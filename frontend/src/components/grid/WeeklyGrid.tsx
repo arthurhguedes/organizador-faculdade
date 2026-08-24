@@ -243,78 +243,80 @@ export function WeeklyGrid({
   }, [mergedBlocks, weekdays]);
 
   return (
-    <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
-      <div className="weekly-grid__corner" />
-      {weekdays.map((day) => (
-        <div
-          key={day}
-          className={`weekly-grid__day-header${day === todayWeekday ? " weekly-grid__day-header--today" : ""}`}
-        >
-          {DAY_LABELS[day] ?? day}
-        </div>
-      ))}
-
-      <div className="weekly-grid__gutter" style={{ height: `${bodyHeight}px` }}>
-        {rows.map((row, index) => (
+    <div className="weekly-grid-scroll">
+      <div className="weekly-grid" style={{ gridTemplateColumns: `52px repeat(${weekdays.length}, minmax(64px, 1fr))` }}>
+        <div className="weekly-grid__corner" />
+        {weekdays.map((day) => (
           <div
-            key={row.startMin}
-            className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
-            style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
+            key={day}
+            className={`weekly-grid__day-header${day === todayWeekday ? " weekly-grid__day-header--today" : ""}`}
           >
-            <span className="weekly-grid__hour-label weekly-grid__hour-label--start">{formatHourLabel(row.startMin)}</span>
-            <span className="weekly-grid__hour-label weekly-grid__hour-label--end">{formatHourLabel(row.endMin)}</span>
+            {DAY_LABELS[day] ?? day}
           </div>
         ))}
-      </div>
 
-      {weekdays.map((day) => (
-        <div
-          key={day}
-          className={`weekly-grid__day-body${day === todayWeekday ? " weekly-grid__day-body--today" : ""}`}
-          style={{ height: `${bodyHeight}px` }}
-        >
+        <div className="weekly-grid__gutter" style={{ height: `${bodyHeight}px` }}>
           {rows.map((row, index) => (
             <div
               key={row.startMin}
               className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
               style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
-            />
-          ))}
-
-          {(blocksByDay.get(day) ?? []).map((block) => {
-            const { top, height } = findRowSpan(block, rows);
-            const width = 100 / block.cols;
-            const left = block.col * width;
-            const timeRange = formatTimeRange(block.startTime, block.endTime);
-
-            return (
-              <div
-                key={block.id}
-                className={`weekly-grid__block weekly-grid__block--${block.tone ?? "accent"}`}
-                style={{
-                  top: `${top}px`,
-                  height: `${height}px`,
-                  left: `calc(${left}% + 2px)`,
-                  width: `calc(${width}% - 4px)`,
-                }}
-                title={`${block.label} · ${timeRange}`}
-              >
-                <span className="weekly-grid__block-label">{block.label}</span>
-                <span className="weekly-grid__block-meta">
-                  {timeRange}
-                  {block.sublabel ? ` · ${block.sublabel}` : ""}
-                </span>
-              </div>
-            );
-          })}
-
-          {day === todayWeekday && showNowLine && (
-            <div className="weekly-grid__now-line" style={{ top: `${nowTop}px` }}>
-              <span className="weekly-grid__now-dot" />
+            >
+              <span className="weekly-grid__hour-label weekly-grid__hour-label--start">{formatHourLabel(row.startMin)}</span>
+              <span className="weekly-grid__hour-label weekly-grid__hour-label--end">{formatHourLabel(row.endMin)}</span>
             </div>
-          )}
+          ))}
         </div>
-      ))}
+
+        {weekdays.map((day) => (
+          <div
+            key={day}
+            className={`weekly-grid__day-body${day === todayWeekday ? " weekly-grid__day-body--today" : ""}`}
+            style={{ height: `${bodyHeight}px` }}
+          >
+            {rows.map((row, index) => (
+              <div
+                key={row.startMin}
+                className={`weekly-grid__row${row.hasClass ? "" : " weekly-grid__row--empty"}`}
+                style={{ top: `${index * ROW_HEIGHT_PX}px`, height: `${ROW_HEIGHT_PX}px` }}
+              />
+            ))}
+
+            {(blocksByDay.get(day) ?? []).map((block) => {
+              const { top, height } = findRowSpan(block, rows);
+              const width = 100 / block.cols;
+              const left = block.col * width;
+              const timeRange = formatTimeRange(block.startTime, block.endTime);
+
+              return (
+                <div
+                  key={block.id}
+                  className={`weekly-grid__block weekly-grid__block--${block.tone ?? "accent"}`}
+                  style={{
+                    top: `${top}px`,
+                    height: `${height}px`,
+                    left: `calc(${left}% + 2px)`,
+                    width: `calc(${width}% - 4px)`,
+                  }}
+                  title={`${block.label} · ${timeRange}`}
+                >
+                  <span className="weekly-grid__block-label">{block.label}</span>
+                  <span className="weekly-grid__block-meta">
+                    {timeRange}
+                    {block.sublabel ? ` · ${block.sublabel}` : ""}
+                  </span>
+                </div>
+              );
+            })}
+
+            {day === todayWeekday && showNowLine && (
+              <div className="weekly-grid__now-line" style={{ top: `${nowTop}px` }}>
+                <span className="weekly-grid__now-dot" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

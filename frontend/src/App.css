@@ -2094,18 +2094,33 @@
 
 /* ---------- Weekly grid ---------- */
 
+/* The grid is a literal fixed-row "grade horária" table (day columns never
+   compress below a usable width) — on narrow screens it scrolls
+   horizontally inside this wrapper instead of the day columns squeezing
+   down or the page itself gaining a horizontal scrollbar. Rounding/clipping
+   lives on the wrapper (not on .weekly-grid itself) because an "overflow:
+   hidden" on .weekly-grid would make IT the sticky positioning container
+   for the hour gutter below, instead of this scrollable wrapper — which
+   would silently break the gutter's "stay put while the days scroll" behavior. */
+.weekly-grid-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
 .weekly-grid {
   display: grid;
   grid-template-rows: auto 1fr;
   gap: 1px;
   background: var(--border);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+  min-width: 560px;
 }
 
 .weekly-grid__corner {
   background: var(--bg-inset);
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 
 .weekly-grid__day-header {
@@ -2124,7 +2139,9 @@
 }
 
 .weekly-grid__gutter {
-  position: relative;
+  position: sticky;
+  left: 0;
+  z-index: 1;
   background: var(--bg-elevated);
 }
 
@@ -2623,6 +2640,30 @@
     padding-top: calc(64px + var(--space-6));
   }
 
+  /* .btn--primary sets overflow:hidden (for its shimmer sweep), which
+     disables the flex item's automatic min-content floor — without this,
+     a single action button in a narrow page-header gets squeezed by
+     flex-shrink below its own label width and the text silently clips
+     ("Nova maté…"). Wrapping puts the action on its own full-width row
+     instead of fighting the title for the same line. */
+  .page-header {
+    flex-wrap: wrap;
+  }
+
+  .page-header > *:last-child {
+    width: 100%;
+  }
+
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-header__actions .btn {
+    width: auto;
+    flex: 1 1 auto;
+  }
+
   .topbar {
     left: 0;
     padding: 0 var(--space-4);
@@ -2630,9 +2671,29 @@
 
   .topbar__menu-btn {
     display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    margin-left: calc(var(--space-2) * -1);
     border: none;
     background: none;
     cursor: pointer;
+  }
+
+  /* Icon-only buttons (row delete/remove, calendar prev/next, daily-note
+     trash) are sized for a mouse pointer at rest (28px, 18px for the
+     checklist checkbox) — too small a target for a fingertip. Mobile gets
+     a wider hit area without changing the icon's visual size. */
+  .icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .daily-notes__checkbox {
+    width: 22px;
+    height: 22px;
   }
 
   .notif-panel {
@@ -2888,6 +2949,8 @@
 
 .pomodoro__controls {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-3);
   margin: var(--space-2) 0 var(--space-4);
 }
@@ -2910,6 +2973,7 @@
 
 .pomodoro__durations {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-3);
   margin-top: var(--space-4);
   padding-top: var(--space-4);
@@ -2921,6 +2985,7 @@
 
 .field--tiny {
   flex: 0 1 100px;
+  min-width: 0;
 }
 
 .field--tiny .field__input {
@@ -3908,6 +3973,26 @@
   .landing__hero-ctas {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 420px) {
+  /* "Entrar"/"Criar conta" with icon + label + the theme toggle no longer
+     fit next to the brand mark at phone widths — the row's flex-shrink:0
+     (`.landing__nav-actions { flex: none }`) means it doesn't compress, it
+     silently clips past the edge instead (the landing wrapper clips overflow
+     for the backdrop decoration, so this never shows up as a page scrollbar).
+     Dropping the button icons here reclaims just enough width. */
+  .landing__nav {
+    gap: var(--space-3);
+  }
+
+  .landing__nav-actions {
+    gap: var(--space-2);
+  }
+
+  .landing__nav-actions .btn svg {
+    display: none;
   }
 }
 
