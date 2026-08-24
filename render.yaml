@@ -3,6 +3,7 @@ services:
     name: notary-api
     runtime: node
     plan: free
+    autoDeploy: true
     buildCommand: npm install
     startCommand: npm run start
     envVars:
