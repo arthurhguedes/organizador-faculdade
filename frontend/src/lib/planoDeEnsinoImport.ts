@@ -405,10 +405,11 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
 // cada linha não vazia da seção (exceto a fórmula de nota final) é um item —
 // com ou sem marcador "•". Título = antes do primeiro "-"/"–". O peso real
 // vem da fórmula "Nota final = (P1x0,3) + ..." (ver NOTA_FINAL_TERM), casado
-// pela sigla entre parênteses do item (ex: "(P1)") — não do "N pontos" da
-// linha, que é só a nota máxima daquele item, não o peso na média (ex: no PDF
-// de referência todos os itens valem "10,0 pontos" apesar de pesos bem
-// diferentes: 0,3/0,3/0,1/0,3). O resto da linha (com ou sem data) vira
+// pela sigla entre parênteses do item (ex: "(P1)") e convertido de fração pra
+// porcentagem — não do "N pontos" da linha, que é só a nota máxima daquele
+// item, não o peso na média (ex: no PDF de referência todos os itens valem
+// "10,0 pontos" apesar de pesos bem diferentes: 30%/30%/10%/30%). O resto da
+// linha (com ou sem data) vira
 // dateLabel bruto, deixando a extração de data pro backend
 // (`parseAssessmentDate` já procura dd/mm(/aaaa) em qualquer lugar do
 // texto). Itens sem sigla reconhecida na fórmula (ex: Exame Especial) ou sem
@@ -422,11 +423,17 @@ function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
   const sectionLines = lines.slice(startIndex + 1, endIndex);
 
+  // A fórmula expressa o peso como fração de 1 (0,3 = 30% da nota final) —
+  // converte pra porcentagem aqui pra ficar na mesma escala (soma 100) que o
+  // resto do app usa pra peso de prova/atividade, em vez de "0,3" cru.
   const notaFinalLine = sectionLines.find((l) => NOTA_FINAL_LINE.test(l.text.trim()));
   const weightByCode = new Map<string, string>();
   if (notaFinalLine) {
     for (const match of notaFinalLine.text.matchAll(NOTA_FINAL_TERM)) {
-      weightByCode.set(match[1].toLowerCase(), match[2]);
+      const fraction = Number(match[2].replace(",", "."));
+      if (!Number.isFinite(fraction)) continue;
+      const percent = Math.round(fraction * 100 * 100) / 100;
+      weightByCode.set(match[1].toLowerCase(), `${percent}%`);
     }
   }
 
