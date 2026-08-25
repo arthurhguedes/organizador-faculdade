@@ -52,10 +52,14 @@ const HEADING_CRONOGRAMA = /^cronograma$/i;
 // pontos (P1) - dia 29/09/2026". Mesmo raciocínio do SEMANA_LIST — nem toda
 // faculdade usa a tabela "Descrição da avaliação | Peso | Data | Conteúdo".
 const ATIVIDADES_AVALIATIVAS_START = /^atividades avaliativas:?$/i;
-// Linha de fórmula ("Nota final = (P1x0,3) + ..."), não é um item avaliativo.
+// Linha de fórmula, ex: "Nota final = (P1x0,3) + (P2x0,3) + (E1x0,1) + (TFx0,3)".
+// "10,0 pontos" na linha do item é só a nota máxima daquela avaliação, não o
+// peso real na média — o peso de verdade é a fração aqui, por sigla.
 const NOTA_FINAL_LINE = /^nota final\b/i;
+const NOTA_FINAL_TERM = /([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9]*)\s*[xX]\s*(\d+(?:[.,]\d+)?)/g;
 const BULLET_PREFIX = /^[•]\s*/;
-const WEIGHT_PART = /\d+(?:[.,]\d+)?\s*pontos?/i;
+// Sigla entre parênteses que identifica o item na fórmula acima, ex: "(P1)".
+const ABBR_IN_PARENS = /\(([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9]*)\)/;
 
 const WEEK_HEADER = /^semana\b/i;
 const WEEK_NUMBER = /^\d{1,3}$/;
@@ -399,22 +403,36 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
 
 // Fallback de "Atividades avaliativas:" em prosa (ver ATIVIDADES_AVALIATIVAS_START):
 // cada linha não vazia da seção (exceto a fórmula de nota final) é um item —
-// com ou sem marcador "•". Título = antes do primeiro "-"/"–"; se alguma das
-// partes seguintes tiver "N pontos", vira o peso; o restante (com ou sem
-// data) vira dateLabel bruto, deixando a extração de data pro backend
+// com ou sem marcador "•". Título = antes do primeiro "-"/"–". O peso real
+// vem da fórmula "Nota final = (P1x0,3) + ..." (ver NOTA_FINAL_TERM), casado
+// pela sigla entre parênteses do item (ex: "(P1)") — não do "N pontos" da
+// linha, que é só a nota máxima daquele item, não o peso na média (ex: no PDF
+// de referência todos os itens valem "10,0 pontos" apesar de pesos bem
+// diferentes: 0,3/0,3/0,1/0,3). O resto da linha (com ou sem data) vira
+// dateLabel bruto, deixando a extração de data pro backend
 // (`parseAssessmentDate` já procura dd/mm(/aaaa) em qualquer lugar do
-// texto). Itens sem peso (ex: Exame Especial) ou sem data (ex: "ao longo do
-// semestre") ficam com weightLabel/dateLabel null — mesma regra da tabela:
-// só vira prova automática quando os dois dão pra extrair.
+// texto). Itens sem sigla reconhecida na fórmula (ex: Exame Especial) ou sem
+// data (ex: "ao longo do semestre") ficam com weightLabel/dateLabel null —
+// mesma regra da tabela: só vira prova automática quando os dois dão pra
+// extrair.
 function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment[] {
   const startIndex = lines.findIndex((l) => ATIVIDADES_AVALIATIVAS_START.test(l.text));
   if (startIndex === -1) return [];
   const relativeEnd = lines.slice(startIndex + 1).findIndex((l) => CRONOGRAMA_START.test(l.text));
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
+  const sectionLines = lines.slice(startIndex + 1, endIndex);
+
+  const notaFinalLine = sectionLines.find((l) => NOTA_FINAL_LINE.test(l.text.trim()));
+  const weightByCode = new Map<string, string>();
+  if (notaFinalLine) {
+    for (const match of notaFinalLine.text.matchAll(NOTA_FINAL_TERM)) {
+      weightByCode.set(match[1].toLowerCase(), match[2]);
+    }
+  }
 
   const assessments: SyllabusPdfAssessment[] = [];
   let position = 0;
-  for (const line of lines.slice(startIndex + 1, endIndex)) {
+  for (const line of sectionLines) {
     const text = line.text.trim();
     if (!text || NOTA_FINAL_LINE.test(text)) continue;
 
@@ -426,10 +444,9 @@ function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment
     if (parts.length === 0) continue;
 
     const [title, ...rest] = parts;
-    const weightIndex = rest.findIndex((p) => WEIGHT_PART.test(p));
-    const weightLabel = weightIndex === -1 ? null : rest[weightIndex];
-    const dateParts = rest.filter((_, i) => i !== weightIndex);
-    const dateLabel = dateParts.join(" - ").trim() || null;
+    const abbrMatch = ABBR_IN_PARENS.exec(text);
+    const weightLabel = abbrMatch ? (weightByCode.get(abbrMatch[1].toLowerCase()) ?? null) : null;
+    const dateLabel = rest.join(" - ").trim() || null;
 
     assessments.push({ title, weightLabel, dateLabel, coverageLabel: null, position: position++ });
   }
