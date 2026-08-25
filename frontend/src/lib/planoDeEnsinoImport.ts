@@ -157,6 +157,33 @@ function clusterRows(lines: PdfLine[], maxGap: number): PdfLine[][] {
   return clusters;
 }
 
+// Como clusterRows, mas expande pra frente E pra trás a partir de um índice
+// central — necessário pro cabeçalho da tabela Avaliação, que em alguns
+// layouts quebra em 3 linhas com a célula de uma coluna vindo ANTES da linha
+// que ancora `startIndex` (ex: "Peso da / Data" acima de "Descrição da
+// avaliação / Conteúdo avaliado", com "avaliação (%)" abaixo completando a
+// primeira). Um cluster só-pra-frente perdia essa linha de cima inteira,
+// junto com a coluna que só existe nela.
+function clusterAroundIndex(
+  lines: PdfLine[],
+  centerIndex: number,
+  maxGap: number,
+): { cluster: PdfLine[]; afterIndex: number } {
+  let start = centerIndex;
+  while (start > 0 && lines[start - 1].page === lines[start].page && lines[start - 1].y - lines[start].y <= maxGap) {
+    start--;
+  }
+  let end = centerIndex;
+  while (
+    end + 1 < lines.length &&
+    lines[end].page === lines[end + 1].page &&
+    lines[end].y - lines[end + 1].y <= maxGap
+  ) {
+    end++;
+  }
+  return { cluster: lines.slice(start, end + 1), afterIndex: end + 1 };
+}
+
 // Deriva as posições x das colunas de uma tabela a partir do(s) cluster(s) de
 // cabeçalho, em vez de fixar valores — tolera pequenas variações de layout
 // entre PDFs de outras matérias/professores.
@@ -387,11 +414,11 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
   const relativeEnd = lines.slice(startIndex).findIndex((l) => AVALIACAO_TABLE_END.test(l.text));
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + relativeEnd;
 
-  const headerCluster = clusterRows(lines.slice(startIndex, endIndex), SAME_ROW_MAX_GAP)[0] ?? [];
+  const { cluster: headerCluster, afterIndex: headerEnd } = clusterAroundIndex(lines, startIndex, SAME_ROW_MAX_GAP);
   const anchors = deriveColumnAnchors(headerCluster);
   if (anchors.length < 4) return [];
 
-  const dataLines = lines.slice(startIndex + headerCluster.length, endIndex);
+  const dataLines = lines.slice(headerEnd, endIndex);
   const clusters = clusterRows(dataLines, SAME_ROW_MAX_GAP);
 
   const assessments: SyllabusPdfAssessment[] = [];
