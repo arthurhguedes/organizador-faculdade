@@ -50,6 +50,13 @@ const HEADING_CRONOGRAMA = /^cronograma$/i;
 const WEEK_HEADER = /^semana\b/i;
 const WEEK_NUMBER = /^\d{1,3}$/;
 
+// Formato semanal em prosa (sem tabela): cada semana é um parágrafo só,
+// "Semana NN (período): conteúdo previsto." — nem toda faculdade estrutura o
+// cronograma como tabela; esse layout usa parênteses pro período em vez de
+// coluna própria. Âncora no início da linha pra não casar menções soltas a
+// "Semana NN" no meio do conteúdo (ex: "Reposição das aulas na Semana 15").
+const SEMANA_LIST = /^semana\s+(\d{1,3})\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$/i;
+
 // Linhas dentro da mesma célula (conteúdo previsto que quebra em mais de uma
 // linha) ficam bem mais próximas verticalmente entre si (~9pt neste layout)
 // do que uma linha de tabela para a próxima (~14-15pt) — usa isso pra
@@ -298,6 +305,35 @@ function parseWeeklyCronograma(cronogramaLines: PdfLine[]): SyllabusPdfEntry[] {
   return entries;
 }
 
+// Fallback do formato semanal quando não há tabela real (ver SEMANA_LIST):
+// cada linha que casa "Semana NN (...)" abre um registro novo; linhas que não
+// casam (conteúdo que quebrou em mais de uma linha visual, ex: "Reposição das
+// / aulas na Semana 15.") são anexadas ao registro aberto mais recente.
+function parseWeeklyListCronograma(cronogramaLines: PdfLine[]): SyllabusPdfEntry[] {
+  const entries: SyllabusPdfEntry[] = [];
+  let current: SyllabusPdfEntry | null = null;
+
+  for (const line of cronogramaLines) {
+    const match = SEMANA_LIST.exec(line.text);
+    if (match) {
+      const [, weekNumber, periodLabel, content] = match;
+      current = {
+        lessonNumber: null,
+        kind: null,
+        date: null,
+        weekNumber: Number(weekNumber),
+        periodLabel: periodLabel?.trim() || null,
+        content: content.trim(),
+      };
+      entries.push(current);
+    } else if (current && line.text.trim()) {
+      current.content = `${current.content} ${line.text.trim()}`.trim();
+    }
+  }
+
+  return entries;
+}
+
 // Conteúdo programático: lista hierárquica de tópicos, uma linha por tópico
 // (não quebra em várias linhas visuais neste layout).
 function parseTopics(lines: PdfLine[]): SyllabusPdfTopic[] {
@@ -369,5 +405,10 @@ export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfImpo
     return { format: "per_aula", entries: perAulaEntries, topics, assessments };
   }
 
-  return { format: "weekly", entries: parseWeeklyCronograma(cronogramaLines), topics, assessments };
+  const weeklyTableEntries = parseWeeklyCronograma(cronogramaLines);
+  if (weeklyTableEntries.length > 0) {
+    return { format: "weekly", entries: weeklyTableEntries, topics, assessments };
+  }
+
+  return { format: "weekly", entries: parseWeeklyListCronograma(cronogramaLines), topics, assessments };
 }
