@@ -45,7 +45,11 @@ const TOPICS_END = /^objetivos:?/i;
 const TOPIC_LINE = /^(\d+(?:\.\d+)*)\.?\s+(.+)$/;
 
 const AVALIACAO_TABLE_START = /^descri[çc][aã]o da\b/i;
-const HEADING_CRONOGRAMA = /^cronograma$/i;
+// Alguns PDFs encaixam uma seção de "Horário de Aula/Atendimento" entre a
+// tabela de avaliação e o Cronograma — sem parar nela também, essas linhas
+// (dias da semana, horários) eram lidas como se fossem mais linhas da tabela
+// de avaliação.
+const AVALIACAO_TABLE_END = /^(cronograma\b|hor[aá]rio de (aula|atendimento)|bibliografia)/i;
 
 // Formato em prosa (sem tabela) da seção de avaliação: heading "Atividades
 // avaliativas:" seguido de itens com marcador "•", ex: "• Prova 1 - 10,0
@@ -374,7 +378,13 @@ function parseTopics(lines: PdfLine[]): SyllabusPdfTopic[] {
 function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
   const startIndex = lines.findIndex((l) => AVALIACAO_TABLE_START.test(l.text));
   if (startIndex === -1) return [];
-  const relativeEnd = lines.slice(startIndex).findIndex((l) => HEADING_CRONOGRAMA.test(l.text));
+  // AVALIACAO_TABLE_END em vez de âncora exata do heading "Cronograma"
+  // porque ele às vezes vem com dois-pontos ou texto extra ("Cronograma:",
+  // "Cronograma previsto (...)") e às vezes tem uma seção de Horário de
+  // Aula/Atendimento entre a tabela e o Cronograma — sem reconhecer esses
+  // casos, a tabela varria o documento inteiro (ou seções inteiras alheias)
+  // como se fossem linhas de avaliação.
+  const relativeEnd = lines.slice(startIndex).findIndex((l) => AVALIACAO_TABLE_END.test(l.text));
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + relativeEnd;
 
   const headerCluster = clusterRows(lines.slice(startIndex, endIndex), SAME_ROW_MAX_GAP)[0] ?? [];

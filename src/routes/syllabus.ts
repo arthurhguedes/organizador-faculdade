@@ -33,10 +33,14 @@ function parseAssessmentDate(dateLabel: string | null, fallbackYear: number): st
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-// "25%" -> 25. Retorna null quando o peso vem em branco (ex: Exame Especial).
+// "25%" -> 25. Retorna null quando o peso vem em branco (ex: Exame Especial)
+// ou como texto livre sem número puro (ex: "De acordo com a Resolução CEPE
+// n° 2.880." — referência a uma resolução, não um peso de verdade; extrair
+// dígito solto daí criaria uma prova automática com peso sem sentido). Exige
+// que a célula inteira seja só o número, opcionalmente com "%"/"pontos".
 function parseAssessmentWeight(weightLabel: string | null): number | null {
   if (!weightLabel) return null;
-  const match = weightLabel.match(/(\d+(?:[.,]\d+)?)/);
+  const match = weightLabel.trim().match(/^(\d+(?:[.,]\d+)?)\s*(?:%|pontos?)?$/i);
   if (!match) return null;
   const value = Number(match[1]!.replace(",", "."));
   return Number.isFinite(value) ? value : null;
