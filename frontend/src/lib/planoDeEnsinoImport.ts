@@ -47,6 +47,16 @@ const TOPIC_LINE = /^(\d+(?:\.\d+)*)\.?\s+(.+)$/;
 const AVALIACAO_TABLE_START = /^descri[çc][aã]o da\b/i;
 const HEADING_CRONOGRAMA = /^cronograma$/i;
 
+// Formato em prosa (sem tabela) da seção de avaliação: heading "Atividades
+// avaliativas:" seguido de itens com marcador "•", ex: "• Prova 1 - 10,0
+// pontos (P1) - dia 29/09/2026". Mesmo raciocínio do SEMANA_LIST — nem toda
+// faculdade usa a tabela "Descrição da avaliação | Peso | Data | Conteúdo".
+const ATIVIDADES_AVALIATIVAS_START = /^atividades avaliativas:?$/i;
+// Linha de fórmula ("Nota final = (P1x0,3) + ..."), não é um item avaliativo.
+const NOTA_FINAL_LINE = /^nota final\b/i;
+const BULLET_PREFIX = /^[•]\s*/;
+const WEIGHT_PART = /\d+(?:[.,]\d+)?\s*pontos?/i;
+
 const WEEK_HEADER = /^semana\b/i;
 const WEEK_NUMBER = /^\d{1,3}$/;
 
@@ -387,11 +397,52 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
   return assessments;
 }
 
+// Fallback de "Atividades avaliativas:" em prosa (ver ATIVIDADES_AVALIATIVAS_START):
+// cada linha não vazia da seção (exceto a fórmula de nota final) é um item —
+// com ou sem marcador "•". Título = antes do primeiro "-"/"–"; se alguma das
+// partes seguintes tiver "N pontos", vira o peso; o restante (com ou sem
+// data) vira dateLabel bruto, deixando a extração de data pro backend
+// (`parseAssessmentDate` já procura dd/mm(/aaaa) em qualquer lugar do
+// texto). Itens sem peso (ex: Exame Especial) ou sem data (ex: "ao longo do
+// semestre") ficam com weightLabel/dateLabel null — mesma regra da tabela:
+// só vira prova automática quando os dois dão pra extrair.
+function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment[] {
+  const startIndex = lines.findIndex((l) => ATIVIDADES_AVALIATIVAS_START.test(l.text));
+  if (startIndex === -1) return [];
+  const relativeEnd = lines.slice(startIndex + 1).findIndex((l) => CRONOGRAMA_START.test(l.text));
+  const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
+
+  const assessments: SyllabusPdfAssessment[] = [];
+  let position = 0;
+  for (const line of lines.slice(startIndex + 1, endIndex)) {
+    const text = line.text.trim();
+    if (!text || NOTA_FINAL_LINE.test(text)) continue;
+
+    const parts = text
+      .replace(BULLET_PREFIX, "")
+      .split(/\s+[-–]\s+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length === 0) continue;
+
+    const [title, ...rest] = parts;
+    const weightIndex = rest.findIndex((p) => WEIGHT_PART.test(p));
+    const weightLabel = weightIndex === -1 ? null : rest[weightIndex];
+    const dateParts = rest.filter((_, i) => i !== weightIndex);
+    const dateLabel = dateParts.join(" - ").trim() || null;
+
+    assessments.push({ title, weightLabel, dateLabel, coverageLabel: null, position: position++ });
+  }
+
+  return assessments;
+}
+
 export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfImport> {
   const lines = await extractLines(file);
 
   const topics = parseTopics(lines);
-  const assessments = parseAvaliacaoTable(lines);
+  const tableAssessments = parseAvaliacaoTable(lines);
+  const assessments = tableAssessments.length > 0 ? tableAssessments : parseAtividadesAvaliativasList(lines);
 
   const startIndex = lines.findIndex((l) => CRONOGRAMA_START.test(l.text));
   if (startIndex === -1) return { format: "per_aula", entries: [], topics, assessments };
