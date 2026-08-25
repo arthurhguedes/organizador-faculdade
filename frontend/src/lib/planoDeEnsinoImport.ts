@@ -415,11 +415,23 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + relativeEnd;
 
   const { cluster: headerCluster, afterIndex: headerEnd } = clusterAroundIndex(lines, startIndex, SAME_ROW_MAX_GAP);
-  const anchors = deriveColumnAnchors(headerCluster);
-  if (anchors.length < 4) return [];
+  const headerAnchors = deriveColumnAnchors(headerCluster);
+  if (headerAnchors.length < 4) return [];
 
   const dataLines = lines.slice(headerEnd, endIndex);
   const clusters = clusterRows(dataLines, SAME_ROW_MAX_GAP);
+
+  // Quando o cabeçalho quebra em várias linhas com palavras curtas ("Peso
+  // da" numa linha, "avaliação (%)" bem mais à esquerda em outra), o x de
+  // cada palavra do cabeçalho não reflete onde a coluna de dados realmente
+  // fica — colunas estreitas e vizinhas (peso/data) acabam com o mesmo
+  // número de âncoras mas nas posições erradas, e peso/data/conteúdo caem
+  // todos juntos numa coluna só. Uma linha de dados de verdade (não
+  // quebrada em cabeçalho) é mais confiável: se ela também define o número
+  // certo de colunas, usa a posição dela em vez da do cabeçalho.
+  const firstDataCluster = clusters[0] ?? [];
+  const dataAnchors = deriveColumnAnchors(firstDataCluster);
+  const anchors = dataAnchors.length === headerAnchors.length ? dataAnchors : headerAnchors;
 
   const assessments: SyllabusPdfAssessment[] = [];
   let position = 0;
