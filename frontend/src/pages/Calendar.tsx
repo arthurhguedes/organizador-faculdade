@@ -83,12 +83,13 @@ export function Calendar() {
     if (pendingOccurrences.has(key)) return;
     const previousMarks = marks;
     const previousMarkId = event.markId;
+    const tempId = -Date.now() - Math.random();
 
     // Atualização otimista: reflete a mudança na hora, antes da resposta do servidor.
     setMarks((prev) =>
       previousMarkId
         ? prev.filter((m) => m.id !== previousMarkId)
-        : [...prev, { id: -Date.now(), subjectId: event.subjectId!, scheduleId, date: event.date, kind: "falta" }],
+        : [...prev, { id: tempId, subjectId: event.subjectId!, scheduleId, date: event.date, kind: "falta" }],
     );
     setOccurrencePending(key, true);
 
@@ -102,7 +103,9 @@ export function Calendar() {
           date: event.date,
           scheduleId,
         });
-        setMarks((prev) => prev.map((m) => (m.id < 0 ? mark : m)));
+        // Troca só a entrada otimista desta chamada (por tempId), nunca "qualquer id negativo" —
+        // com duas marcações em voo ao mesmo tempo isso sobrescrevia a otimista da outra.
+        setMarks((prev) => prev.map((m) => (m.id === tempId ? mark : m)));
         notify(`Falta marcada — ${event.date.split("-").reverse().join("/")}`, "success");
       }
     } catch (err) {
@@ -122,12 +125,13 @@ export function Calendar() {
     if (pendingOccurrences.has(key)) return;
     const previousMarks = marks;
     const previousMarkId = event.markId;
+    const tempId = -Date.now() - Math.random();
 
     // Atualização otimista: troca o estado do botão na hora, sem esperar a rede.
     setMarks((prev) => {
       const withoutPrevious = previousMarkId ? prev.filter((m) => m.id !== previousMarkId) : prev;
       return targetKind
-        ? [...withoutPrevious, { id: -Date.now(), subjectId: event.subjectId!, scheduleId, date: event.date, kind: targetKind }]
+        ? [...withoutPrevious, { id: tempId, subjectId: event.subjectId!, scheduleId, date: event.date, kind: targetKind }]
         : withoutPrevious;
     });
     setOccurrencePending(key, true);
@@ -142,7 +146,8 @@ export function Calendar() {
           : Promise.resolve(null),
       ]);
       if (created) {
-        setMarks((prev) => prev.map((m) => (m.id < 0 ? created.mark : m)));
+        // Troca só a entrada otimista desta chamada (por tempId) — ver handleToggleLesson.
+        setMarks((prev) => prev.map((m) => (m.id === tempId ? created.mark : m)));
       }
       const label = targetKind === "falta" ? "Falta marcada" : targetKind === "sem_aula" ? "Sem aula marcada" : "Marcação removida";
       notify(`${label} — ${event.date.split("-").reverse().join("/")}`, "success");
