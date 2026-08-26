@@ -7,7 +7,7 @@ import { useToast } from "../context/ToastContext";
 import { useSubjectDetails } from "../hooks/useSubjectDetails";
 import { useEntityList } from "../hooks/useEntityList";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
-import { assignmentsApi, examsApi, subjectsApi, professorsApi, ApiError } from "../api/client";
+import { assignmentsApi, examsApi, subjectsApi, professorsApi, syllabusAssessmentsApi, ApiError } from "../api/client";
 import { subjectAverage, formatGrade } from "../lib/grades";
 import { AttendanceSection } from "./subject-detail/AttendanceSection";
 import { ScheduleSection } from "./subject-detail/ScheduleSection";
@@ -181,7 +181,20 @@ export function SubjectDetail() {
         periodStartYear={period ? Number(period.startDate.slice(0, 4)) : null}
       />
 
-      <SyllabusPlanningSection topics={details.topics} assessments={details.assessments} entries={details.syllabusEntries} />
+      <SyllabusPlanningSection
+        topics={details.topics}
+        assessments={details.assessments}
+        entries={details.syllabusEntries}
+        onUpdateAssessment={async (assessmentId, field, value) => {
+          try {
+            const { message } = await syllabusAssessmentsApi.update(assessmentId, { [field]: value });
+            notify(message, "success");
+            reload();
+          } catch (err) {
+            notify(err instanceof ApiError ? err.message : "Erro ao atualizar avaliação", "error");
+          }
+        }}
+      />
 
       <EvaluationSection
         kind="assignment"

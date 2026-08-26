@@ -64,6 +64,38 @@ function parseAssessmentWeight(weightLabel: string | null): number | null {
   return null;
 }
 
+// Cria ou atualiza (find-or-create por subjectId+title, preservando a nota já
+// lançada) a prova de verdade em `exams` correspondente a uma linha da
+// tabela de Avaliação — mesma lógica do POST /import, reaproveitada aqui pra
+// rodar de novo quando o usuário edita peso/data numa linha que antes não
+// tinha os dois (ex: aula que o PDF trazia sem data, "será definido
+// posteriormente", e o usuário marca a data real depois que ela sai).
+async function upsertExamFromAssessment(
+  userId: number,
+  subjectId: number,
+  title: string,
+  weightLabel: string | null,
+  dateLabel: string | null,
+  periodStartYear: number,
+): Promise<"created" | "updated" | null> {
+  const examDate = parseAssessmentDate(dateLabel, periodStartYear);
+  const examWeight = parseAssessmentWeight(weightLabel);
+  if (!examDate || examWeight === null) return null;
+
+  const [existing] = await db
+    .select({ id: schema.exams.id })
+    .from(schema.exams)
+    .where(and(eq(schema.exams.subjectId, subjectId), eq(schema.exams.userId, userId), eq(schema.exams.title, title)));
+
+  if (existing) {
+    await db.update(schema.exams).set({ date: examDate, weight: examWeight }).where(eq(schema.exams.id, existing.id));
+    return "updated";
+  }
+
+  await db.insert(schema.exams).values({ subjectId, title, date: examDate, weight: examWeight, grade: null, userId });
+  return "created";
+}
+
 router.get("/", async (req, res) => {
   try {
     const subjectId = req.query.subjectId ? parseId(String(req.query.subjectId)) : null;
@@ -241,6 +273,64 @@ router.post("/import", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao importar plano de ensino" });
+  }
+});
+
+// Edição manual de uma linha da tabela de Avaliação — os campos vêm do PDF
+// como texto livre e às vezes incompletos (ex: data "Será definido
+// posteriormente"). Depois de salvar, tenta de novo criar/atualizar a prova
+// de verdade em `exams` (ver upsertExamFromAssessment), pra quando o usuário
+// preenche a data que faltava a atividade passar a aparecer em Provas e
+// Atividades sem precisar cadastrar tudo de novo à mão.
+router.patch("/assessments/:id", async (req, res) => {
+  const id = parseId(req.params.id);
+  if (id === null) {
+    return res.status(400).json({ message: "id inválido" });
+  }
+
+  const { title, weightLabel, dateLabel, coverageLabel } = req.body ?? {};
+  if (title !== undefined && !String(title).trim()) {
+    return res.status(400).json({ message: "título não pode ficar vazio" });
+  }
+
+  try {
+    const userId = req.userId!;
+    const updates: Partial<typeof schema.syllabusAssessments.$inferInsert> = {};
+    if (title !== undefined) updates.title = String(title).trim();
+    if (weightLabel !== undefined) updates.weightLabel = weightLabel || null;
+    if (dateLabel !== undefined) updates.dateLabel = dateLabel || null;
+    if (coverageLabel !== undefined) updates.coverageLabel = coverageLabel || null;
+
+    const [updated] = await db
+      .update(schema.syllabusAssessments)
+      .set(updates)
+      .where(and(eq(schema.syllabusAssessments.id, id), eq(schema.syllabusAssessments.userId, userId)))
+      .returning();
+    if (!updated) {
+      return res.status(404).json({ message: "Avaliação não encontrada" });
+    }
+
+    const periodStartYear = await getSubjectPeriodStartYear(userId, updated.subjectId);
+    const examStatus =
+      periodStartYear === null
+        ? null
+        : await upsertExamFromAssessment(
+            userId,
+            updated.subjectId,
+            updated.title,
+            updated.weightLabel,
+            updated.dateLabel,
+            periodStartYear,
+          );
+
+    let message = "Avaliação atualizada";
+    if (examStatus === "created") message += " — prova criada automaticamente";
+    if (examStatus === "updated") message += " — prova atualizada automaticamente";
+
+    res.json({ assessment: updated, message });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao atualizar avaliação" });
   }
 });
 

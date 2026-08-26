@@ -1987,6 +1987,38 @@ button.month-calendar__event {
   outline: none;
 }
 
+.editable-cell {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  margin: -2px calc(var(--space-2) * -1);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.editable-cell:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.editable-cell--empty {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.editable-cell-input {
+  width: 100%;
+  min-width: 96px;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  outline: none;
+}
+
 /* ---------- Faculty catalog / grade builder ---------- */
 
 .import-panel {

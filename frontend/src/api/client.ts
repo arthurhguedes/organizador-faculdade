@@ -13,6 +13,7 @@ import type {
   StudySession,
   Subject,
   SubjectDetails,
+  SyllabusAssessment,
 } from "./types";
 import type { ParsedOffering } from "../lib/offeringsImport";
 import type { SyllabusPdfImport } from "../lib/planoDeEnsinoImport";
@@ -115,6 +116,17 @@ export const syllabusEntriesApi = {
     request<{ message: string }>("/syllabus-entries/import", {
       method: "POST",
       body: JSON.stringify({ subjectId, ...parsed }),
+    }),
+};
+
+export const syllabusAssessmentsApi = {
+  update: (
+    id: number,
+    patch: Partial<Pick<SyllabusAssessment, "title" | "weightLabel" | "dateLabel" | "coverageLabel">>,
+  ) =>
+    request<{ assessment: SyllabusAssessment; message: string }>(`/syllabus-entries/assessments/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
     }),
 };
 
