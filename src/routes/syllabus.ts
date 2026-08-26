@@ -38,12 +38,30 @@ function parseAssessmentDate(dateLabel: string | null, fallbackYear: number): st
 // n° 2.880." — referência a uma resolução, não um peso de verdade; extrair
 // dígito solto daí criaria uma prova automática com peso sem sentido). Exige
 // que a célula inteira seja só o número, opcionalmente com "%"/"pontos".
+//
+// Alguns planos de ensino expressam o peso como fração na própria coluna da
+// tabela (ex: "1/6") em vez de já vir em porcentagem — converte pra
+// porcentagem nesse caso, mesmo raciocínio já aplicado à fórmula "Nota final"
+// do formato em prosa (ver NOTA_FINAL_TERM no parser do frontend).
 function parseAssessmentWeight(weightLabel: string | null): number | null {
   if (!weightLabel) return null;
-  const match = weightLabel.trim().match(/^(\d+(?:[.,]\d+)?)\s*(?:%|pontos?)?$/i);
-  if (!match) return null;
-  const value = Number(match[1]!.replace(",", "."));
-  return Number.isFinite(value) ? value : null;
+  const trimmed = weightLabel.trim();
+
+  const percentMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*(?:%|pontos?)?$/i);
+  if (percentMatch) {
+    const value = Number(percentMatch[1]!.replace(",", "."));
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const fractionMatch = trimmed.match(/^(\d+(?:[.,]\d+)?)\s*\/\s*(\d+(?:[.,]\d+)?)$/);
+  if (fractionMatch) {
+    const numerator = Number(fractionMatch[1]!.replace(",", "."));
+    const denominator = Number(fractionMatch[2]!.replace(",", "."));
+    if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator === 0) return null;
+    return Math.round((numerator / denominator) * 100 * 100) / 100;
+  }
+
+  return null;
 }
 
 router.get("/", async (req, res) => {

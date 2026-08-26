@@ -174,7 +174,12 @@ export function SubjectDetail() {
 
       <ScheduleSection subjectId={subjectId} schedules={details.schedules} onChange={reload} />
 
-      <SyllabusSection subjectId={subjectId} entries={details.syllabusEntries} onChange={reload} />
+      <SyllabusSection
+        subjectId={subjectId}
+        entries={details.syllabusEntries}
+        onChange={reload}
+        periodStartYear={period ? Number(period.startDate.slice(0, 4)) : null}
+      />
 
       <SyllabusPlanningSection topics={details.topics} assessments={details.assessments} entries={details.syllabusEntries} />
 

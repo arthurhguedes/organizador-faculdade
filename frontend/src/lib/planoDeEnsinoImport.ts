@@ -34,6 +34,13 @@ type PdfLine = { page: number; y: number; text: string; items: PdfItem[] };
 // autodetectar o formato sem risco de regressão no já validado.
 const ROW_START = /^(\d{1,3})\s+([^\d]+?)\s+(\d{2})\/(\d{2})\/(\d{4})\s*(.*)$/;
 
+// Variante aula-a-aula sem coluna de tipo (Teórica/Prática) e sem ano na
+// data — em vez disso, a data vem seguida da abreviação do dia da semana
+// (ex: "1    26/08 Qua Estatística Descritiva I..."). Como o ano não está no
+// PDF, essas linhas só são reconhecidas quando um ano de fallback (início do
+// período letivo da matéria) é fornecido a `parsePerAulaCronograma`.
+const ROW_START_SHORT_DATE = /^(\d{1,3})\s+(\d{2})\/(\d{2})\s+[A-Za-zÀ-ÿ]{3}\.?\s+(.*)$/;
+
 // Ancorado no início da linha: evita casar menções soltas a "cronograma" no
 // meio de outros parágrafos do documento (ex: "...e no cronograma da
 // disciplina." no texto de Avaliação), só o heading da seção mesmo.
@@ -80,6 +87,16 @@ const SEMANA_LIST = /^semana\s+(\d{1,3})\s*(?:\(([^)]*)\))?\s*:?\s*(.*)$/i;
 // do que uma linha de tabela para a próxima (~14-15pt) — usa isso pra
 // reagrupar linhas quebradas de volta na mesma célula/linha de tabela.
 const SAME_ROW_MAX_GAP = 11;
+
+// Chrome de impressão que o SEI (sistema usado por várias federais, incl.
+// UFOP, pra emitir documentos oficiais) injeta em todo PDF exportado: um
+// cabeçalho "dd/mm/aaaa, hh:mm SEI/<órgão> - ..." repetido no topo de cada
+// página e um rodapé com a URL de impressão + contador de página (ex:
+// "https://sei.../...  2/4"). Sem descartar essas linhas elas colam como
+// registros espúrios nas tabelas — principalmente na de Avaliação, que faz
+// binning por posição de coluna sem checar se a linha é dado de verdade.
+const SEI_PAGE_HEADER = /^\d{2}\/\d{2}\/\d{4},?\s+\d{2}:\d{2}\s+sei\//i;
+const SEI_PAGE_FOOTER = /^https?:\/\/\S+\s+\d+\/\d+$/i;
 
 function normalizeKind(raw: string): "T" | "P" | null {
   const lower = raw.toLowerCase();
@@ -136,7 +153,7 @@ async function extractLines(file: File): Promise<PdfLine[]> {
         };
       });
 
-    lines.push(...pageLines);
+    lines.push(...pageLines.filter((l) => !SEI_PAGE_HEADER.test(l.text) && !SEI_PAGE_FOOTER.test(l.text)));
   }
 
   return lines;
@@ -246,25 +263,47 @@ function binCluster(cluster: PdfLine[], anchors: number[]): string[] {
 // vertical e, dentro de cada bloco, procura a linha com o marcador de aula
 // pra extrair número/tipo/data, concatenando as demais linhas do bloco como
 // conteúdo.
-function parsePerAulaCronograma(cronogramaLines: PdfLine[]): SyllabusPdfEntry[] {
+function parsePerAulaCronograma(cronogramaLines: PdfLine[], fallbackYear: number | null): SyllabusPdfEntry[] {
   const clusters = clusterRows(cronogramaLines, SAME_ROW_MAX_GAP);
 
   const entries: SyllabusPdfEntry[] = [];
   for (const cluster of clusters) {
     const markerIndex = cluster.findIndex((l) => ROW_START.test(l.text));
-    if (markerIndex === -1) continue; // ex: cabeçalho da tabela
+    if (markerIndex !== -1) {
+      const match = ROW_START.exec(cluster[markerIndex].text)!;
+      const [, lessonNumber, kindRaw, day, month, year, contentStart] = match;
 
-    const match = ROW_START.exec(cluster[markerIndex].text)!;
-    const [, lessonNumber, kindRaw, day, month, year, contentStart] = match;
+      const parts = cluster.map((l, i) => (i === markerIndex ? contentStart : l.text)).filter((t) => t.trim());
+      const content = parts.join(" ").replace(/\s+/g, " ").trim();
+      if (!content) continue;
 
-    const parts = cluster.map((l, i) => (i === markerIndex ? contentStart : l.text)).filter((t) => t.trim());
+      entries.push({
+        lessonNumber: Number(lessonNumber),
+        kind: normalizeKind(kindRaw),
+        date: `${year}-${month}-${day}`,
+        weekNumber: null,
+        periodLabel: null,
+        content,
+      });
+      continue;
+    }
+
+    if (fallbackYear === null) continue; // sem ano de fallback, não dá pra usar o formato sem ano na data
+
+    const shortIndex = cluster.findIndex((l) => ROW_START_SHORT_DATE.test(l.text));
+    if (shortIndex === -1) continue; // ex: cabeçalho da tabela
+
+    const shortMatch = ROW_START_SHORT_DATE.exec(cluster[shortIndex].text)!;
+    const [, lessonNumber, day, month, contentStart] = shortMatch;
+
+    const parts = cluster.map((l, i) => (i === shortIndex ? contentStart : l.text)).filter((t) => t.trim());
     const content = parts.join(" ").replace(/\s+/g, " ").trim();
     if (!content) continue;
 
     entries.push({
       lessonNumber: Number(lessonNumber),
-      kind: normalizeKind(kindRaw),
-      date: `${year}-${month}-${day}`,
+      kind: null,
+      date: `${fallbackYear}-${month}-${day}`,
       weekNumber: null,
       periodLabel: null,
       content,
@@ -418,7 +457,10 @@ function parseAvaliacaoTable(lines: PdfLine[]): SyllabusPdfAssessment[] {
   const headerAnchors = deriveColumnAnchors(headerCluster);
   if (headerAnchors.length < 4) return [];
 
-  const dataLines = lines.slice(headerEnd, endIndex);
+  // Quando a tabela atravessa uma quebra de página, o PDF repete a linha de
+  // cabeçalho no topo da página seguinte — sem descartar, ela vira uma "linha
+  // de avaliação" espúria com o próprio texto do cabeçalho como título.
+  const dataLines = lines.slice(headerEnd, endIndex).filter((l) => !AVALIACAO_TABLE_START.test(l.text));
   const clusters = clusterRows(dataLines, SAME_ROW_MAX_GAP);
 
   // Quando o cabeçalho quebra em várias linhas com palavras curtas ("Peso
@@ -510,7 +552,10 @@ function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment
   return assessments;
 }
 
-export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfImport> {
+export async function parsePlanoDeEnsinoPdf(
+  file: File,
+  periodStartYear: number | null = null,
+): Promise<SyllabusPdfImport> {
   const lines = await extractLines(file);
 
   const topics = parseTopics(lines);
@@ -524,7 +569,7 @@ export async function parsePlanoDeEnsinoPdf(file: File): Promise<SyllabusPdfImpo
   const endIndex = relativeEnd === -1 ? lines.length : startIndex + 1 + relativeEnd;
   const cronogramaLines = lines.slice(startIndex + 1, endIndex);
 
-  const perAulaEntries = parsePerAulaCronograma(cronogramaLines);
+  const perAulaEntries = parsePerAulaCronograma(cronogramaLines, periodStartYear);
   if (perAulaEntries.length > 0) {
     return { format: "per_aula", entries: perAulaEntries, topics, assessments };
   }

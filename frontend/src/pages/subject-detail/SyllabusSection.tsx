@@ -20,10 +20,12 @@ export function SyllabusSection({
   subjectId,
   entries,
   onChange,
+  periodStartYear,
 }: {
   subjectId: number;
   entries: SyllabusEntry[];
   onChange: () => void;
+  periodStartYear: number | null;
 }) {
   const { notify } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,7 +34,7 @@ export function SyllabusSection({
   const handleFile = async (file: File) => {
     setParsing(true);
     try {
-      const parsed = await parsePlanoDeEnsinoPdf(file);
+      const parsed = await parsePlanoDeEnsinoPdf(file, periodStartYear);
       if (parsed.entries.length === 0) {
         notify("Não encontrei um cronograma de aulas nesse PDF", "error");
         return;
