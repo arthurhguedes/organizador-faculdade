@@ -1,9 +1,13 @@
-import { useState } from "react";
-import { GraduationCap, Plus, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { FileCheck, GraduationCap, Plus, X } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
-import { curriculumSubjectsApi } from "../api/client";
+import { usePeriods } from "../context/PeriodContext";
+import { useToast } from "../context/ToastContext";
+import { curriculumSubjectsApi, subjectsApi, ApiError } from "../api/client";
 import { useEntityList } from "../hooks/useEntityList";
 import { curriculumProgress } from "../lib/curriculum";
+import { parseCurriculumMatrixPdf } from "../lib/curriculumMatrixImport";
+import { applyCurriculumMatrix } from "../lib/applyCurriculumMatrix";
 import type { CurriculumStatus } from "../api/types";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -27,13 +31,41 @@ const STATUS_TONES: Record<CurriculumStatus, "muted" | "warning" | "accent"> = {
 
 export function CurriculumMatrix() {
   usePageTitle("Matriz Curricular");
-  const { items, loading, error, create, update, remove } = useEntityList(curriculumSubjectsApi);
+  const { items, loading, error, create, update, remove, reload } = useEntityList(curriculumSubjectsApi);
+  const { selectedPeriodId } = usePeriods();
+  const { notify } = useToast();
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [workload, setWorkload] = useState("");
   const [suggestedPeriod, setSuggestedPeriod] = useState("");
   const [status, setStatus] = useState<CurriculumStatus>("pendente");
+  const [importing, setImporting] = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportFile = async (file: File) => {
+    setImporting(true);
+    try {
+      const rows = await parseCurriculumMatrixPdf(file);
+      if (rows.length === 0) {
+        notify("Não encontrei nenhuma disciplina obrigatória reconhecível nesse PDF", "error");
+        return;
+      }
+      const subjects = await subjectsApi.list();
+      const result = await applyCurriculumMatrix(rows, items, subjects, selectedPeriodId);
+      notify(
+        `${result.created} matéria(s) adicionada(s) e ${result.updated} atualizada(s) a partir da matriz` +
+          (result.statusResolved > 0 ? ` — ${result.statusResolved} com status atualizado pelo histórico` : ""),
+        "success",
+      );
+      reload();
+    } catch (err) {
+      notify(err instanceof ApiError ? err.message : "Não consegui ler esse PDF. Confira se é a matriz curricular.", "error");
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  };
 
   const progress = curriculumProgress(items);
   const sorted = [...items].sort((a, b) => {
@@ -82,9 +114,24 @@ export function CurriculumMatrix() {
         title="Matriz Curricular"
         description="O curso inteiro: o que já foi concluído, o que está em andamento e o que ainda falta."
         action={
-          <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
-            {formOpen ? "Cancelar" : "Nova matéria"}
-          </Button>
+          <div className="page-header__actions">
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".pdf"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImportFile(file);
+              }}
+            />
+            <Button variant="secondary" icon={FileCheck} loading={importing} onClick={() => importInputRef.current?.click()}>
+              {importing ? "Lendo PDF..." : "Importar matriz (PDF)"}
+            </Button>
+            <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>
+              {formOpen ? "Cancelar" : "Nova matéria"}
+            </Button>
+          </div>
         }
       />
 
