@@ -27,7 +27,7 @@ export function SubjectDetail() {
   const navigate = useNavigate();
   const { notify } = useToast();
   const { periods } = usePeriods();
-  const { details, loading, error, reload } = useSubjectDetails(Number.isFinite(subjectId) ? subjectId : null);
+  const { details, loading, error, reload, patch } = useSubjectDetails(Number.isFinite(subjectId) ? subjectId : null);
   const { items: professors } = useEntityList(professorsApi);
 
   usePageTitle(details?.name ?? "Matéria");
@@ -201,9 +201,9 @@ export function SubjectDetail() {
         items={details.assignments.map((a) => ({ id: a.id, title: a.title, date: a.dueDate, weight: a.weight, grade: a.grade }))}
         onCreate={async ({ title, date, weight }) => {
           try {
-            await assignmentsApi.create({ subjectId, title, dueDate: date, weight, grade: null });
+            const [created] = await assignmentsApi.create({ subjectId, title, dueDate: date, weight, grade: null });
+            patch((prev) => ({ ...prev, assignments: [...prev.assignments, created] }));
             notify("Atividade adicionada", "success");
-            reload();
           } catch (err) {
             notify(err instanceof ApiError ? err.message : "Erro ao adicionar atividade", "error");
           }
@@ -211,25 +211,38 @@ export function SubjectDetail() {
         onUpdateGrade={async (itemId, grade) => {
           const item = details.assignments.find((a) => a.id === itemId);
           if (!item) return;
+          // Otimista: risca a nota na hora, sem esperar o PUT — só desfaz se falhar.
+          const previous = item;
+          patch((prev) => ({
+            ...prev,
+            assignments: prev.assignments.map((a) => (a.id === itemId ? { ...a, grade } : a)),
+          }));
           try {
-            await assignmentsApi.update(itemId, {
+            const [updated] = await assignmentsApi.update(itemId, {
               subjectId,
               title: item.title,
               dueDate: item.dueDate,
               weight: item.weight,
               grade,
             });
+            patch((prev) => ({
+              ...prev,
+              assignments: prev.assignments.map((a) => (a.id === itemId ? updated : a)),
+            }));
             notify("Nota atualizada", "success");
-            reload();
           } catch (err) {
+            patch((prev) => ({
+              ...prev,
+              assignments: prev.assignments.map((a) => (a.id === itemId ? previous : a)),
+            }));
             notify(err instanceof ApiError ? err.message : "Erro ao atualizar nota", "error");
           }
         }}
         onDelete={async (itemId) => {
           try {
             await assignmentsApi.remove(itemId);
+            patch((prev) => ({ ...prev, assignments: prev.assignments.filter((a) => a.id !== itemId) }));
             notify("Atividade removida", "success");
-            reload();
           } catch (err) {
             notify(err instanceof ApiError ? err.message : "Erro ao remover atividade", "error");
           }
@@ -241,9 +254,9 @@ export function SubjectDetail() {
         items={details.exams.map((e) => ({ id: e.id, title: e.title, date: e.date, weight: e.weight, grade: e.grade }))}
         onCreate={async ({ title, date, weight }) => {
           try {
-            await examsApi.create({ subjectId, title, date, weight, grade: null });
+            const [created] = await examsApi.create({ subjectId, title, date, weight, grade: null });
+            patch((prev) => ({ ...prev, exams: [...prev.exams, created] }));
             notify("Prova adicionada", "success");
-            reload();
           } catch (err) {
             notify(err instanceof ApiError ? err.message : "Erro ao adicionar prova", "error");
           }
@@ -251,25 +264,37 @@ export function SubjectDetail() {
         onUpdateGrade={async (itemId, grade) => {
           const item = details.exams.find((e) => e.id === itemId);
           if (!item) return;
+          const previous = item;
+          patch((prev) => ({
+            ...prev,
+            exams: prev.exams.map((e) => (e.id === itemId ? { ...e, grade } : e)),
+          }));
           try {
-            await examsApi.update(itemId, {
+            const [updated] = await examsApi.update(itemId, {
               subjectId,
               title: item.title,
               date: item.date,
               weight: item.weight,
               grade,
             });
+            patch((prev) => ({
+              ...prev,
+              exams: prev.exams.map((e) => (e.id === itemId ? updated : e)),
+            }));
             notify("Nota atualizada", "success");
-            reload();
           } catch (err) {
+            patch((prev) => ({
+              ...prev,
+              exams: prev.exams.map((e) => (e.id === itemId ? previous : e)),
+            }));
             notify(err instanceof ApiError ? err.message : "Erro ao atualizar nota", "error");
           }
         }}
         onDelete={async (itemId) => {
           try {
             await examsApi.remove(itemId);
+            patch((prev) => ({ ...prev, exams: prev.exams.filter((e) => e.id !== itemId) }));
             notify("Prova removida", "success");
-            reload();
           } catch (err) {
             notify(err instanceof ApiError ? err.message : "Erro ao remover prova", "error");
           }
