@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight, X } from "lucide-react";
+import { BookOpen, CalendarClock, ClipboardList, Plus, ArrowRight, StickyNote, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePageTitle } from "../context/PageTitleContext";
 import { usePeriods } from "../context/PeriodContext";
@@ -7,9 +7,10 @@ import { useAuth } from "../context/AuthContext";
 import { useDashboardData } from "../hooks/useDashboardData";
 import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 import { useAcademicStats } from "../hooks/useAcademicStats";
+import { useEntityList } from "../hooks/useEntityList";
 import { useToast } from "../context/ToastContext";
-import { subjectAverage, formatGrade, formatHours, formatDate, isOverdue, relativeDayLabel } from "../lib/grades";
-import { assignmentsApi, examsApi, ApiError } from "../api/client";
+import { subjectAverage, formatGrade, formatHours, formatDate, isOverdue, relativeDayLabel, todayISO } from "../lib/grades";
+import { assignmentsApi, examsApi, dailyNotesApi, ApiError } from "../api/client";
 import type { SubjectDetails } from "../api/types";
 import type { CSSProperties } from "react";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -101,6 +102,15 @@ export function Dashboard() {
     filterPeriodIds ? Array.from(filterPeriodIds) : [],
   );
   const { notify } = useToast();
+
+  const { items: notes, loading: notesLoading, update: updateNote } = useEntityList(dailyNotesApi);
+  const todayNotes = notes.filter((n) => n.date === todayISO()).sort((a, b) => a.id - b.id);
+  const toggleNoteDone = (note: (typeof notes)[number]) =>
+    updateNote(
+      note.id,
+      { date: note.date, content: note.content, done: !note.done },
+      note.done ? "Marcada como pendente" : "Concluída",
+    );
 
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [quickAddKind, setQuickAddKind] = useState<QuickAddKind>("assignment");
@@ -325,6 +335,46 @@ export function Dashboard() {
                     relativeDayLabel(item.date) && <Badge tone="accent">{relativeDayLabel(item.date)}</Badge>
                   )}
                 </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="dashboard__section">
+        <div className="dashboard__section-header">
+          <h3>Anotações de hoje</h3>
+          <Link to="/anotacoes" className="link-with-icon">
+            Ver todas <ArrowRight size={14} strokeWidth={2} />
+          </Link>
+        </div>
+
+        {notesLoading ? (
+          <SkeletonRows rows={2} />
+        ) : todayNotes.length === 0 ? (
+          <EmptyState
+            icon={StickyNote}
+            title="Nenhuma anotação para hoje"
+            description="Adicione o que você precisa estudar hoje na aba Anotações."
+            action={
+              <Link to="/anotacoes">
+                <Button variant="primary" icon={Plus}>
+                  Adicionar anotação
+                </Button>
+              </Link>
+            }
+          />
+        ) : (
+          <ul className="daily-notes__list">
+            {todayNotes.map((note) => (
+              <li key={note.id} className="daily-notes__item" data-done={note.done}>
+                <button
+                  type="button"
+                  className="daily-notes__checkbox"
+                  aria-label={note.done ? "Marcar como pendente" : "Marcar como concluída"}
+                  onClick={() => toggleNoteDone(note)}
+                />
+                <span className="daily-notes__content">{note.content}</span>
               </li>
             ))}
           </ul>
