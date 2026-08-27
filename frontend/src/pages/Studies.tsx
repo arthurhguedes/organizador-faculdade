@@ -44,6 +44,7 @@ export function Studies() {
   const [manualTopic, setManualTopic] = useState("");
   const [manualDate, setManualDate] = useState(todayISO());
   const [manualDuration, setManualDuration] = useState("");
+  const [manualSubmitting, setManualSubmitting] = useState(false);
 
   const isInSelectedPeriod = (session: StudySession) =>
     session.subjectId !== null
@@ -86,23 +87,28 @@ export function Studies() {
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!manualDate || !manualDuration) return;
-    const ok = await createSession(
-      {
-        subjectId: manualSubjectId ? Number(manualSubjectId) : null,
-        topic: manualTopic || null,
-        date: manualDate,
-        durationMinutes: Number(manualDuration),
-        source: "manual",
-      },
-      "Sessão registrada",
-    );
-    if (ok) {
-      setManualSubjectId("");
-      setManualTopic("");
-      setManualDate(todayISO());
-      setManualDuration("");
-      setManualOpen(false);
+    if (!manualDate || !manualDuration || manualSubmitting) return;
+    setManualSubmitting(true);
+    try {
+      const ok = await createSession(
+        {
+          subjectId: manualSubjectId ? Number(manualSubjectId) : null,
+          topic: manualTopic || null,
+          date: manualDate,
+          durationMinutes: Number(manualDuration),
+          source: "manual",
+        },
+        "Sessão registrada",
+      );
+      if (ok) {
+        setManualSubjectId("");
+        setManualTopic("");
+        setManualDate(todayISO());
+        setManualDuration("");
+        setManualOpen(false);
+      }
+    } finally {
+      setManualSubmitting(false);
     }
   };
 
@@ -152,7 +158,7 @@ export function Studies() {
             <Field label="Assunto (opcional)" value={manualTopic} onChange={(e) => setManualTopic(e.target.value)} />
             <Field label="Data" type="date" value={manualDate} onChange={(e) => setManualDate(e.target.value)} required />
             <Field label="Duração (min)" type="number" min="1" value={manualDuration} onChange={(e) => setManualDuration(e.target.value)} required />
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" loading={manualSubmitting}>
               Salvar
             </Button>
           </form>
