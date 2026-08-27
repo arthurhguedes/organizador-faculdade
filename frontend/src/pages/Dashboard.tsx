@@ -98,7 +98,7 @@ export function Dashboard() {
     });
   }
 
-  const { subjects, upcoming, loading, error, refresh } = useDashboardData(
+  const { subjects, upcoming, loading, error, patchSubject } = useDashboardData(
     filterPeriodIds ? Array.from(filterPeriodIds) : [],
   );
   const { notify } = useToast();
@@ -127,10 +127,12 @@ export function Dashboard() {
     try {
       const subjectId = Number(quickAddSubjectId);
       if (quickAddKind === "assignment") {
-        await assignmentsApi.create({ subjectId, title: quickAddTitle, dueDate: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        const [created] = await assignmentsApi.create({ subjectId, title: quickAddTitle, dueDate: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        patchSubject(subjectId, (prev) => ({ ...prev, assignments: [...prev.assignments, created] }));
         notify("Atividade adicionada", "success");
       } else {
-        await examsApi.create({ subjectId, title: quickAddTitle, date: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        const [created] = await examsApi.create({ subjectId, title: quickAddTitle, date: quickAddDate, weight: Number(quickAddWeight), grade: null });
+        patchSubject(subjectId, (prev) => ({ ...prev, exams: [...prev.exams, created] }));
         notify("Prova adicionada", "success");
       }
       setQuickAddTitle("");
@@ -138,7 +140,6 @@ export function Dashboard() {
       setQuickAddWeight("");
       setQuickAddSubjectId("");
       setQuickAddOpen(false);
-      refresh();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao adicionar", "error");
     } finally {

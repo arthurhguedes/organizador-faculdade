@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { subjectsApi, getSubjectDetails } from "../api/client";
 import type { SubjectDetails } from "../api/types";
 
@@ -19,6 +19,11 @@ export function useDashboardData(periodIds: number[]) {
   const [version, setVersion] = useState(0);
   const periodIdsKey = periodIds.slice().sort((a, b) => a - b).join(",");
 
+  // Mesma ideia do useSubjectDetails: um patchSubject() (ex: arrastar uma
+  // prova pro dia seguinte no Calendário) invalida qualquer load() ainda em
+  // voo, pra uma resposta atrasada não sobrescrever a edição mais recente.
+  const generationRef = useRef(0);
+
   useEffect(() => {
     if (periodIdsKey === "") {
       setSubjects([]);
@@ -27,7 +32,7 @@ export function useDashboardData(periodIds: number[]) {
     }
 
     const wantedPeriodIds = new Set(periodIdsKey.split(",").map(Number));
-    let cancelled = false;
+    const generation = ++generationRef.current;
     setLoading(true);
     setError(null);
 
@@ -36,20 +41,25 @@ export function useDashboardData(periodIds: number[]) {
       .then(async (all) => {
         const periodSubjects = all.filter((s) => wantedPeriodIds.has(s.periodId));
         const details = await Promise.all(periodSubjects.map((s) => getSubjectDetails(s.id)));
-        if (!cancelled) setSubjects(details);
+        if (generationRef.current === generation) setSubjects(details);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Erro ao carregar dashboard");
+        if (generationRef.current === generation) {
+          setError(err instanceof Error ? err.message : "Erro ao carregar dashboard");
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (generationRef.current === generation) setLoading(false);
       });
-
-    return () => {
-      cancelled = true;
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodIdsKey, version]);
+
+  // Deixa quem chama aplicar uma mudança pontual numa matéria (ex: mover a
+  // data de uma prova arrastando no Calendário) sem refazer o N+1 inteiro.
+  const patchSubject = useCallback((subjectId: number, updater: (prev: SubjectDetails) => SubjectDetails) => {
+    generationRef.current++;
+    setSubjects((prev) => prev.map((s) => (s.id === subjectId ? updater(s) : s)));
+  }, []);
 
   const upcoming: UpcomingItem[] = subjects
     .flatMap((subject) => [
@@ -74,5 +84,5 @@ export function useDashboardData(periodIds: number[]) {
     ])
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  return { subjects, upcoming, loading, error, refresh: () => setVersion((v) => v + 1) };
+  return { subjects, upcoming, loading, error, refresh: () => setVersion((v) => v + 1), patchSubject };
 }

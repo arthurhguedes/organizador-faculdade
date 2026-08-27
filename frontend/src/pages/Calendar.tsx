@@ -20,7 +20,7 @@ import { useToast } from "../context/ToastContext";
 export function Calendar() {
   usePageTitle("Calendário");
   const { selectedPeriod, selectedPeriodId, periods, loading: periodsLoading } = usePeriods();
-  const { subjects, loading, refresh } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
+  const { subjects, loading, patchSubject } = useDashboardData(selectedPeriodId !== null ? [selectedPeriodId] : []);
   const { notify } = useToast();
   const [marks, setMarks] = useState<AttendanceMark[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -47,31 +47,43 @@ export function Calendar() {
 
   const handleEventDrop = async (event: CalendarEvent, newDate: string) => {
     if (event.id === undefined || event.subjectId === undefined || newDate === event.date) return;
+    if (event.kind !== "exam" && event.kind !== "assignment") return;
     const formattedDate = newDate.split("-").reverse().join("/");
+    const { id, subjectId, kind } = event;
+    const previousDate = event.date;
+
+    // Otimista: move o evento na hora, sem esperar a rede — só desfaz se falhar.
+    patchSubject(subjectId, (prev) => ({
+      ...prev,
+      assignments: kind === "assignment" ? prev.assignments.map((a) => (a.id === id ? { ...a, dueDate: newDate } : a)) : prev.assignments,
+      exams: kind === "exam" ? prev.exams.map((e) => (e.id === id ? { ...e, date: newDate } : e)) : prev.exams,
+    }));
 
     try {
-      if (event.kind === "exam") {
-        await examsApi.update(event.id, {
-          subjectId: event.subjectId,
+      if (kind === "exam") {
+        await examsApi.update(id, {
+          subjectId,
           title: event.title,
           date: newDate,
           weight: event.weight ?? 0,
           grade: event.grade ?? null,
         });
-      } else if (event.kind === "assignment") {
-        await assignmentsApi.update(event.id, {
-          subjectId: event.subjectId,
+      } else {
+        await assignmentsApi.update(id, {
+          subjectId,
           title: event.title,
           dueDate: newDate,
           weight: event.weight ?? 0,
           grade: event.grade ?? null,
         });
-      } else {
-        return;
       }
       notify(`Data movida para ${formattedDate}`, "success");
-      refresh();
     } catch (err) {
+      patchSubject(subjectId, (prev) => ({
+        ...prev,
+        assignments: kind === "assignment" ? prev.assignments.map((a) => (a.id === id ? { ...a, dueDate: previousDate } : a)) : prev.assignments,
+        exams: kind === "exam" ? prev.exams.map((e) => (e.id === id ? { ...e, date: previousDate } : e)) : prev.exams,
+      }));
       notify(err instanceof ApiError ? err.message : "Erro ao mover a data", "error");
     }
   };
