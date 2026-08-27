@@ -1997,6 +1997,22 @@ button.month-calendar__event {
   outline: none;
 }
 
+/* Célula de vaga de eletiva na Matriz Curricular (CurriculumMatrix.tsx) —
+   nome fixo ("Eletiva N") + qual eletiva do catálogo foi escolhida (ou não)
+   + ações pra escolher/trocar/limpar, empilhados verticalmente na mesma célula. */
+.curriculum-elective-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+
+.curriculum-elective-cell__actions {
+  display: flex;
+  gap: var(--space-1);
+  margin-top: 2px;
+}
+
 /* min-width igual ao de .editable-cell-input de propósito: sem isso, clicar
    pra editar um valor curto (ex: peso "2") alargava a célula na hora pro
    tamanho do input, empurrando o resto da linha da tabela. */

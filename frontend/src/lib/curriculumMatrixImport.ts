@@ -1,24 +1,43 @@
 // Importa a matriz curricular oficial (PDF que a PRÓ-REITORIA DE GRADUAÇÃO da
-// UFOP disponibiliza por curso) — só a tabela "DISCIPLINAS OBRIGATÓRIAS":
-// eletivas/atividades ficam de fora porque não são "tudo obrigatório", o que
-// quebraria o cálculo de % concluído (ver applyCurriculumMatrix.ts).
+// UFOP disponibiliza por curso). A tabela é bem comportada (célula por
+// célula, não texto livre como o plano de ensino), mas nomes longos quebram
+// em 2 linhas (ex: "FUNDAMENTOS DE ORGANIZACAO E ARQUITETURA DE" /
+// "COMPUTADORES") — a linha de continuação não tem código nem dígito, então
+// dá pra distinguir de ruído tipo "1200 horas" (nota de pré-requisito de
+// PROJETO INTEGRADOR/TCC, que tem dígito e por isso não se confunde com nome
+// de disciplina em maiúsculas).
 //
-// A tabela é bem comportada (célula por célula, não texto livre como o plano
-// de ensino), mas nomes longos quebram em 2 linhas (ex: "FUNDAMENTOS DE
-// ORGANIZACAO E ARQUITETURA DE" / "COMPUTADORES") — a linha de continuação
-// não tem código nem dígito, então dá pra distinguir de ruído tipo "1200
-// horas" (nota de pré-requisito de PROJETO INTEGRADOR/TCC, sem dígito não
-// teria como confundir com nome de disciplina em maiúsculas).
+// Três tabelas do PDF viram três coisas diferentes (ver applyCurriculumMatrix.ts):
+// - "DISCIPLINAS OBRIGATÓRIAS" -> linhas normais, uma por disciplina.
+// - "DISCIPLINAS ELETIVAS" -> não vira linha da matriz (são só 4 vagas ao
+//   todo, não são todas obrigatórias) — vira um catálogo de opções pro
+//   usuário escolher em cada vaga de eletiva.
+// - "ATIVIDADES" (estágio, atividades complementares, extensão) -> linhas
+//   medidas em horas acumuladas, não em "cursando/concluída".
 
 export type ParsedCurriculumRow = {
   code: string;
   name: string;
   workload: number;
-  suggestedPeriod: number;
+  suggestedPeriod: number | null;
+};
+
+export type ElectiveOption = {
+  code: string;
+  name: string;
+  workload: number;
+};
+
+export type ParsedCurriculumMatrix = {
+  obrigatorias: ParsedCurriculumRow[];
+  atividades: ParsedCurriculumRow[];
+  electiveOptions: ElectiveOption[];
 };
 
 const CODE = "[A-Z]{2,6}\\d{2,4}";
 const OBRIGATORIA_ROW = new RegExp(`^(${CODE})\\s+(.+?)\\s+(\\d+)\\/(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)$`);
+const ELETIVA_ROW = new RegExp(`^(${CODE})\\s+(.+?)\\s+(\\d+)\\/(\\d+)\\s+(\\d+)\\s+(\\d+)\\s+(\\d+)$`);
+const ATIVIDADE_ROW = /^(ATV\d{3})\s+(.+?)\s+(?:\d+\s+)?OBRIGATORIA\s+(\d+)$/;
 const TRAILING_PREREQ_CODES = new RegExp(`(?:\\s+${CODE})+$`);
 const CONTINUATION_LINE = /^[A-ZÀ-ÚÇ()\-,.\s]+$/;
 const BOILERPLATE = new Set([
@@ -26,6 +45,8 @@ const BOILERPLATE = new Set([
   "UNIVERSIDADE FEDERAL DE OURO PRETO",
   "PRÓ-REITORIA DE GRADUAÇÃO",
 ]);
+
+type Section = "obrigatoria" | "eletiva" | "atividade" | null;
 
 async function extractLines(file: File): Promise<string[]> {
   const pdfjsLib = await import("pdfjs-dist");
@@ -74,15 +95,18 @@ async function extractLines(file: File): Promise<string[]> {
   return lines;
 }
 
-export async function parseCurriculumMatrixPdf(file: File): Promise<ParsedCurriculumRow[]> {
+export async function parseCurriculumMatrixPdf(file: File): Promise<ParsedCurriculumMatrix> {
   const lines = await extractLines(file);
 
-  const entries: ParsedCurriculumRow[] = [];
-  let inObrigatorias = false;
-  // Continua válida só enquanto a linha seguinte for mesmo uma continuação de
+  const obrigatorias: ParsedCurriculumRow[] = [];
+  const atividades: ParsedCurriculumRow[] = [];
+  const electiveOptions: ElectiveOption[] = [];
+
+  let section: Section = null;
+  // Continua válido só enquanto a linha seguinte for mesmo uma continuação de
   // nome — qualquer outra linha (ruído, cabeçalho, nova disciplina) invalida,
   // pra uma nota de rodapé tipo "1200 horas" não grudar no nome anterior.
-  let lastEntry: ParsedCurriculumRow | null = null;
+  let lastEntry: { name: string } | null = null;
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -95,12 +119,17 @@ export async function parseCurriculumMatrixPdf(file: File): Promise<ParsedCurric
       continue;
     }
     if (line.includes("DISCIPLINAS OBRIGATÓRIAS")) {
-      inObrigatorias = true;
+      section = "obrigatoria";
       lastEntry = null;
       continue;
     }
-    if (line.includes("DISCIPLINAS ELETIVAS") || line.startsWith("CÓDIGO ATIVIDADES")) {
-      inObrigatorias = false;
+    if (line.includes("DISCIPLINAS ELETIVAS")) {
+      section = "eletiva";
+      lastEntry = null;
+      continue;
+    }
+    if (line.startsWith("CÓDIGO ATIVIDADES")) {
+      section = "atividade";
       lastEntry = null;
       continue;
     }
@@ -113,18 +142,43 @@ export async function parseCurriculumMatrixPdf(file: File): Promise<ParsedCurric
       continue;
     }
 
-    if (inObrigatorias) {
+    if (section === "obrigatoria") {
       const match = OBRIGATORIA_ROW.exec(line);
       if (match) {
         const [, code, middle, chs, , , , , per] = match;
-        const name = middle.replace(TRAILING_PREREQ_CODES, "").trim();
         const entry: ParsedCurriculumRow = {
           code,
-          name,
+          name: middle.replace(TRAILING_PREREQ_CODES, "").trim(),
           workload: Number(chs),
           suggestedPeriod: Number(per),
         };
-        entries.push(entry);
+        obrigatorias.push(entry);
+        lastEntry = entry;
+        continue;
+      }
+    }
+
+    if (section === "eletiva") {
+      const match = ELETIVA_ROW.exec(line);
+      if (match) {
+        const [, code, middle, chs] = match;
+        const entry: ElectiveOption = {
+          code,
+          name: middle.replace(TRAILING_PREREQ_CODES, "").trim(),
+          workload: Number(chs),
+        };
+        electiveOptions.push(entry);
+        lastEntry = entry;
+        continue;
+      }
+    }
+
+    if (section === "atividade") {
+      const match = ATIVIDADE_ROW.exec(line);
+      if (match) {
+        const [, code, name, chs] = match;
+        const entry: ParsedCurriculumRow = { code, name: name.trim(), workload: Number(chs), suggestedPeriod: null };
+        atividades.push(entry);
         lastEntry = entry;
         continue;
       }
@@ -137,5 +191,28 @@ export async function parseCurriculumMatrixPdf(file: File): Promise<ParsedCurric
     lastEntry = null;
   }
 
-  return entries;
+  return { obrigatorias, atividades, electiveOptions };
+}
+
+// Catálogo de eletivas disponíveis (pra preencher as vagas "Eletiva N") —
+// não é persistido no backend (não é algo que o usuário "tem", é só a lista
+// de opções do curso), então fica cacheado no localStorage por conta, mesmo
+// raciocínio de recallInstitutionMapping em offeringsImport.ts.
+const ELECTIVE_OPTIONS_KEY_PREFIX = "notary:curriculumElectiveOptions:";
+
+export function rememberElectiveOptions(userId: number, options: ElectiveOption[]): void {
+  try {
+    localStorage.setItem(`${ELECTIVE_OPTIONS_KEY_PREFIX}${userId}`, JSON.stringify(options));
+  } catch {
+    // localStorage indisponível (modo privado, quota) — não é crítico, só perde o catálogo até reimportar
+  }
+}
+
+export function recallElectiveOptions(userId: number): ElectiveOption[] {
+  try {
+    const raw = localStorage.getItem(`${ELECTIVE_OPTIONS_KEY_PREFIX}${userId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
 }

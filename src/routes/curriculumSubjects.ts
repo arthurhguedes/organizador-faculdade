@@ -7,6 +7,7 @@ import { parseId } from "../lib/http.js";
 const router = Router();
 
 const VALID_STATUSES = ["pendente", "cursando", "concluida"];
+const VALID_KINDS = ["obrigatoria", "eletiva", "atividade"];
 
 router.get("/", async (req, res) => {
   try {
@@ -43,12 +44,15 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { name, code, workload, suggestedPeriod, status } = req.body ?? {};
+  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = req.body ?? {};
   if (!name || workload === undefined || workload === null) {
     return res.status(400).json({ message: "name e workload são obrigatórios" });
   }
   if (status !== undefined && !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
+  }
+  if (kind !== undefined && !VALID_KINDS.includes(kind)) {
+    return res.status(400).json({ message: `kind deve ser um de: ${VALID_KINDS.join(", ")}` });
   }
 
   try {
@@ -58,6 +62,8 @@ router.post("/", async (req, res) => {
       workload,
       suggestedPeriod: suggestedPeriod || null,
       status: status || "pendente",
+      kind: kind || "obrigatoria",
+      completedHours: completedHours || 0,
       userId: req.userId!,
     }).returning();
     res.json(newItem);
@@ -73,18 +79,29 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { name, code, workload, suggestedPeriod, status } = req.body ?? {};
+  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = req.body ?? {};
   if (!name || workload === undefined || workload === null) {
     return res.status(400).json({ message: "name e workload são obrigatórios" });
   }
   if (status !== undefined && !VALID_STATUSES.includes(status)) {
     return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
   }
+  if (kind !== undefined && !VALID_KINDS.includes(kind)) {
+    return res.status(400).json({ message: `kind deve ser um de: ${VALID_KINDS.join(", ")}` });
+  }
 
   try {
     const updated = await db
       .update(schema.curriculumSubjects)
-      .set({ name, code: code || null, workload, suggestedPeriod: suggestedPeriod || null, status: status || "pendente" })
+      .set({
+        name,
+        code: code || null,
+        workload,
+        suggestedPeriod: suggestedPeriod || null,
+        status: status || "pendente",
+        kind: kind || "obrigatoria",
+        completedHours: completedHours || 0,
+      })
       .where(and(eq(schema.curriculumSubjects.id, id), eq(schema.curriculumSubjects.userId, req.userId!)))
       .returning();
 

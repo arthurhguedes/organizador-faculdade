@@ -262,7 +262,18 @@ export const offeringSchedules = pgTable("offering_schedules", {
 
 // Matriz curricular — universo de matérias que o curso exige, independente
 // de `periods`/`subjects` (que são o que o usuário de fato cursou). Cadastro
-// manual por enquanto: import de PDF de matriz fica pra uma versão futura.
+// manual ou importado do PDF da matriz (ver frontend/src/lib/curriculumMatrixImport.ts).
+// `kind` distingue 3 formatos de linha, todos na mesma tabela:
+//   - "obrigatoria": disciplina normal, completa via `status`.
+//   - "eletiva": vaga de eletiva (ex: "Eletiva 1") — `code` fica null até o
+//     usuário escolher qual das eletivas do catálogo (cacheado no localStorage
+//     na importação, não persistido — ver curriculumMatrixImport.ts) preenche
+//     a vaga; `name` continua "Eletiva N" mesmo depois de escolhida, pra servir
+//     de identificador estável entre reimportações da matriz.
+//   - "atividade": exigência medida em horas acumuladas (estágio, atividades
+//     complementares, extensão), não em "cursando/concluída" binário — usa
+//     `completedHours` (progresso) contra `workload` (meta), com `status`
+//     derivado automaticamente no client a partir dessa razão.
 export const curriculumSubjects = pgTable("curriculum_subjects", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -270,6 +281,8 @@ export const curriculumSubjects = pgTable("curriculum_subjects", {
   workload: integer("workload").notNull(),
   suggestedPeriod: integer("suggested_period"),
   status: text("status").notNull().default("pendente"), // "pendente" | "cursando" | "concluida"
+  kind: text("kind").notNull().default("obrigatoria"), // "obrigatoria" | "eletiva" | "atividade"
+  completedHours: integer("completed_hours").notNull().default(0),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
 });
 

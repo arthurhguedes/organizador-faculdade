@@ -9,9 +9,13 @@ export type CurriculumProgress = {
 
 export function curriculumProgress(items: CurriculumSubject[]): CurriculumProgress {
   const totalWorkload = items.reduce((sum, item) => sum + item.workload, 0);
-  const completedWorkload = items
-    .filter((item) => item.status === "concluida")
-    .reduce((sum, item) => sum + item.workload, 0);
+  // "Atividade" (estágio, atividades complementares, extensão) é medida em
+  // horas acumuladas, não em concluída/não — conta a fração já registrada
+  // mesmo que ainda não tenha batido a meta.
+  const completedWorkload = items.reduce((sum, item) => {
+    if (item.kind === "atividade") return sum + Math.min(item.completedHours, item.workload);
+    return item.status === "concluida" ? sum + item.workload : sum;
+  }, 0);
 
   return {
     totalWorkload,

@@ -153,6 +153,7 @@ export type Offering = {
 };
 
 export type CurriculumStatus = "pendente" | "cursando" | "concluida";
+export type CurriculumKind = "obrigatoria" | "eletiva" | "atividade";
 
 export type CurriculumSubject = {
   id: number;
@@ -161,6 +162,8 @@ export type CurriculumSubject = {
   workload: number;
   suggestedPeriod: number | null;
   status: CurriculumStatus;
+  kind: CurriculumKind;
+  completedHours: number;
 };
 
 export type AcademicRequestType =
