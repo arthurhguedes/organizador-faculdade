@@ -32,20 +32,27 @@ export function EvaluationSection({
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [weight, setWeight] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [gradeDraft, setGradeDraft] = useState("");
+  const [savingGrade, setSavingGrade] = useState(false);
 
   const label = kind === "assignment" ? "Atividades" : "Provas";
   const singular = kind === "assignment" ? "atividade" : "prova";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !date || !weight) return;
-    await onCreate({ title, date, weight: Number(weight) });
-    setTitle("");
-    setDate("");
-    setWeight("");
-    setFormOpen(false);
+    if (!title || !date || !weight || submitting) return;
+    setSubmitting(true);
+    try {
+      await onCreate({ title, date, weight: Number(weight) });
+      setTitle("");
+      setDate("");
+      setWeight("");
+      setFormOpen(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const startEditingGrade = (item: EvalItem) => {
@@ -54,9 +61,15 @@ export function EvaluationSection({
   };
 
   const saveGrade = async (id: number) => {
+    if (savingGrade) return;
+    setSavingGrade(true);
     const value = gradeDraft.trim() === "" ? null : Number(gradeDraft);
-    await onUpdateGrade(id, value);
-    setEditingId(null);
+    try {
+      await onUpdateGrade(id, value);
+    } finally {
+      setSavingGrade(false);
+      setEditingId(null);
+    }
   };
 
   return (
@@ -73,7 +86,7 @@ export function EvaluationSection({
           <Field label="Título" value={title} onChange={(e) => setTitle(e.target.value)} required />
           <Field label={kind === "assignment" ? "Entrega" : "Data"} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           <Field label="Peso" type="number" step="any" min="0" value={weight} onChange={(e) => setWeight(e.target.value)} required />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={submitting}>
             Salvar
           </Button>
         </form>

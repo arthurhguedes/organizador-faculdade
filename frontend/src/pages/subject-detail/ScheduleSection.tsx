@@ -42,6 +42,7 @@ export function ScheduleSection({
   const [editingRooms, setEditingRooms] = useState(false);
   const [roomDrafts, setRoomDrafts] = useState<Record<number, string>>({});
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     schedulesApi
@@ -125,7 +126,8 @@ export function ScheduleSection({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!weekday || !startTime || !endTime) return;
+    if (!weekday || !startTime || !endTime || submitting) return;
+    setSubmitting(true);
     try {
       await schedulesApi.create({ subjectId, weekday, startTime, endTime, room: room || null });
       notify("Horário adicionado", "success");
@@ -137,6 +139,8 @@ export function ScheduleSection({
       onChange();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao adicionar horário", "error");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -203,7 +207,7 @@ export function ScheduleSection({
             placeholder="Ex: 203"
             list={ROOM_DATALIST_ID}
           />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={submitting}>
             Salvar
           </Button>
         </form>

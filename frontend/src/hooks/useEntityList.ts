@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "../api/client";
 import { useToast } from "../context/ToastContext";
 
@@ -14,6 +14,12 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { notify } = useToast();
+
+  // Trava por operação/id em voo: bloqueia o duplo-clique que dispara duas
+  // requisições antes da primeira responder (ex: dois POSTs criando duas
+  // anotações iguais, ou dois PUTs disputando o mesmo toggle de "concluído").
+  const creatingRef = useRef(false);
+  const pendingIdsRef = useRef(new Set<number>());
 
   const load = useCallback(() => {
     setLoading(true);
@@ -31,38 +37,50 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   }, [load]);
 
   const create = async (body: TInput, successMessage = "Criado com sucesso") => {
+    if (creatingRef.current) return false;
+    creatingRef.current = true;
     try {
-      await api.create(body);
+      const created = await api.create(body);
+      setItems((prev) => [...prev, ...created]);
       notify(successMessage, "success");
-      load();
       return true;
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao criar", "error");
       return false;
+    } finally {
+      creatingRef.current = false;
     }
   };
 
   const update = async (id: number, body: TInput, successMessage = "Atualizado com sucesso") => {
+    if (pendingIdsRef.current.has(id)) return false;
+    pendingIdsRef.current.add(id);
     try {
-      await api.update(id, body);
+      const [updated] = await api.update(id, body);
+      setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
       notify(successMessage, "success");
-      load();
       return true;
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar", "error");
       return false;
+    } finally {
+      pendingIdsRef.current.delete(id);
     }
   };
 
   const remove = async (id: number, successMessage = "Removido com sucesso") => {
+    if (pendingIdsRef.current.has(id)) return false;
+    pendingIdsRef.current.add(id);
     try {
       await api.remove(id);
+      setItems((prev) => prev.filter((item) => item.id !== id));
       notify(successMessage, "success");
-      load();
       return true;
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao remover", "error");
       return false;
+    } finally {
+      pendingIdsRef.current.delete(id);
     }
   };
 
