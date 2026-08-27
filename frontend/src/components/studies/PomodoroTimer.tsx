@@ -54,7 +54,7 @@ export function PomodoroTimer() {
 
       <div className="pomodoro__clock">{formatClock(secondsLeft)}</div>
       <div className="pomodoro__progress">
-        <div className="pomodoro__progress-fill" style={{ width: `${progressPct}%` }} />
+        <div className="pomodoro__progress-fill" style={{ transform: `scaleX(${progressPct / 100})` }} />
       </div>
 
       <div className="pomodoro__controls">

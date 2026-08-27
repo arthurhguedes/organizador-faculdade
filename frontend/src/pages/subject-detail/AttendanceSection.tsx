@@ -90,7 +90,7 @@ export function AttendanceSection({
           <div
             className="attendance-panel__bar-fill"
             data-tone={tone}
-            style={{ width: `${Math.min((localAbsences / Math.max(max, 1)) * 100, 100)}%` }}
+            style={{ transform: `scaleX(${Math.min(localAbsences / Math.max(max, 1), 1)})` }}
           />
         </div>
         <p className="attendance-panel__hint">

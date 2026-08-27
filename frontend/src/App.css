@@ -1814,9 +1814,11 @@ button.month-calendar__event {
 
 .attendance-panel__bar-fill {
   height: 100%;
+  width: 100%;
   border-radius: 999px;
   background: var(--accent);
-  transition: width 0.2s ease;
+  transform-origin: left;
+  transition: transform 0.2s ease;
 }
 
 .attendance-panel__bar-fill[data-tone="warning"] {
@@ -3280,8 +3282,10 @@ button.month-calendar__event {
 
 .pomodoro__progress-fill {
   height: 100%;
+  width: 100%;
   background: var(--accent);
-  transition: width 1s linear;
+  transform-origin: left;
+  transition: transform 1s linear;
 }
 
 .pomodoro__controls {
