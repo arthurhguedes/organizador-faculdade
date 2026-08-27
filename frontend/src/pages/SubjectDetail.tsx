@@ -37,6 +37,7 @@ export function SubjectDetail() {
   const [code, setCode] = useState("");
   const [workload, setWorkload] = useState("");
   const [professorId, setProfessorId] = useState("");
+  const [savingSubject, setSavingSubject] = useState(false);
 
   useEffect(() => {
     if (details) {
@@ -78,19 +79,23 @@ export function SubjectDetail() {
 
   const saveSubject = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingSubject) return;
+    setSavingSubject(true);
     try {
-      await subjectsApi.update(subjectId, {
+      const [updated] = await subjectsApi.update(subjectId, {
         name,
         code: code || null,
         workload: Number(workload),
         periodId: details.periodId,
         professorId: Number(professorId),
       });
+      patch((prev) => ({ ...prev, ...updated }));
       notify("Matéria atualizada", "success");
       setEditing(false);
-      reload();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar matéria", "error");
+    } finally {
+      setSavingSubject(false);
     }
   };
 
@@ -132,10 +137,10 @@ export function SubjectDetail() {
               ))}
             </select>
           </label>
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={savingSubject}>
             Salvar
           </Button>
-          <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)}>
+          <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)} disabled={savingSubject}>
             Cancelar
           </Button>
         </form>
@@ -169,10 +174,15 @@ export function SubjectDetail() {
         subjectId={subjectId}
         workload={details.workload}
         absences={details.absences}
-        onChange={reload}
+        onSaved={(next) => patch((prev) => ({ ...prev, absences: next }))}
       />
 
-      <ScheduleSection subjectId={subjectId} schedules={details.schedules} onChange={reload} />
+      <ScheduleSection
+        subjectId={subjectId}
+        schedules={details.schedules}
+        onCreated={(schedule) => patch((prev) => ({ ...prev, schedules: [...prev.schedules, schedule] }))}
+        onDeleted={(id) => patch((prev) => ({ ...prev, schedules: prev.schedules.filter((s) => s.id !== id) }))}
+      />
 
       <SyllabusSection
         subjectId={subjectId}

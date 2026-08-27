@@ -15,11 +15,13 @@ const ROOM_DATALIST_ID = "schedule-known-rooms";
 export function ScheduleSection({
   subjectId,
   schedules,
-  onChange,
+  onCreated,
+  onDeleted,
 }: {
   subjectId: number;
   schedules: Schedule[];
-  onChange: () => void;
+  onCreated: (schedule: Schedule) => void;
+  onDeleted: (id: number) => void;
 }) {
   const { notify } = useToast();
   const [formOpen, setFormOpen] = useState(false);
@@ -129,14 +131,14 @@ export function ScheduleSection({
     if (!weekday || !startTime || !endTime || submitting) return;
     setSubmitting(true);
     try {
-      await schedulesApi.create({ subjectId, weekday, startTime, endTime, room: room || null });
+      const [created] = await schedulesApi.create({ subjectId, weekday, startTime, endTime, room: room || null });
+      onCreated(created);
       notify("Horário adicionado", "success");
       setWeekday("");
       setStartTime("");
       setEndTime("");
       setRoom("");
       setFormOpen(false);
-      onChange();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao adicionar horário", "error");
     } finally {
@@ -147,8 +149,8 @@ export function ScheduleSection({
   const handleDelete = async (id: number) => {
     try {
       await schedulesApi.remove(id);
+      onDeleted(id);
       notify("Horário removido", "success");
-      onChange();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao remover horário", "error");
     }

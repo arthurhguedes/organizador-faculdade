@@ -12,12 +12,12 @@ export function AttendanceSection({
   subjectId,
   workload,
   absences,
-  onChange,
+  onSaved,
 }: {
   subjectId: number;
   workload: number;
   absences: number;
-  onChange: () => Promise<unknown>;
+  onSaved: (nextAbsences: number) => void;
 }) {
   const { notify } = useToast();
   const [localAbsences, setLocalAbsences] = useState(absences);
@@ -56,7 +56,7 @@ export function AttendanceSection({
     debounceTimer.current = setTimeout(async () => {
       try {
         await updateSubjectAbsences(subjectId, next);
-        await onChange();
+        onSaved(next);
       } catch (err) {
         notify(err instanceof ApiError ? err.message : "Erro ao atualizar faltas", "error");
       } finally {
