@@ -48,6 +48,10 @@ export function useSubjectDetails(id: number | null) {
   // esse patch quando responder depois.
   const patch = useCallback((updater: (prev: SubjectDetails) => SubjectDetails) => {
     generationRef.current++;
+    // Um load() que essa geração deixou pra trás nunca mais vai poder chamar
+    // seu próprio setLoading(false) (a resposta dele vai ser ignorada) —
+    // então tira o loading aqui, senão a página fica presa no skeleton.
+    setLoading(false);
     setDetails((prev) => (prev ? updater(prev) : prev));
   }, []);
 

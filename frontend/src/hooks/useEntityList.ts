@@ -21,14 +21,32 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const creatingRef = useRef(false);
   const pendingIdsRef = useRef(new Set<number>());
 
+  // Cada load()/create()/update()/remove() sobe essa "geração". Uma resposta
+  // de load() só é aplicada se nada mais recente aconteceu desde que foi
+  // disparada — sem isso, o StrictMode do React dispara o efeito de
+  // montagem 2x em dev (e mesmo em produção duas requisições podem responder
+  // fora de ordem), e uma resposta de montagem atrasada podia sobrescrever
+  // um item criado/editado/removido logo após a página abrir (mesma raiz do
+  // bug já corrigido em useSubjectDetails).
+  const generationRef = useRef(0);
+
   const load = useCallback(() => {
+    const generation = ++generationRef.current;
     setLoading(true);
     setError(null);
     api
       .list()
-      .then(setItems)
-      .catch((err) => setError(err instanceof Error ? err.message : "Erro ao carregar"))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (generationRef.current === generation) setItems(data);
+      })
+      .catch((err) => {
+        if (generationRef.current === generation) {
+          setError(err instanceof Error ? err.message : "Erro ao carregar");
+        }
+      })
+      .finally(() => {
+        if (generationRef.current === generation) setLoading(false);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -39,6 +57,11 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const create = async (body: TInput, successMessage = "Criado com sucesso") => {
     if (creatingRef.current) return false;
     creatingRef.current = true;
+    generationRef.current++;
+    // Um load() que essa geração deixou pra trás nunca mais vai poder chamar
+    // seu próprio setLoading(false) (a resposta dele vai ser ignorada) —
+    // então tira o loading aqui, senão a lista fica presa no skeleton.
+    setLoading(false);
     try {
       const created = await api.create(body);
       setItems((prev) => [...prev, ...created]);
@@ -55,6 +78,8 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const update = async (id: number, body: TInput, successMessage = "Atualizado com sucesso") => {
     if (pendingIdsRef.current.has(id)) return false;
     pendingIdsRef.current.add(id);
+    generationRef.current++;
+    setLoading(false);
 
     // Otimista: aplica a mudança na tela na hora (ex: risco no checklist),
     // sem esperar a ida-e-volta até o Neon — só reverte se a requisição falhar.
@@ -82,6 +107,8 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const remove = async (id: number, successMessage = "Removido com sucesso") => {
     if (pendingIdsRef.current.has(id)) return false;
     pendingIdsRef.current.add(id);
+    generationRef.current++;
+    setLoading(false);
     try {
       await api.remove(id);
       setItems((prev) => prev.filter((item) => item.id !== id));

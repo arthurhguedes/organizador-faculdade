@@ -58,6 +58,10 @@ export function useDashboardData(periodIds: number[]) {
   // data de uma prova arrastando no Calendário) sem refazer o N+1 inteiro.
   const patchSubject = useCallback((subjectId: number, updater: (prev: SubjectDetails) => SubjectDetails) => {
     generationRef.current++;
+    // Um load() que essa geração deixou pra trás nunca mais vai poder chamar
+    // seu próprio setLoading(false) (a resposta dele vai ser ignorada) —
+    // então tira o loading aqui, senão a página fica presa no skeleton.
+    setLoading(false);
     setSubjects((prev) => prev.map((s) => (s.id === subjectId ? updater(s) : s)));
   }, []);
 
