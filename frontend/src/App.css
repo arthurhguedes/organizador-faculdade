@@ -1995,7 +1995,13 @@ button.month-calendar__event {
   outline: none;
 }
 
+/* min-width igual ao de .editable-cell-input de propósito: sem isso, clicar
+   pra editar um valor curto (ex: peso "2") alargava a célula na hora pro
+   tamanho do input, empurrando o resto da linha da tabela. */
 .editable-cell {
+  display: inline-block;
+  box-sizing: border-box;
+  min-width: 96px;
   border: 1px solid transparent;
   background: transparent;
   border-radius: var(--radius-sm);
@@ -2018,12 +2024,16 @@ button.month-calendar__event {
 }
 
 .editable-cell-input {
+  appearance: none;
+  box-sizing: border-box;
   width: 100%;
   min-width: 96px;
+  margin: 0;
   padding: 2px var(--space-2);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   font: inherit;
+  line-height: inherit;
   outline: none;
 }
 

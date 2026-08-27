@@ -187,9 +187,12 @@ export function SubjectDetail() {
         entries={details.syllabusEntries}
         onUpdateAssessment={async (assessmentId, field, value) => {
           try {
-            const { message } = await syllabusAssessmentsApi.update(assessmentId, { [field]: value });
+            const { assessment, message } = await syllabusAssessmentsApi.update(assessmentId, { [field]: value });
+            patch((prev) => ({
+              ...prev,
+              assessments: prev.assessments.map((a) => (a.id === assessmentId ? assessment : a)),
+            }));
             notify(message, "success");
-            reload();
           } catch (err) {
             notify(err instanceof ApiError ? err.message : "Erro ao atualizar avaliação", "error");
           }
