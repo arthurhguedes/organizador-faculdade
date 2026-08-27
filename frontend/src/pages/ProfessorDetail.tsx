@@ -48,6 +48,7 @@ export function ProfessorDetail() {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [savingProfessor, setSavingProfessor] = useState(false);
 
   useEffect(() => {
     if (professor) {
@@ -84,14 +85,17 @@ export function ProfessorDetail() {
 
   const saveProfessor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) return;
+    if (!name || !email || savingProfessor) return;
+    setSavingProfessor(true);
     try {
-      await professorsApi.update(professorId, { name, email });
+      const [updated] = await professorsApi.update(professorId, { name, email });
+      setProfessor(updated);
       notify("Professor atualizado", "success");
       setEditing(false);
-      load();
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar professor", "error");
+    } finally {
+      setSavingProfessor(false);
     }
   };
 
@@ -115,10 +119,10 @@ export function ProfessorDetail() {
         <form className="inline-form" onSubmit={saveProfessor}>
           <Field label="Nome" value={name} onChange={(e) => setName(e.target.value)} required />
           <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Button type="submit" variant="primary">
+          <Button type="submit" variant="primary" loading={savingProfessor}>
             Salvar
           </Button>
-          <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)}>
+          <Button type="button" variant="ghost" icon={X} onClick={() => setEditing(false)} disabled={savingProfessor}>
             Cancelar
           </Button>
         </form>
