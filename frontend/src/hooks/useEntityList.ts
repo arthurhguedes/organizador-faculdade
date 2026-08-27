@@ -55,12 +55,23 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
   const update = async (id: number, body: TInput, successMessage = "Atualizado com sucesso") => {
     if (pendingIdsRef.current.has(id)) return false;
     pendingIdsRef.current.add(id);
+
+    // Otimista: aplica a mudança na tela na hora (ex: risco no checklist),
+    // sem esperar a ida-e-volta até o Neon — só reverte se a requisição falhar.
+    let previous: T | undefined;
+    setItems((prev) => {
+      previous = prev.find((item) => item.id === id);
+      if (!previous) return prev;
+      return prev.map((item) => (item.id === id ? ({ ...previous, ...body, id } as T) : item));
+    });
+
     try {
       const [updated] = await api.update(id, body);
       setItems((prev) => prev.map((item) => (item.id === id ? updated : item)));
       notify(successMessage, "success");
       return true;
     } catch (err) {
+      setItems((prev) => (previous ? prev.map((item) => (item.id === id ? previous! : item)) : prev));
       notify(err instanceof ApiError ? err.message : "Erro ao atualizar", "error");
       return false;
     } finally {
