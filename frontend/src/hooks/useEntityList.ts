@@ -87,7 +87,7 @@ export function useEntityList<T extends { id: number }, TInput>(api: ListApi<T, 
     setItems((prev) => {
       previous = prev.find((item) => item.id === id);
       if (!previous) return prev;
-      return prev.map((item) => (item.id === id ? ({ ...previous, ...body, id } as T) : item));
+      return prev.map((item) => (item.id === id ? ({ ...previous, ...body, id } as unknown as T) : item));
     });
 
     try {
