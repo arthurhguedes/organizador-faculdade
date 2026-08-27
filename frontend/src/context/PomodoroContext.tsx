@@ -193,12 +193,21 @@ export function PomodoroProvider({ children }: { children: ReactNode }) {
   }, [phase, running, phaseEndAt, pausedSecondsLeft, cyclesCompleted, focusMin, breakMin, longBreakMin, subjectId, topic]);
 
   const start = () => {
-    setPhaseEndAt(Date.now() + pausedSecondsLeft * 1000);
+    const startedAt = Date.now();
+    setNow(startedAt);
+    setPhaseEndAt(startedAt + pausedSecondsLeft * 1000);
     setRunning(true);
   };
 
+  // Calcula a partir de Date.now() direto, não do `secondsLeft` reativo:
+  // esse deriva do state `now`, que só é atualizado pelo setInterval de 1s
+  // enquanto `running` — clicar em pausar antes do primeiro tick pausaria
+  // com um `now` desatualizado, inflando `pausedSecondsLeft` a cada ciclo
+  // start/pause rápido.
   const pause = () => {
-    setPausedSecondsLeft(secondsLeft);
+    const freshSecondsLeft =
+      phaseEndAt !== null ? Math.max(0, Math.round((phaseEndAt - Date.now()) / 1000)) : pausedSecondsLeft;
+    setPausedSecondsLeft(freshSecondsLeft);
     setPhaseEndAt(null);
     setRunning(false);
   };
