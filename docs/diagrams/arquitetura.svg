@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 580" width="1200" height="580" role="img" aria-label="Arquitetura do Notary: navegador React faz o parsing de PDF e planilha, conversa por JSON com uma API Express que acessa o Postgres no Neon via Drizzle">
+  <defs>
+    <clipPath id="c"><rect width="1200" height="580" rx="16"/></clipPath>
+  </defs>
+  <g clip-path="url(#c)" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif">
+    <rect width="1200" height="580" fill="#141416"/>
+
+    <text x="32" y="42" font-size="13" font-weight="600" fill="#8f8f96" letter-spacing="1.4">ARQUITETURA</text>
+
+    <!-- entradas -->
+    <g>
+      <rect x="32" y="66" width="214" height="58" rx="9" fill="#1a1a1e" stroke="#332225"/>
+      <text x="48" y="90" font-size="14" font-weight="600" fill="#f0eef2">PDF</text>
+      <text x="48" y="110" font-size="12" fill="#8f8f96">histórico · atestado · plano de ensino</text>
+
+      <rect x="258" y="66" width="214" height="58" rx="9" fill="#1a1a1e" stroke="#332225"/>
+      <text x="274" y="90" font-size="14" font-weight="600" fill="#f0eef2">Planilha de oferta</text>
+      <text x="274" y="110" font-size="12" fill="#8f8f96">.xlsx · .xls · .csv</text>
+    </g>
+
+    <g stroke="#332225" stroke-width="1.5">
+      <line x1="139" y1="124" x2="139" y2="176"/>
+      <line x1="365" y1="124" x2="365" y2="176"/>
+    </g>
+    <polygon points="139,184 133,172 145,172" fill="#332225"/>
+    <polygon points="365,184 359,172 371,172" fill="#332225"/>
+
+    <rect x="524" y="66" width="4" height="58" rx="2" fill="#7a2748"/>
+    <text x="546" y="90" font-size="14" font-weight="600" fill="#c66184">Parsing 100% no navegador</text>
+    <text x="546" y="112" font-size="13" fill="#b8b8bd">o back-end nunca recebe arquivo — só dados já estruturados</text>
+
+    <!-- card 1: navegador -->
+    <rect x="32" y="190" width="340" height="300" rx="12" fill="#1e1e21" stroke="#332225"/>
+    <text x="56" y="226" font-size="17" font-weight="700" fill="#f0eef2">Navegador</text>
+    <text x="56" y="248" font-size="12.5" fill="#8f8f96">React 19 + Vite · React Router</text>
+    <line x1="32" y1="266" x2="372" y2="266" stroke="#332225"/>
+    <g font-size="13" fill="#b8b8bd">
+      <rect x="56" y="284" width="292" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="72" y="306" font-weight="600" fill="#f0eef2">Context API</text>
+      <text x="72" y="325" font-size="12">auth · tema · período · pomodoro · toast</text>
+
+      <rect x="56" y="348" width="292" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="72" y="370" font-weight="600" fill="#f0eef2">Parsers</text>
+      <text x="72" y="389" font-size="12">pdfjs-dist (worker) · xlsx (SheetJS)</text>
+
+      <rect x="56" y="412" width="292" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="72" y="434" font-weight="600" fill="#f0eef2">Cálculo e saída</text>
+      <text x="72" y="453" font-size="12">médias · coeficiente · gráficos SVG · export .xlsx</text>
+    </g>
+
+    <!-- seta 1 -->
+    <g stroke="#4a3238" stroke-width="1.5">
+      <line x1="378" y1="316" x2="478" y2="316"/>
+      <line x1="484" y1="364" x2="384" y2="364"/>
+    </g>
+    <polygon points="486,316 472,310 472,322" fill="#4a3238"/>
+    <polygon points="376,364 390,358 390,370" fill="#4a3238"/>
+    <text x="432" y="304" text-anchor="middle" font-size="11.5" fill="#8f8f96">HTTP · JSON</text>
+    <text x="432" y="388" text-anchor="middle" font-size="11.5" fill="#8f8f96">cookie httpOnly</text>
+
+    <!-- card 2: API -->
+    <rect x="490" y="190" width="300" height="300" rx="12" fill="#1e1e21" stroke="#332225"/>
+    <text x="514" y="226" font-size="17" font-weight="700" fill="#f0eef2">API</text>
+    <text x="514" y="248" font-size="12.5" fill="#8f8f96">Node.js + Express 5</text>
+    <line x1="490" y1="266" x2="790" y2="266" stroke="#332225"/>
+    <g font-size="13" fill="#b8b8bd">
+      <rect x="514" y="284" width="252" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="530" y="306" font-weight="600" fill="#f0eef2">Better Auth</text>
+      <text x="530" y="325" font-size="12">/api/auth/* · e-mail+senha · Google</text>
+
+      <rect x="514" y="348" width="252" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="530" y="370" font-weight="600" fill="#f0eef2">requireAuth</text>
+      <text x="530" y="389" font-size="12">valida a sessão → injeta req.userId</text>
+
+      <rect x="514" y="412" width="252" height="52" rx="8" fill="#1a1a1e" stroke="#332225"/>
+      <text x="530" y="434" font-weight="600" fill="#f0eef2">13 routers</text>
+      <text x="530" y="453" font-size="12">9 gerados por factory · validação Zod</text>
+    </g>
+
+    <!-- seta 2 -->
+    <g stroke="#4a3238" stroke-width="1.5">
+      <line x1="796" y1="316" x2="856" y2="316"/>
+      <line x1="862" y1="364" x2="802" y2="364"/>
+    </g>
+    <polygon points="864,316 850,310 850,322" fill="#4a3238"/>
+    <polygon points="794,364 808,358 808,370" fill="#4a3238"/>
+    <text x="829" y="344" text-anchor="middle" font-size="11.5" fill="#8f8f96">Drizzle</text>
+
+    <!-- card 3: banco -->
+    <rect x="868" y="190" width="300" height="300" rx="12" fill="#1e1e21" stroke="#332225"/>
+    <text x="892" y="226" font-size="17" font-weight="700" fill="#f0eef2">PostgreSQL</text>
+    <text x="892" y="248" font-size="12.5" fill="#8f8f96">hospedado no Neon · Drizzle ORM</text>
+    <line x1="868" y1="266" x2="1168" y2="266" stroke="#332225"/>
+    <g font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="26" font-weight="600" fill="#c66184">
+      <text x="892" y="316">20</text>
+      <text x="892" y="382">16</text>
+      <text x="892" y="448">33</text>
+    </g>
+    <g font-size="13" fill="#b8b8bd">
+      <text x="952" y="310">tabelas</text>
+      <text x="952" y="376">tabelas do app</text>
+      <text x="952" y="442">índices</text>
+    </g>
+    <g font-size="12" fill="#8f8f96">
+      <text x="952" y="328">4 do Better Auth · 16 do app</text>
+      <text x="952" y="394">todas com user_id — multi-tenant</text>
+      <text x="952" y="460">um por padrão de query real</text>
+    </g>
+
+    <!-- deploy -->
+    <line x1="32" y1="522" x2="1168" y2="522" stroke="#332225"/>
+    <g font-size="12" fill="#8f8f96">
+      <text x="32" y="552">Front-end na <tspan fill="#b8b8bd">Vercel</tspan></text>
+      <text x="490" y="552">API no <tspan fill="#b8b8bd">Render</tspan></text>
+      <text x="868" y="552">Banco no <tspan fill="#b8b8bd">Neon</tspan></text>
+    </g>
+  </g>
+</svg>

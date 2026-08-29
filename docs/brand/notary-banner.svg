@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 260" width="1200" height="260" role="img" aria-label="Notary — organize matérias, horários, provas e notas">
+  <defs>
+    <clipPath id="card"><rect width="1200" height="260" rx="16"/></clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="1200" height="260" fill="#141416"/>
+
+    <!-- papel pautado do razão -->
+    <g stroke="#332225" stroke-width="1" opacity="0.45">
+      <line x1="0" y1="52" x2="1200" y2="52"/>
+      <line x1="0" y1="84" x2="1200" y2="84"/>
+      <line x1="0" y1="116" x2="1200" y2="116"/>
+      <line x1="0" y1="148" x2="1200" y2="148"/>
+      <line x1="0" y1="180" x2="1200" y2="180"/>
+      <line x1="0" y1="212" x2="1200" y2="212"/>
+    </g>
+
+    <!-- marca (mesma do app: frontend/public/favicon.svg) -->
+    <g transform="translate(72,92) scale(1.5833)" fill="none">
+      <circle cx="24" cy="24" r="22" fill="#8c2a42"/>
+      <circle cx="24" cy="24" r="17" fill="none" stroke="#da5878" stroke-width="2"/>
+      <path d="M15.5 24.5L21 30L32.5 18" stroke="#fdf3f4" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <text x="180" y="140" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="62" font-weight="700" fill="#f0eef2" letter-spacing="-1.5">Notary</text>
+    <text x="184" y="180" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="20" font-weight="400" fill="#b8b8bd">Matérias, horários, provas e notas — sem depender do portal da faculdade.</text>
+
+    <!-- selo lateral -->
+    <g transform="translate(1010,86)">
+      <rect width="118" height="88" rx="11" fill="#1e1e21" stroke="#332225"/>
+      <text x="59" y="40" text-anchor="middle" font-family="JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="30" font-weight="600" fill="#c66184">8,7</text>
+      <line x1="20" y1="54" x2="98" y2="54" stroke="#332225"/>
+      <text x="59" y="72" text-anchor="middle" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif" font-size="12" fill="#8f8f96" letter-spacing="0.6">COEFICIENTE</text>
+    </g>
+
+    <rect y="256" width="1200" height="4" fill="#7a2748"/>
+  </g>
+</svg>
