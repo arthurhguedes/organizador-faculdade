@@ -11,3 +11,6 @@ npm-debug.log*
 .vscode/
 .idea/
 .DS_Store
+
+# Quadro de tarefas local (não versionado)
+TODO.md
