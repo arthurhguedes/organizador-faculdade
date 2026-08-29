@@ -34,11 +34,19 @@ export function AttendanceSection({
     setLocalAbsences(absences);
   }, [absences]);
 
+  // Ao desmontar (ou trocar de matéria) com um clique ainda no debounce, o
+  // certo é gravar o valor pendente — antes o timer era só cancelado, e um
+  // +1 seguido de sair da página em menos de 400ms perdia a falta em silêncio.
   useEffect(() => {
     return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      if (!debounceTimer.current) return;
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = null;
+      if (!pendingSave.current) return;
+      pendingSave.current = false;
+      updateSubjectAbsences(subjectId, valueRef.current).catch(() => {});
     };
-  }, []);
+  }, [subjectId]);
 
   const max = maxAbsences(workload);
   const remaining = Math.max(max - localAbsences, 0);
@@ -54,6 +62,9 @@ export function AttendanceSection({
 
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
+      // Zera o timer antes de sair pra rede: a partir daqui o salvamento já
+      // está em voo, e o flush de desmontagem não deve repetir a requisição.
+      debounceTimer.current = null;
       try {
         await updateSubjectAbsences(subjectId, next);
         onSaved(next);

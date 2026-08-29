@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { subjectsApi, getSubjectDetails } from "../api/client";
+import { isOverdue } from "../lib/grades";
 import type { SubjectDetails } from "../api/types";
 
 export type UpcomingItem = {
@@ -86,6 +87,11 @@ export function useDashboardData(periodIds: number[]) {
         grade: e.grade,
       })),
     ])
+    // "Próximas" tem que ser o que ainda pede alguma ação: o que já passou e
+    // já tem nota está encerrado e só empurrava o que de fato vem a seguir
+    // pro fim de uma lista ordenada por data crescente. O que passou sem nota
+    // continua aqui — é justamente o que aparece com o selo "atrasada".
+    .filter((item) => item.grade === null || !isOverdue(item.date))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   return { subjects, upcoming, loading, error, refresh: () => setVersion((v) => v + 1), patchSubject };

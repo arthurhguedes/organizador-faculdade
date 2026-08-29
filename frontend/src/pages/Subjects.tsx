@@ -80,7 +80,10 @@ export function Subjects() {
         notify(err instanceof ApiError ? err.message : `Erro ao remover matéria #${id}`, "error");
       }
     }
-    notify(`${succeeded} matéria(s) removida(s)`, "success");
+    // Só anuncia sucesso se alguma coisa foi de fato removida — quando todas
+    // falham, o usuário já recebeu o erro de cada uma e um "0 matéria(s)
+    // removida(s)" verde por cima disso só confunde.
+    if (succeeded > 0) notify(`${succeeded} matéria(s) removida(s)`, "success");
     setSelectedIds(new Set());
     setSelectMode(false);
     setBulkDeleting(false);

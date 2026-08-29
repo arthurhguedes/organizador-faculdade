@@ -46,7 +46,10 @@ const SOCIAL_FIELDS: Array<{
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
 
 function calculateAge(birthDate: string): number {
-  const birth = new Date(birthDate);
+  // "T00:00:00" força meia-noite local: sem isso o JS lê "YYYY-MM-DD" como
+  // UTC e os getters locais devolvem o dia anterior em fuso negativo (Brasil),
+  // fazendo a idade virar um dia antes do aniversário de verdade.
+  const birth = new Date(`${birthDate}T00:00:00`);
   const now = new Date();
   let age = now.getFullYear() - birth.getFullYear();
   const hasNotHadBirthdayThisYear =
