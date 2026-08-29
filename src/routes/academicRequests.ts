@@ -2,12 +2,23 @@ import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
-import { parseId } from "../lib/http.js";
+import { parseId, isForeignKeyViolation } from "../lib/http.js";
 
 const router = Router();
 
 const VALID_TYPES = ["prerequisite_waiver", "enrollment_adjustment", "leave_of_absence", "credit_recognition"];
 const VALID_STATUSES = ["pendente", "aprovado", "recusado"];
+
+// Mesmo padrão das outras rotas: um subjectId de outro usuário (ou
+// inexistente) tem que virar 400, não uma linha apontando pra matéria alheia
+// nem um 500 de violação de FK.
+async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
+  const [subject] = await db
+    .select({ id: schema.subjects.id })
+    .from(schema.subjects)
+    .where(and(eq(schema.subjects.id, subjectId), eq(schema.subjects.userId, userId)));
+  return Boolean(subject);
+}
 
 router.get("/", async (req, res) => {
   try {
@@ -56,6 +67,10 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
     const newItem = await db.insert(schema.academicRequests).values({
       type,
       subjectId: subjectId || null,
@@ -69,6 +84,9 @@ router.post("/", async (req, res) => {
     res.json(newItem);
   } catch (err) {
     console.error(err);
+    if (isForeignKeyViolation(err)) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
     res.status(500).json({ message: "Erro ao criar requerimento" });
   }
 });
@@ -91,6 +109,10 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
+    if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
+
     const updated = await db
       .update(schema.academicRequests)
       .set({
@@ -111,6 +133,9 @@ router.put("/:id", async (req, res) => {
     res.json(updated);
   } catch (err) {
     console.error(err);
+    if (isForeignKeyViolation(err)) {
+      return res.status(400).json({ message: "subjectId não existe" });
+    }
     res.status(500).json({ message: "Erro ao atualizar requerimento" });
   }
 });

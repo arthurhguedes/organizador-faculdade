@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq, inArray } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { clearSubjectDependencies } from "../lib/cascade.js";
 
 const router = Router();
 
@@ -100,9 +101,7 @@ router.delete("/:id", async (req, res) => {
       const subjectIds = linkedSubjects.map((s) => s.id);
 
       if (subjectIds.length > 0) {
-        await tx.delete(schema.schedules).where(and(inArray(schema.schedules.subjectId, subjectIds), eq(schema.schedules.userId, userId)));
-        await tx.delete(schema.assignments).where(and(inArray(schema.assignments.subjectId, subjectIds), eq(schema.assignments.userId, userId)));
-        await tx.delete(schema.exams).where(and(inArray(schema.exams.subjectId, subjectIds), eq(schema.exams.userId, userId)));
+        await clearSubjectDependencies(tx, userId, subjectIds);
         await tx.delete(schema.subjects).where(and(inArray(schema.subjects.id, subjectIds), eq(schema.subjects.userId, userId)));
       }
 

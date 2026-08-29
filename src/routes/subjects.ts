@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { clearSubjectDependencies } from "../lib/cascade.js";
 
 const router = Router();
 
@@ -18,6 +19,19 @@ async function ownsPeriodAndProfessor(userId: number, periodId: number, professo
   return Boolean(period) && Boolean(professor);
 }
 
+function groupBySubject<T extends { subjectId: number }>(rows: T[]): Map<number, T[]> {
+  const grouped = new Map<number, T[]>();
+  for (const row of rows) {
+    const list = grouped.get(row.subjectId);
+    if (list) {
+      list.push(row);
+    } else {
+      grouped.set(row.subjectId, [row]);
+    }
+  }
+  return grouped;
+}
+
 router.get("/", async (req, res) => {
   try {
     const subjects = await db.select().from(schema.subjects).where(eq(schema.subjects.userId, req.userId!));
@@ -25,6 +39,53 @@ router.get("/", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Erro ao buscar matérias" });
+  }
+});
+
+// Detalhes de todas as matérias de uma vez. O Dashboard, o Calendário, o sino
+// de notificações e a exportação precisam dos filhos de várias matérias ao
+// mesmo tempo e faziam um GET por matéria (N+1: abrir o Dashboard com 6
+// matérias eram ~7 requisições, e o sino, que fica no TopBar, repetia tudo em
+// toda página). Aqui são 7 queries fixas — uma por tabela, filtrada só por
+// `user_id` —, independentemente de quantas matérias o usuário tem; o
+// agrupamento por matéria é feito em memória.
+//
+// Precisa vir declarada antes de `GET /:id`: o Express casa na ordem, e
+// "/details" bateria naquela rota com `id = "details"`.
+router.get("/details", async (req, res) => {
+  try {
+    const userId = req.userId!;
+    const [subjects, schedules, assignments, exams, syllabusEntries, topics, assessments] = await Promise.all([
+      db.select().from(schema.subjects).where(eq(schema.subjects.userId, userId)),
+      db.select().from(schema.schedules).where(eq(schema.schedules.userId, userId)),
+      db.select().from(schema.assignments).where(eq(schema.assignments.userId, userId)),
+      db.select().from(schema.exams).where(eq(schema.exams.userId, userId)),
+      db.select().from(schema.syllabusEntries).where(eq(schema.syllabusEntries.userId, userId)),
+      db.select().from(schema.syllabusTopics).where(eq(schema.syllabusTopics.userId, userId)),
+      db.select().from(schema.syllabusAssessments).where(eq(schema.syllabusAssessments.userId, userId)),
+    ]);
+
+    const schedulesBySubject = groupBySubject(schedules);
+    const assignmentsBySubject = groupBySubject(assignments);
+    const examsBySubject = groupBySubject(exams);
+    const syllabusBySubject = groupBySubject(syllabusEntries);
+    const topicsBySubject = groupBySubject(topics);
+    const assessmentsBySubject = groupBySubject(assessments);
+
+    res.json(
+      subjects.map((subject) => ({
+        ...subject,
+        schedules: schedulesBySubject.get(subject.id) ?? [],
+        assignments: assignmentsBySubject.get(subject.id) ?? [],
+        exams: examsBySubject.get(subject.id) ?? [],
+        syllabusEntries: syllabusBySubject.get(subject.id) ?? [],
+        topics: topicsBySubject.get(subject.id) ?? [],
+        assessments: assessmentsBySubject.get(subject.id) ?? [],
+      })),
+    );
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erro ao buscar detalhes das matérias" });
   }
 });
 
@@ -205,12 +266,7 @@ router.delete("/:id", async (req, res) => {
   try {
     const deleted = await db.transaction(async (tx) => {
       const userId = req.userId!;
-      await tx.delete(schema.schedules).where(and(eq(schema.schedules.subjectId, id), eq(schema.schedules.userId, userId)));
-      await tx.delete(schema.assignments).where(and(eq(schema.assignments.subjectId, id), eq(schema.assignments.userId, userId)));
-      await tx.delete(schema.exams).where(and(eq(schema.exams.subjectId, id), eq(schema.exams.userId, userId)));
-      await tx.delete(schema.syllabusEntries).where(and(eq(schema.syllabusEntries.subjectId, id), eq(schema.syllabusEntries.userId, userId)));
-      await tx.delete(schema.syllabusTopics).where(and(eq(schema.syllabusTopics.subjectId, id), eq(schema.syllabusTopics.userId, userId)));
-      await tx.delete(schema.syllabusAssessments).where(and(eq(schema.syllabusAssessments.subjectId, id), eq(schema.syllabusAssessments.userId, userId)));
+      await clearSubjectDependencies(tx, userId, [id]);
       return tx
         .delete(schema.subjects)
         .where(and(eq(schema.subjects.id, id), eq(schema.subjects.userId, userId)))
