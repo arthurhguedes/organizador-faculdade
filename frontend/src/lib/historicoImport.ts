@@ -69,9 +69,10 @@ async function extractLines(file: File): Promise<string[]> {
   return lines;
 }
 
-export async function parseHistoricoPdf(file: File): Promise<ParsedHistorico> {
-  const lines = await extractLines(file);
-
+// Separado de `parseHistoricoPdf` pra deixar o casamento das regexes testável a
+// partir de linhas já extraídas, sem `pdfjs-dist` nem o PDF real (que tem nome,
+// matrícula e notas do usuário) — ver `historicoImport.test.ts`.
+export function parseHistoricoLines(lines: string[]): ParsedHistorico {
   const entries: HistoricoEntry[] = [];
   const professors: HistoricoProfessor[] = [];
 
@@ -108,4 +109,8 @@ export async function parseHistoricoPdf(file: File): Promise<ParsedHistorico> {
   }
 
   return { entries, professors };
+}
+
+export async function parseHistoricoPdf(file: File): Promise<ParsedHistorico> {
+  return parseHistoricoLines(await extractLines(file));
 }

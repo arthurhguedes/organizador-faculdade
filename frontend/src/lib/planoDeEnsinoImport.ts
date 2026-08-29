@@ -24,8 +24,8 @@ export type SyllabusPdfImport = {
   assessments: SyllabusPdfAssessment[];
 };
 
-type PdfItem = { x: number; str: string };
-type PdfLine = { page: number; y: number; text: string; items: PdfItem[] };
+export type PdfItem = { x: number; str: string };
+export type PdfLine = { page: number; y: number; text: string; items: PdfItem[] };
 
 // Linha de aula do cronograma aula-a-aula: "16 Teórica 21/05/2026 1ª Prova
 // Teórica" — número, tipo (Teórica/Prática/"-" pra feriado), data, início do
@@ -153,7 +153,7 @@ async function extractLines(file: File): Promise<PdfLine[]> {
         };
       });
 
-    lines.push(...pageLines.filter((l) => !SEI_PAGE_HEADER.test(l.text) && !SEI_PAGE_FOOTER.test(l.text)));
+    lines.push(...pageLines);
   }
 
   return lines;
@@ -552,11 +552,15 @@ function parseAtividadesAvaliativasList(lines: PdfLine[]): SyllabusPdfAssessment
   return assessments;
 }
 
-export async function parsePlanoDeEnsinoPdf(
-  file: File,
+// Separado de `parsePlanoDeEnsinoPdf` pra manter toda a heurística (que é a
+// parte frágil: gap vertical, binning por coluna, detecção de formato) testável
+// a partir de linhas já extraídas, sem depender do `pdfjs-dist` nem de um PDF
+// real — ver `planoDeEnsinoImport.test.ts`.
+export function parsePlanoDeEnsinoLines(
+  rawLines: PdfLine[],
   periodStartYear: number | null = null,
-): Promise<SyllabusPdfImport> {
-  const lines = await extractLines(file);
+): SyllabusPdfImport {
+  const lines = rawLines.filter((l) => !SEI_PAGE_HEADER.test(l.text) && !SEI_PAGE_FOOTER.test(l.text));
 
   const topics = parseTopics(lines);
   const tableAssessments = parseAvaliacaoTable(lines);
@@ -580,4 +584,11 @@ export async function parsePlanoDeEnsinoPdf(
   }
 
   return { format: "weekly", entries: parseWeeklyListCronograma(cronogramaLines), topics, assessments };
+}
+
+export async function parsePlanoDeEnsinoPdf(
+  file: File,
+  periodStartYear: number | null = null,
+): Promise<SyllabusPdfImport> {
+  return parsePlanoDeEnsinoLines(await extractLines(file), periodStartYear);
 }

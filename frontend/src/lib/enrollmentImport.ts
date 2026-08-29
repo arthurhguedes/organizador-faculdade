@@ -56,8 +56,9 @@ async function extractLines(file: File): Promise<string[]> {
   return lines;
 }
 
-export async function parseEnrollmentPdf(file: File): Promise<EnrollmentEntry[]> {
-  const lines = await extractLines(file);
+// Separado de `parseEnrollmentPdf` pelo mesmo motivo do histórico: o atestado
+// real tem dados pessoais, então o teste roda sobre linhas já extraídas.
+export function parseEnrollmentLines(lines: string[]): EnrollmentEntry[] {
   const entries: EnrollmentEntry[] = [];
   const seen = new Set<string>();
 
@@ -72,4 +73,8 @@ export async function parseEnrollmentPdf(file: File): Promise<EnrollmentEntry[]>
   }
 
   return entries;
+}
+
+export async function parseEnrollmentPdf(file: File): Promise<EnrollmentEntry[]> {
+  return parseEnrollmentLines(await extractLines(file));
 }
