@@ -125,30 +125,36 @@ router.get("/:id/details", async (req, res) => {
       return res.status(404).json({ message: "Matéria não encontrada" });
     }
 
-    const subjectSchedules = await db
-      .select()
-      .from(schema.schedules)
-      .where(and(eq(schema.schedules.subjectId, id), eq(schema.schedules.userId, req.userId!)));
-    const subjectAssignments = await db
-      .select()
-      .from(schema.assignments)
-      .where(and(eq(schema.assignments.subjectId, id), eq(schema.assignments.userId, req.userId!)));
-    const subjectExams = await db
-      .select()
-      .from(schema.exams)
-      .where(and(eq(schema.exams.subjectId, id), eq(schema.exams.userId, req.userId!)));
-    const subjectSyllabus = await db
-      .select()
-      .from(schema.syllabusEntries)
-      .where(and(eq(schema.syllabusEntries.subjectId, id), eq(schema.syllabusEntries.userId, req.userId!)));
-    const subjectTopics = await db
-      .select()
-      .from(schema.syllabusTopics)
-      .where(and(eq(schema.syllabusTopics.subjectId, id), eq(schema.syllabusTopics.userId, req.userId!)));
-    const subjectAssessments = await db
-      .select()
-      .from(schema.syllabusAssessments)
-      .where(and(eq(schema.syllabusAssessments.subjectId, id), eq(schema.syllabusAssessments.userId, req.userId!)));
+    // Em paralelo, não em série: são 6 consultas independentes, e cada `await`
+    // sequencial era mais uma ida-e-volta até o Neon somada no tempo de
+    // resposta desta rota.
+    const [subjectSchedules, subjectAssignments, subjectExams, subjectSyllabus, subjectTopics, subjectAssessments] =
+      await Promise.all([
+        db
+          .select()
+          .from(schema.schedules)
+          .where(and(eq(schema.schedules.subjectId, id), eq(schema.schedules.userId, req.userId!))),
+        db
+          .select()
+          .from(schema.assignments)
+          .where(and(eq(schema.assignments.subjectId, id), eq(schema.assignments.userId, req.userId!))),
+        db
+          .select()
+          .from(schema.exams)
+          .where(and(eq(schema.exams.subjectId, id), eq(schema.exams.userId, req.userId!))),
+        db
+          .select()
+          .from(schema.syllabusEntries)
+          .where(and(eq(schema.syllabusEntries.subjectId, id), eq(schema.syllabusEntries.userId, req.userId!))),
+        db
+          .select()
+          .from(schema.syllabusTopics)
+          .where(and(eq(schema.syllabusTopics.subjectId, id), eq(schema.syllabusTopics.userId, req.userId!))),
+        db
+          .select()
+          .from(schema.syllabusAssessments)
+          .where(and(eq(schema.syllabusAssessments.subjectId, id), eq(schema.syllabusAssessments.userId, req.userId!))),
+      ]);
 
     res.json({
       ...subject,

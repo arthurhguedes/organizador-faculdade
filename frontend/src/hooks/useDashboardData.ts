@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { subjectsApi, getSubjectDetails } from "../api/client";
+import { getAllSubjectDetails } from "../api/client";
 import { isOverdue } from "../lib/grades";
 import type { SubjectDetails } from "../api/types";
 
@@ -37,12 +37,14 @@ export function useDashboardData(periodIds: number[]) {
     setLoading(true);
     setError(null);
 
-    subjectsApi
-      .list()
-      .then(async (all) => {
+    // Uma requisição só (antes: um GET da lista + um GET de detalhes por
+    // matéria). O endpoint devolve todas as matérias do usuário; o filtro por
+    // período fica aqui no client, já que o mesmo payload serve pro Dashboard
+    // (período selecionado) e pras estatísticas do curso inteiro.
+    getAllSubjectDetails()
+      .then((all) => {
         const periodSubjects = all.filter((s) => wantedPeriodIds.has(s.periodId));
-        const details = await Promise.all(periodSubjects.map((s) => getSubjectDetails(s.id)));
-        if (generationRef.current === generation) setSubjects(details);
+        if (generationRef.current === generation) setSubjects(periodSubjects);
       })
       .catch((err) => {
         if (generationRef.current === generation) {
@@ -56,7 +58,7 @@ export function useDashboardData(periodIds: number[]) {
   }, [periodIdsKey, version]);
 
   // Deixa quem chama aplicar uma mudança pontual numa matéria (ex: mover a
-  // data de uma prova arrastando no Calendário) sem refazer o N+1 inteiro.
+  // data de uma prova arrastando no Calendário) sem refazer o GET inteiro.
   const patchSubject = useCallback((subjectId: number, updater: (prev: SubjectDetails) => SubjectDetails) => {
     generationRef.current++;
     // Um load() que essa geração deixou pra trás nunca mais vai poder chamar

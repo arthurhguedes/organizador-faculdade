@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { subjectsApi, getSubjectDetails, studySessionsApi } from "../api/client";
+import { getAllSubjectDetails, studySessionsApi } from "../api/client";
 import type { SubjectDetails } from "../api/types";
 import { subjectAverage } from "../lib/grades";
 
@@ -42,7 +42,7 @@ export function useAcademicStats(currentPeriodId: number | null): AcademicStats 
     setLoading(true);
 
     Promise.all([
-      subjectsApi.list().then((all) => Promise.all(all.map((s) => getSubjectDetails(s.id)))),
+      getAllSubjectDetails(),
       studySessionsApi.list(),
     ])
       .then(([details, sessions]) => {

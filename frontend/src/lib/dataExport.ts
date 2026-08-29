@@ -1,4 +1,4 @@
-import { periodsApi, professorsApi, subjectsApi, getSubjectDetails } from "../api/client";
+import { periodsApi, professorsApi, getAllSubjectDetails } from "../api/client";
 import { subjectAverage } from "./grades";
 
 function capitalize(text: string): string {
@@ -10,13 +10,11 @@ function toSheet(rows: Record<string, unknown>[], emptyMessage: string) {
 }
 
 export async function exportAcademicData(): Promise<void> {
-  const [periods, professors, subjects] = await Promise.all([
+  const [periods, professors, details] = await Promise.all([
     periodsApi.list(),
     professorsApi.list(),
-    subjectsApi.list(),
+    getAllSubjectDetails(),
   ]);
-
-  const details = await Promise.all(subjects.map((s) => getSubjectDetails(s.id)));
 
   const periodLabel = (id: number) => periods.find((p) => p.id === id)?.label ?? "";
   const professorName = (id: number) => professors.find((p) => p.id === id)?.name ?? "";

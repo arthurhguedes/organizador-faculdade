@@ -63,6 +63,12 @@ export const dailyNotesApi = crud<DailyNote, Omit<DailyNote, "id">>("daily-notes
 export const getSubjectDetails = (id: number) =>
   request<SubjectDetails>(`/subjects/${id}/details`);
 
+// Detalhes de todas as matérias numa requisição só. Quem precisa dos filhos de
+// várias matérias (Dashboard, Calendário, sino de notificações, exportação)
+// usa esta, e não um getSubjectDetails por matéria — ver o comentário da rota
+// em src/routes/subjects.ts.
+export const getAllSubjectDetails = () => request<SubjectDetails[]>("/subjects/details");
+
 export const updateSubjectAbsences = (id: number, absences: number) =>
   request<Subject[]>(`/subjects/${id}/absences`, {
     method: "PATCH",
