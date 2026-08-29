@@ -145,7 +145,7 @@ export function Landing() {
             </p>
             <div className="landing__hero-ctas">
               <Link to="/registrar" className="btn btn--primary landing__hero-cta">
-                Criar conta grátis
+                Criar conta
                 <ArrowRight size={16} strokeWidth={2} />
               </Link>
               <Link to="/login" className="btn btn--secondary landing__hero-cta">
@@ -331,7 +331,7 @@ export function Landing() {
           <h2>Pronto para parar de anotar tudo espalhado?</h2>
           <p>Cadastre suas matérias em minutos e deixe o Notary calcular o resto.</p>
           <Link to="/registrar" className="btn btn--primary landing__hero-cta">
-            Criar conta grátis
+            Criar conta
             <ArrowRight size={16} strokeWidth={2} />
           </Link>
         </Section>
