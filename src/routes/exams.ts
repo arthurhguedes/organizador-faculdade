@@ -3,8 +3,17 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { parseBody, requiredDate, requiredId, requiredNumber, requiredText, optionalNumber, z } from "../lib/validate.js";
 
 const router = Router();
+
+const examSchema = z.object({
+  subjectId: requiredId("subjectId"),
+  title: requiredText("title"),
+  date: requiredDate("date"),
+  weight: requiredNumber("weight"),
+  grade: optionalNumber("grade"),
+});
 
 async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
   const [subject] = await db
@@ -46,10 +55,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, title, date, weight, grade } = req.body ?? {};
-  if (!subjectId || !title || !date || weight === undefined || weight === null) {
-    return res.status(400).json({ message: "subjectId, title, date e weight são obrigatórios" });
-  }
+  const body = parseBody(examSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, title, date, weight, grade } = body;
 
   try {
     if (!(await ownsSubject(req.userId!, subjectId))) {
@@ -80,10 +88,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { subjectId, title, date, weight, grade } = req.body ?? {};
-  if (!subjectId || !title || !date || weight === undefined || weight === null) {
-    return res.status(400).json({ message: "subjectId, title, date e weight são obrigatórios" });
-  }
+  const body = parseBody(examSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, title, date, weight, grade } = body;
 
   try {
     if (!(await ownsSubject(req.userId!, subjectId))) {

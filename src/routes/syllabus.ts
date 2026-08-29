@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { choice, nonEmptyArray, optionalDate, optionalText, parseBody, requiredId, requiredInteger, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
 
@@ -114,51 +115,70 @@ router.get("/", async (req, res) => {
   }
 });
 
-type ImportEntry = {
-  lessonNumber: number | null;
-  kind: string | null;
-  date: string | null;
-  weekNumber: number | null;
-  periodLabel: string | null;
-  content: string;
-};
+const importEntrySchema = z.object({
+  lessonNumber: z.int().nullish().transform((value) => value ?? null),
+  kind: optionalText,
+  date: optionalDate("date"),
+  weekNumber: z.int().nullish().transform((value) => value ?? null),
+  periodLabel: optionalText,
+  content: requiredText("content"),
+});
 
-type ImportTopic = { code: string; title: string; position: number };
+const importTopicSchema = z.object({
+  code: requiredText("code"),
+  title: requiredText("title"),
+  position: requiredInteger("position"),
+});
 
-type ImportAssessment = {
-  title: string;
-  weightLabel: string | null;
-  dateLabel: string | null;
-  coverageLabel: string | null;
-  position: number;
-};
+const importAssessmentSchema = z.object({
+  title: requiredText("title"),
+  // Texto livre e às vezes incompletos: o PDF traz coisas como peso em branco
+  // ou data "Será definido posteriormente".
+  weightLabel: optionalText,
+  dateLabel: optionalText,
+  coverageLabel: optionalText,
+  position: requiredInteger("position"),
+});
+
+// `format` decide quais campos de `entries` são obrigatórios: aula-a-aula
+// precisa de lessonNumber+date, semanal precisa de weekNumber. Por isso a
+// checagem é um superRefine no objeto inteiro, não um campo isolado.
+const syllabusImportSchema = z
+  .object({
+    subjectId: requiredId("subjectId"),
+    format: choice("format", ["per_aula", "weekly"]),
+    entries: nonEmptyArray("entries", importEntrySchema),
+    topics: z.array(importTopicSchema).nullish().transform((value) => value ?? []),
+    assessments: z.array(importAssessmentSchema).nullish().transform((value) => value ?? []),
+  })
+  .superRefine((body, ctx) => {
+    for (const entry of body.entries) {
+      if (body.format === "per_aula" && (entry.date === null || entry.lessonNumber === null)) {
+        ctx.addIssue({ code: "custom", message: "cada aula precisa de lessonNumber e date" });
+        return;
+      }
+      if (body.format === "weekly" && entry.weekNumber === null) {
+        ctx.addIssue({ code: "custom", message: "cada semana precisa de weekNumber" });
+        return;
+      }
+    }
+  });
+
+// Atualização parcial: só sobrescreve o que vier no corpo, por isso todo
+// campo é opcional aqui (diferente do schema de importação acima).
+const assessmentPatchSchema = z.object({
+  title: requiredText("title").optional(),
+  weightLabel: optionalText.optional(),
+  dateLabel: optionalText.optional(),
+  coverageLabel: optionalText.optional(),
+});
 
 router.post("/import", async (req, res) => {
-  const { subjectId, format, entries, topics, assessments } = req.body ?? {};
-  const parsedSubjectId = parseId(String(subjectId));
-
-  if (parsedSubjectId === null) {
-    return res.status(400).json({ message: "subjectId é obrigatório" });
-  }
-  if (format !== "per_aula" && format !== "weekly") {
-    return res.status(400).json({ message: 'format deve ser "per_aula" ou "weekly"' });
-  }
-  if (!Array.isArray(entries) || entries.length === 0) {
-    return res.status(400).json({ message: "entries deve ser uma lista não vazia" });
-  }
-  for (const entry of entries as ImportEntry[]) {
-    if (!entry.content) {
-      return res.status(400).json({ message: "cada entrada precisa de content" });
-    }
-    if (format === "per_aula" && (!entry.date || typeof entry.lessonNumber !== "number")) {
-      return res.status(400).json({ message: "cada aula precisa de lessonNumber e date" });
-    }
-    if (format === "weekly" && typeof entry.weekNumber !== "number") {
-      return res.status(400).json({ message: "cada semana precisa de weekNumber" });
-    }
-  }
-  const topicsList = Array.isArray(topics) ? (topics as ImportTopic[]) : [];
-  const assessmentsList = Array.isArray(assessments) ? (assessments as ImportAssessment[]) : [];
+  const body = parseBody(syllabusImportSchema, req.body, res);
+  if (!body) return;
+  const { subjectId: parsedSubjectId, format, entries } = body;
+  const topicsList = body.topics;
+  const assessmentsList = body.assessments;
 
   try {
     const userId = req.userId!;
@@ -182,9 +202,9 @@ router.post("/import", async (req, res) => {
         .where(and(eq(schema.syllabusAssessments.subjectId, parsedSubjectId), eq(schema.syllabusAssessments.userId, userId)));
 
       await tx.insert(schema.syllabusEntries).values(
-        (entries as ImportEntry[]).map((entry) => ({
+        entries.map((entry) => ({
           subjectId: parsedSubjectId,
-          format: format as "per_aula" | "weekly",
+          format,
           lessonNumber: entry.lessonNumber,
           kind: entry.kind,
           date: entry.date,
@@ -288,18 +308,17 @@ router.patch("/assessments/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { title, weightLabel, dateLabel, coverageLabel } = req.body ?? {};
-  if (title !== undefined && !String(title).trim()) {
-    return res.status(400).json({ message: "título não pode ficar vazio" });
-  }
+  const body = parseBody(assessmentPatchSchema, req.body, res);
+  if (!body) return;
+  const { title, weightLabel, dateLabel, coverageLabel } = body;
 
   try {
     const userId = req.userId!;
     const updates: Partial<typeof schema.syllabusAssessments.$inferInsert> = {};
-    if (title !== undefined) updates.title = String(title).trim();
-    if (weightLabel !== undefined) updates.weightLabel = weightLabel || null;
-    if (dateLabel !== undefined) updates.dateLabel = dateLabel || null;
-    if (coverageLabel !== undefined) updates.coverageLabel = coverageLabel || null;
+    if (title !== undefined) updates.title = title;
+    if (weightLabel !== undefined) updates.weightLabel = weightLabel;
+    if (dateLabel !== undefined) updates.dateLabel = dateLabel;
+    if (coverageLabel !== undefined) updates.coverageLabel = coverageLabel;
 
     const [updated] = await db
       .update(schema.syllabusAssessments)

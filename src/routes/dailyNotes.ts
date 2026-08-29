@@ -3,8 +3,15 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { parseBody, requiredDate, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
+
+const dailyNoteSchema = z.object({
+  date: requiredDate("date"),
+  content: requiredText("content"),
+  done: z.boolean().nullish().transform((value) => Boolean(value)),
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -17,16 +24,15 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { date, content, done } = req.body ?? {};
-  if (!date || !content) {
-    return res.status(400).json({ message: "date e content são obrigatórios" });
-  }
+  const body = parseBody(dailyNoteSchema, req.body, res);
+  if (!body) return;
+  const { date, content, done } = body;
 
   try {
     const newNote = await db.insert(schema.dailyNotes).values({
       date,
       content,
-      done: Boolean(done),
+      done,
       userId: req.userId!,
     }).returning();
     res.json(newNote);
@@ -42,15 +48,14 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { date, content, done } = req.body ?? {};
-  if (!date || !content) {
-    return res.status(400).json({ message: "date e content são obrigatórios" });
-  }
+  const body = parseBody(dailyNoteSchema, req.body, res);
+  if (!body) return;
+  const { date, content, done } = body;
 
   try {
     const updated = await db
       .update(schema.dailyNotes)
-      .set({ date, content, done: Boolean(done) })
+      .set({ date, content, done })
       .where(and(eq(schema.dailyNotes.id, id), eq(schema.dailyNotes.userId, req.userId!)))
       .returning();
 

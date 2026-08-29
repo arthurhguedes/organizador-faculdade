@@ -3,11 +3,19 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { choice, optionalInteger, optionalText, parseBody, requiredInteger, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
 
-const VALID_STATUSES = ["pendente", "cursando", "concluida"];
-const VALID_KINDS = ["obrigatoria", "eletiva", "atividade"];
+const curriculumSubjectSchema = z.object({
+  name: requiredText("name"),
+  code: optionalText,
+  workload: requiredInteger("workload"),
+  suggestedPeriod: optionalInteger("suggestedPeriod"),
+  status: choice("status", ["pendente", "cursando", "concluida"]).default("pendente"),
+  kind: choice("kind", ["obrigatoria", "eletiva", "atividade"]).default("obrigatoria"),
+  completedHours: optionalInteger("completedHours").transform((value) => value ?? 0),
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -44,26 +52,19 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = req.body ?? {};
-  if (!name || workload === undefined || workload === null) {
-    return res.status(400).json({ message: "name e workload são obrigatórios" });
-  }
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
-  }
-  if (kind !== undefined && !VALID_KINDS.includes(kind)) {
-    return res.status(400).json({ message: `kind deve ser um de: ${VALID_KINDS.join(", ")}` });
-  }
+  const body = parseBody(curriculumSubjectSchema, req.body, res);
+  if (!body) return;
+  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = body;
 
   try {
     const newItem = await db.insert(schema.curriculumSubjects).values({
       name,
-      code: code || null,
+      code,
       workload,
-      suggestedPeriod: suggestedPeriod || null,
-      status: status || "pendente",
-      kind: kind || "obrigatoria",
-      completedHours: completedHours || 0,
+      suggestedPeriod,
+      status,
+      kind,
+      completedHours,
       userId: req.userId!,
     }).returning();
     res.json(newItem);
@@ -79,28 +80,21 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = req.body ?? {};
-  if (!name || workload === undefined || workload === null) {
-    return res.status(400).json({ message: "name e workload são obrigatórios" });
-  }
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
-  }
-  if (kind !== undefined && !VALID_KINDS.includes(kind)) {
-    return res.status(400).json({ message: `kind deve ser um de: ${VALID_KINDS.join(", ")}` });
-  }
+  const body = parseBody(curriculumSubjectSchema, req.body, res);
+  if (!body) return;
+  const { name, code, workload, suggestedPeriod, status, kind, completedHours } = body;
 
   try {
     const updated = await db
       .update(schema.curriculumSubjects)
       .set({
         name,
-        code: code || null,
+        code,
         workload,
-        suggestedPeriod: suggestedPeriod || null,
-        status: status || "pendente",
-        kind: kind || "obrigatoria",
-        completedHours: completedHours || 0,
+        suggestedPeriod,
+        status,
+        kind,
+        completedHours,
       })
       .where(and(eq(schema.curriculumSubjects.id, id), eq(schema.curriculumSubjects.userId, req.userId!)))
       .returning();

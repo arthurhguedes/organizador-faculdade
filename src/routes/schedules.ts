@@ -3,8 +3,17 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { parseBody, optionalText, requiredId, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
+
+const scheduleSchema = z.object({
+  subjectId: requiredId("subjectId"),
+  weekday: requiredText("weekday"),
+  startTime: requiredText("startTime"),
+  endTime: requiredText("endTime"),
+  room: optionalText,
+});
 
 async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
   const [subject] = await db
@@ -46,10 +55,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, weekday, startTime, endTime, room } = req.body ?? {};
-  if (!subjectId || !weekday || !startTime || !endTime) {
-    return res.status(400).json({ message: "subjectId, weekday, startTime e endTime são obrigatórios" });
-  }
+  const body = parseBody(scheduleSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, weekday, startTime, endTime, room } = body;
 
   try {
     if (!(await ownsSubject(req.userId!, subjectId))) {
@@ -61,7 +69,7 @@ router.post("/", async (req, res) => {
       weekday,
       startTime,
       endTime,
-      room: room || null,
+      room,
       userId: req.userId!,
     }).returning();
     res.json(newSchedule);
@@ -80,10 +88,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { subjectId, weekday, startTime, endTime, room } = req.body ?? {};
-  if (!subjectId || !weekday || !startTime || !endTime) {
-    return res.status(400).json({ message: "subjectId, weekday, startTime e endTime são obrigatórios" });
-  }
+  const body = parseBody(scheduleSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, weekday, startTime, endTime, room } = body;
 
   try {
     if (!(await ownsSubject(req.userId!, subjectId))) {
@@ -92,7 +99,7 @@ router.put("/:id", async (req, res) => {
 
     const updated = await db
       .update(schema.schedules)
-      .set({ subjectId, weekday, startTime, endTime, room: room || null })
+      .set({ subjectId, weekday, startTime, endTime, room })
       .where(and(eq(schema.schedules.id, id), eq(schema.schedules.userId, req.userId!)))
       .returning();
 

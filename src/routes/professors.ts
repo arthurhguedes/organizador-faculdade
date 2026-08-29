@@ -4,8 +4,17 @@ import * as schema from "../db/schema.js";
 import { and, eq, inArray } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
 import { clearSubjectDependencies } from "../lib/cascade.js";
+import { parseBody, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
+
+const professorSchema = z.object({
+  name: requiredText("name"),
+  // Email não passa por validação de formato: o "confirmar grade" cria
+  // professor com placeholder `slug@a-definir.com`, e o usuário nem sempre
+  // sabe o email real do professor na hora do cadastro.
+  email: requiredText("email"),
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -39,10 +48,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { name, email } = req.body ?? {};
-  if (!name || !email) {
-    return res.status(400).json({ message: "name e email são obrigatórios" });
-  }
+  const body = parseBody(professorSchema, req.body, res);
+  if (!body) return;
+  const { name, email } = body;
 
   try {
     const newProfessor = await db.insert(schema.professors).values({
@@ -63,10 +71,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { name, email } = req.body ?? {};
-  if (!name || !email) {
-    return res.status(400).json({ message: "name e email são obrigatórios" });
-  }
+  const body = parseBody(professorSchema, req.body, res);
+  if (!body) return;
+  const { name, email } = body;
 
   try {
     const updated = await db

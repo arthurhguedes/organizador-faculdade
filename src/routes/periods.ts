@@ -3,8 +3,15 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { parseBody, requiredDate, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
+
+const periodSchema = z.object({
+  label: requiredText("label"),
+  startDate: requiredDate("startDate"),
+  endDate: requiredDate("endDate"),
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -38,10 +45,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { label, startDate, endDate } = req.body ?? {};
-  if (!label || !startDate || !endDate) {
-    return res.status(400).json({ message: "label, startDate e endDate são obrigatórios" });
-  }
+  const body = parseBody(periodSchema, req.body, res);
+  if (!body) return;
+  const { label, startDate, endDate } = body;
 
   try {
     const newPeriod = await db.insert(schema.periods).values({
@@ -63,10 +69,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { label, startDate, endDate } = req.body ?? {};
-  if (!label || !startDate || !endDate) {
-    return res.status(400).json({ message: "label, startDate e endDate são obrigatórios" });
-  }
+  const body = parseBody(periodSchema, req.body, res);
+  if (!body) return;
+  const { label, startDate, endDate } = body;
 
   try {
     const updated = await db

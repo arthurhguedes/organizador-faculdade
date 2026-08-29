@@ -3,9 +3,23 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { optionalText, parseBody, requiredId, requiredInteger, requiredText, z } from "../lib/validate.js";
 import { clearSubjectDependencies } from "../lib/cascade.js";
 
 const router = Router();
+
+const subjectSchema = z.object({
+  name: requiredText("name"),
+  // Opcional: nem toda faculdade usa código de disciplina.
+  code: optionalText,
+  workload: requiredInteger("workload"),
+  periodId: requiredId("periodId"),
+  professorId: requiredId("professorId"),
+});
+
+const absencesSchema = z.object({
+  absences: requiredInteger("absences"),
+});
 
 async function ownsPeriodAndProfessor(userId: number, periodId: number, professorId: number): Promise<boolean> {
   const [period] = await db
@@ -172,10 +186,9 @@ router.get("/:id/details", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { name, code, workload, periodId, professorId } = req.body ?? {};
-  if (!name || workload === undefined || workload === null || !periodId || !professorId) {
-    return res.status(400).json({ message: "name, workload, periodId e professorId são obrigatórios" });
-  }
+  const body = parseBody(subjectSchema, req.body, res);
+  if (!body) return;
+  const { name, code, workload, periodId, professorId } = body;
 
   try {
     if (!(await ownsPeriodAndProfessor(req.userId!, periodId, professorId))) {
@@ -184,7 +197,7 @@ router.post("/", async (req, res) => {
 
     const newSubject = await db.insert(schema.subjects).values({
       name,
-      code: code || null,
+      code,
       workload,
       periodId,
       professorId,
@@ -206,10 +219,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { name, code, workload, periodId, professorId } = req.body ?? {};
-  if (!name || workload === undefined || workload === null || !periodId || !professorId) {
-    return res.status(400).json({ message: "name, workload, periodId e professorId são obrigatórios" });
-  }
+  const body = parseBody(subjectSchema, req.body, res);
+  if (!body) return;
+  const { name, code, workload, periodId, professorId } = body;
 
   try {
     if (!(await ownsPeriodAndProfessor(req.userId!, periodId, professorId))) {
@@ -218,7 +230,7 @@ router.put("/:id", async (req, res) => {
 
     const updated = await db
       .update(schema.subjects)
-      .set({ name, code: code || null, workload, periodId, professorId })
+      .set({ name, code, workload, periodId, professorId })
       .where(and(eq(schema.subjects.id, id), eq(schema.subjects.userId, req.userId!)))
       .returning();
 
@@ -241,10 +253,9 @@ router.patch("/:id/absences", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { absences } = req.body ?? {};
-  if (typeof absences !== "number" || !Number.isInteger(absences) || absences < 0) {
-    return res.status(400).json({ message: "absences deve ser um inteiro >= 0" });
-  }
+  const body = parseBody(absencesSchema, req.body, res);
+  if (!body) return;
+  const { absences } = body;
 
   try {
     const updated = await db

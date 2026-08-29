@@ -4,6 +4,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { requireAuth } from "../middleware/requireAuth.js";
 import { isUniqueViolation } from "../lib/http.js";
+import { optionalText, parseBody, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
 
@@ -28,7 +29,38 @@ function toPublicUser(user: typeof schema.users.$inferSelect) {
   };
 }
 
+const MALFORMED_USERNAME = "Nome de usuário deve ter 3–20 caracteres: letras minúsculas, números ou _";
 const USERNAME_PATTERN = /^[a-z0-9_]{3,20}$/;
+
+// Atualização parcial: cada aba do Perfil salva só os seus campos sem apagar
+// os da outra, então todo campo é opcional e um campo ausente é diferente de
+// um campo mandado como null (esse último limpa o valor).
+const profilePatchSchema = z.object({
+  name: requiredText("Nome").optional(),
+  institution: optionalText.optional(),
+  course: optionalText.optional(),
+  birthDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, { error: "Data de nascimento inválida" })
+    .nullable()
+    .optional(),
+  // Base64 embutido, não upload de arquivo: o client já redimensiona pra
+  // 256x256 JPEG antes de mandar (ver frontend/src/lib/avatarImage.ts).
+  avatarImage: z
+    .string()
+    .startsWith("data:image/", { error: "Foto de perfil inválida" })
+    .max(1_500_000, { error: "Foto de perfil muito grande" })
+    .nullable()
+    .optional(),
+  linkedinUrl: optionalText.optional(),
+  githubUrl: optionalText.optional(),
+  instagramUrl: optionalText.optional(),
+  xUrl: optionalText.optional(),
+});
+
+const usernamePatchSchema = z.object({
+  username: z.string({ error: MALFORMED_USERNAME }).regex(USERNAME_PATTERN, { error: MALFORMED_USERNAME }),
+});
 
 router.get("/me", requireAuth, async (req, res) => {
   try {
@@ -44,23 +76,9 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/me", requireAuth, async (req, res) => {
-  const { name, institution, course, birthDate, avatarImage, linkedinUrl, githubUrl, instagramUrl, xUrl } =
-    req.body ?? {};
-
-  if (name !== undefined && !String(name).trim()) {
-    return res.status(400).json({ message: "Nome não pode ficar vazio" });
-  }
-  if (birthDate !== undefined && birthDate !== null && Number.isNaN(Date.parse(birthDate))) {
-    return res.status(400).json({ message: "Data de nascimento inválida" });
-  }
-  if (avatarImage !== undefined && avatarImage !== null) {
-    if (typeof avatarImage !== "string" || !avatarImage.startsWith("data:image/")) {
-      return res.status(400).json({ message: "Foto de perfil inválida" });
-    }
-    if (avatarImage.length > 1_500_000) {
-      return res.status(400).json({ message: "Foto de perfil muito grande" });
-    }
-  }
+  const body = parseBody(profilePatchSchema, req.body, res);
+  if (!body) return;
+  const { name, institution, course, birthDate, avatarImage, linkedinUrl, githubUrl, instagramUrl, xUrl } = body;
 
   const fields: Partial<typeof schema.users.$inferInsert> = {};
   if (name !== undefined) fields.name = name;
@@ -90,12 +108,9 @@ router.patch("/me", requireAuth, async (req, res) => {
 });
 
 router.patch("/me/username", requireAuth, async (req, res) => {
-  const { username } = req.body ?? {};
-  if (!username || !USERNAME_PATTERN.test(username)) {
-    return res
-      .status(400)
-      .json({ message: "Nome de usuário deve ter 3–20 caracteres: letras minúsculas, números ou _" });
-  }
+  const body = parseBody(usernamePatchSchema, req.body, res);
+  if (!body) return;
+  const { username } = body;
 
   try {
     const [updated] = await db

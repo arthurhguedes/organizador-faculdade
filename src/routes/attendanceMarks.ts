@@ -3,8 +3,18 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq, sql } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { choice, optionalId, parseBody, requiredDate, requiredId, z } from "../lib/validate.js";
 
 const router = Router();
+
+const attendanceMarkSchema = z.object({
+  subjectId: requiredId("subjectId"),
+  date: requiredDate("date"),
+  // Nulo quando a ocorrência vem de um plano de ensino aula-a-aula, que já
+  // tem uma linha por data — não há qual horário escolher.
+  scheduleId: optionalId("scheduleId"),
+  kind: choice("kind", ["falta", "sem_aula"]).default("falta"),
+});
 
 async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
   const [subject] = await db
@@ -34,41 +44,28 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, date, scheduleId, kind } = req.body ?? {};
-  const parsedSubjectId = parseId(String(subjectId));
-  if (parsedSubjectId === null) {
-    return res.status(400).json({ message: "subjectId é obrigatório" });
-  }
-  if (typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return res.status(400).json({ message: "date deve estar no formato YYYY-MM-DD" });
-  }
-  const parsedScheduleId = scheduleId == null ? null : parseId(String(scheduleId));
-  if (scheduleId != null && parsedScheduleId === null) {
-    return res.status(400).json({ message: "scheduleId inválido" });
-  }
-  const parsedKind = kind ?? "falta";
-  if (parsedKind !== "falta" && parsedKind !== "sem_aula") {
-    return res.status(400).json({ message: 'kind deve ser "falta" ou "sem_aula"' });
-  }
+  const body = parseBody(attendanceMarkSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, date, scheduleId, kind } = body;
 
   try {
     const userId = req.userId!;
-    if (!(await ownsSubject(userId, parsedSubjectId))) {
+    if (!(await ownsSubject(userId, subjectId))) {
       return res.status(400).json({ message: "subjectId não existe" });
     }
 
     const result = await db.transaction(async (tx) => {
       const [mark] = await tx
         .insert(schema.attendanceMarks)
-        .values({ subjectId: parsedSubjectId, scheduleId: parsedScheduleId, date, kind: parsedKind, userId })
+        .values({ subjectId, scheduleId, date, kind, userId })
         .returning();
-      if (parsedKind !== "falta") {
+      if (kind !== "falta") {
         return { mark, absences: null };
       }
       const [subject] = await tx
         .update(schema.subjects)
         .set({ absences: sql`${schema.subjects.absences} + 1` })
-        .where(eq(schema.subjects.id, parsedSubjectId))
+        .where(eq(schema.subjects.id, subjectId))
         .returning({ absences: schema.subjects.absences });
       return { mark, absences: subject!.absences };
     });

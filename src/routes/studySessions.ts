@@ -3,8 +3,17 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { choice, optionalId, optionalText, parseBody, requiredDate, requiredInteger, z } from "../lib/validate.js";
 
 const router = Router();
+
+const studySessionSchema = z.object({
+  subjectId: optionalId("subjectId"),
+  topic: optionalText,
+  date: requiredDate("date"),
+  durationMinutes: requiredInteger("durationMinutes").min(1, { error: "durationMinutes deve ser maior que zero" }),
+  source: choice("source", ["pomodoro", "manual"]),
+});
 
 async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
   const [subject] = await db
@@ -25,13 +34,9 @@ router.get("/", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { subjectId, topic, date, durationMinutes, source } = req.body ?? {};
-  if (!date || !durationMinutes || !source) {
-    return res.status(400).json({ message: "date, durationMinutes e source são obrigatórios" });
-  }
-  if (source !== "pomodoro" && source !== "manual") {
-    return res.status(400).json({ message: "source deve ser 'pomodoro' ou 'manual'" });
-  }
+  const body = parseBody(studySessionSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, topic, date, durationMinutes, source } = body;
 
   try {
     if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
@@ -39,8 +44,8 @@ router.post("/", async (req, res) => {
     }
 
     const newSession = await db.insert(schema.studySessions).values({
-      subjectId: subjectId || null,
-      topic: topic || null,
+      subjectId,
+      topic,
       date,
       durationMinutes,
       source,
@@ -62,13 +67,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { subjectId, topic, date, durationMinutes, source } = req.body ?? {};
-  if (!date || !durationMinutes || !source) {
-    return res.status(400).json({ message: "date, durationMinutes e source são obrigatórios" });
-  }
-  if (source !== "pomodoro" && source !== "manual") {
-    return res.status(400).json({ message: "source deve ser 'pomodoro' ou 'manual'" });
-  }
+  const body = parseBody(studySessionSchema, req.body, res);
+  if (!body) return;
+  const { subjectId, topic, date, durationMinutes, source } = body;
 
   try {
     if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
@@ -77,7 +78,7 @@ router.put("/:id", async (req, res) => {
 
     const updated = await db
       .update(schema.studySessions)
-      .set({ subjectId: subjectId || null, topic: topic || null, date, durationMinutes, source })
+      .set({ subjectId, topic, date, durationMinutes, source })
       .where(and(eq(schema.studySessions.id, id), eq(schema.studySessions.userId, req.userId!)))
       .returning();
 

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { eq } from "drizzle-orm";
+import { nonEmptyArray, optionalNumber, optionalText, parseBody, requiredText, z } from "../lib/validate.js";
 
 const router = Router();
 
@@ -29,39 +30,40 @@ router.get("/", async (req, res) => {
   }
 });
 
-type ImportSchedule = {
-  weekday: string;
-  startTime: string;
-  endTime: string;
-  kind: string;
-};
+const importScheduleSchema = z.object({
+  weekday: requiredText("weekday"),
+  startTime: requiredText("startTime"),
+  endTime: requiredText("endTime"),
+  kind: requiredText("kind"),
+});
 
-type ImportOffering = {
-  professorName: string | null;
-  subjectCode: string;
-  subjectName: string;
-  turma: string;
-  curso: string | null;
-  vagas: number | null;
-  depto: string | null;
-  workloadHours: number | null;
-  theoryHours: number | null;
-  practiceHours: number | null;
-  schedules: ImportSchedule[];
-};
+const importOfferingSchema = z.object({
+  professorName: optionalText,
+  subjectCode: requiredText("subjectCode"),
+  subjectName: requiredText("subjectName"),
+  turma: requiredText("turma"),
+  curso: optionalText,
+  // Arredondado em vez de recusado: a coluna é `integer` e a célula da
+  // planilha às vezes vem como "40,0". Uma linha estranha não pode derrubar
+  // a importação inteira das outras duas mil.
+  vagas: optionalNumber("vagas").transform((value) => (value === null ? null : Math.round(value))),
+  depto: optionalText,
+  workloadHours: optionalNumber("workloadHours"),
+  theoryHours: optionalNumber("theoryHours"),
+  practiceHours: optionalNumber("practiceHours"),
+  schedules: z.array(importScheduleSchema).nullish().transform((value) => value ?? []),
+});
+
+const offeringsImportSchema = z.object({
+  offerings: nonEmptyArray("offerings", importOfferingSchema),
+});
+
+type ImportSchedule = z.infer<typeof importScheduleSchema>;
 
 router.post("/import", async (req, res) => {
-  const offerings = req.body?.offerings;
-
-  if (!Array.isArray(offerings) || offerings.length === 0) {
-    return res.status(400).json({ message: "offerings deve ser uma lista não vazia" });
-  }
-
-  for (const offering of offerings as ImportOffering[]) {
-    if (!offering.subjectCode || !offering.subjectName || !offering.turma) {
-      return res.status(400).json({ message: "cada oferta precisa de subjectCode, subjectName e turma" });
-    }
-  }
+  const body = parseBody(offeringsImportSchema, req.body, res);
+  if (!body) return;
+  const { offerings } = body;
 
   try {
     const userId = req.userId!;
@@ -71,11 +73,10 @@ router.post("/import", async (req, res) => {
       await tx.delete(schema.offeringSchedules).where(eq(schema.offeringSchedules.userId, userId));
       await tx.delete(schema.courseOfferings).where(eq(schema.courseOfferings.userId, userId));
 
-      const typedOfferings = offerings as ImportOffering[];
       const allSchedules: (ImportSchedule & { offeringId: number })[] = [];
 
-      for (let i = 0; i < typedOfferings.length; i += CHUNK_SIZE) {
-        const chunk = typedOfferings.slice(i, i + CHUNK_SIZE);
+      for (let i = 0; i < offerings.length; i += CHUNK_SIZE) {
+        const chunk = offerings.slice(i, i + CHUNK_SIZE);
         const inserted = await tx
           .insert(schema.courseOfferings)
           .values(

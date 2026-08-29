@@ -3,11 +3,20 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq } from "drizzle-orm";
 import { parseId, isForeignKeyViolation } from "../lib/http.js";
+import { choice, optionalDate, optionalId, optionalText, parseBody, requiredDate, z } from "../lib/validate.js";
 
 const router = Router();
 
-const VALID_TYPES = ["prerequisite_waiver", "enrollment_adjustment", "leave_of_absence", "credit_recognition"];
-const VALID_STATUSES = ["pendente", "aprovado", "recusado"];
+const academicRequestSchema = z.object({
+  type: choice("type", ["prerequisite_waiver", "enrollment_adjustment", "leave_of_absence", "credit_recognition"]),
+  // Opcional: trancamento de período inteiro não se refere a uma matéria.
+  subjectId: optionalId("subjectId"),
+  requirements: optionalText,
+  status: choice("status", ["pendente", "aprovado", "recusado"]).default("pendente"),
+  submittedAt: requiredDate("submittedAt"),
+  resolvedAt: optionalDate("resolvedAt"),
+  rejectionReason: optionalText,
+});
 
 // Mesmo padrão das outras rotas: um subjectId de outro usuário (ou
 // inexistente) tem que virar 400, não uma linha apontando pra matéria alheia
@@ -55,16 +64,9 @@ router.get("/:id", async (req, res) => {
 });
 
 router.post("/", async (req, res) => {
-  const { type, subjectId, requirements, status, submittedAt, resolvedAt, rejectionReason } = req.body ?? {};
-  if (!type || !submittedAt) {
-    return res.status(400).json({ message: "type e submittedAt são obrigatórios" });
-  }
-  if (!VALID_TYPES.includes(type)) {
-    return res.status(400).json({ message: `type deve ser um de: ${VALID_TYPES.join(", ")}` });
-  }
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
-  }
+  const body = parseBody(academicRequestSchema, req.body, res);
+  if (!body) return;
+  const { type, subjectId, requirements, status, submittedAt, resolvedAt, rejectionReason } = body;
 
   try {
     if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
@@ -73,12 +75,12 @@ router.post("/", async (req, res) => {
 
     const newItem = await db.insert(schema.academicRequests).values({
       type,
-      subjectId: subjectId || null,
-      requirements: requirements || null,
-      status: status || "pendente",
+      subjectId,
+      requirements,
+      status,
       submittedAt,
-      resolvedAt: resolvedAt || null,
-      rejectionReason: rejectionReason || null,
+      resolvedAt,
+      rejectionReason,
       userId: req.userId!,
     }).returning();
     res.json(newItem);
@@ -97,16 +99,9 @@ router.put("/:id", async (req, res) => {
     return res.status(400).json({ message: "id inválido" });
   }
 
-  const { type, subjectId, requirements, status, submittedAt, resolvedAt, rejectionReason } = req.body ?? {};
-  if (!type || !submittedAt) {
-    return res.status(400).json({ message: "type e submittedAt são obrigatórios" });
-  }
-  if (!VALID_TYPES.includes(type)) {
-    return res.status(400).json({ message: `type deve ser um de: ${VALID_TYPES.join(", ")}` });
-  }
-  if (status !== undefined && !VALID_STATUSES.includes(status)) {
-    return res.status(400).json({ message: `status deve ser um de: ${VALID_STATUSES.join(", ")}` });
-  }
+  const body = parseBody(academicRequestSchema, req.body, res);
+  if (!body) return;
+  const { type, subjectId, requirements, status, submittedAt, resolvedAt, rejectionReason } = body;
 
   try {
     if (subjectId && !(await ownsSubject(req.userId!, subjectId))) {
@@ -117,12 +112,12 @@ router.put("/:id", async (req, res) => {
       .update(schema.academicRequests)
       .set({
         type,
-        subjectId: subjectId || null,
-        requirements: requirements || null,
-        status: status || "pendente",
+        subjectId,
+        requirements,
+        status,
         submittedAt,
-        resolvedAt: resolvedAt || null,
-        rejectionReason: rejectionReason || null,
+        resolvedAt,
+        rejectionReason,
       })
       .where(and(eq(schema.academicRequests.id, id), eq(schema.academicRequests.userId, req.userId!)))
       .returning();
