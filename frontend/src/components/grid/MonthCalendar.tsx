@@ -67,7 +67,10 @@ export function MonthCalendar({
   }
 
   const todayKey = toDateKey(new Date());
-  const monthLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  // Só a primeira letra: o `text-transform: capitalize` que fazia isso no CSS
+  // maiusculava também o "de" do meio ("Agosto De 2026").
+  const rawMonthLabel = cursor.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  const monthLabel = rawMonthLabel.charAt(0).toUpperCase() + rawMonthLabel.slice(1);
 
   return (
     <div className="month-calendar">

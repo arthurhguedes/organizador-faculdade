@@ -216,7 +216,7 @@ export function Dashboard() {
       <section className="dashboard__section">
         <div className="dashboard__section-header">
           <h3>
-            Matérias de {filterPeriodIds ? describePeriodSelection(periods, filterPeriodIds) : "..."}
+            {filterPeriodIds ? `Matérias de ${describePeriodSelection(periods, filterPeriodIds)}` : "Matérias"}
           </h3>
           <div className="dashboard__section-actions">
             {filterPeriodIds && (

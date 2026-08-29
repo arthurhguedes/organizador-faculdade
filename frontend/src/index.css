@@ -50,6 +50,13 @@
   --series-7: #9085e9;
   --series-8: #e66767;
 
+  /* Superfícies que o navegador desenha por conta própria (seta do <select>,
+     barra de rolagem, cursor de texto) — sem isto elas ficam com o visual
+     padrão do sistema no meio de uma UI inteira desenhada à mão. */
+  --select-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238f8f96' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  --scrollbar-thumb: #3a3a41;
+  --scrollbar-thumb-hover: #4d4d55;
+
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
@@ -83,6 +90,7 @@
   --radius-md: 7px;
   --radius-lg: 11px;
 
+  accent-color: var(--accent);
   font: var(--text-base) / 1.5 var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -131,6 +139,10 @@
   --series-7: #4a3aa7;
   --series-8: #e34948;
 
+  --select-chevron: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236d6d73' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  --scrollbar-thumb: #cdcdd3;
+  --scrollbar-thumb-hover: #b4b4bc;
+
   --shadow-sm: 0 1px 2px rgba(20, 20, 22, 0.07);
   --shadow-md: 0 4px 14px rgba(20, 20, 22, 0.09);
   --shadow-lg: 0 16px 36px rgba(20, 20, 22, 0.14);
@@ -160,6 +172,7 @@ h4 {
   margin: 0;
   font-weight: 600;
   letter-spacing: -0.01em;
+  text-wrap: balance;
 }
 
 p {
@@ -185,4 +198,62 @@ table {
 
 ::selection {
   background: var(--accent-soft-strong);
+  color: var(--text);
+}
+
+/* Anel de foco único pro app inteiro. Antes só .btn e .field__input tinham um:
+   link da sidebar, icon-btn, sino de notificação, <summary> e chips caíam no
+   outline padrão do navegador, praticamente invisível sobre o fundo escuro. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Cursor de texto e barra de rolagem também são "superfície do navegador":
+   deixá-los no padrão do sistema entrega que o resto foi desenhado e eles não. */
+input,
+textarea,
+[contenteditable] {
+  caret-color: var(--accent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+/* Antes só .stagger-in e o brilho do botão primário respeitavam a preferência;
+   shimmer de skeleton, spinner, pulso do Pomodoro e as linhas da landing
+   continuavam animando. Encurtar (em vez de `animation: none`) preserva o
+   estado final de quem anima a partir de opacity: 0. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

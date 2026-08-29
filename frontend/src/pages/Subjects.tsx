@@ -93,7 +93,7 @@ export function Subjects() {
   return (
     <div>
       <PageHeader
-        title={`Matérias de ${selectedPeriod?.label ?? "..."}`}
+        title={selectedPeriod ? `Matérias de ${selectedPeriod.label}` : "Matérias"}
         description="Toda matéria concentra seus horários, atividades e provas em um só lugar."
         action={
           selectedPeriodId && (

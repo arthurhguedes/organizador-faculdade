@@ -5,7 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#120d0e" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141416" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f8" />
 
     <title>Notary — Organize sua vida acadêmica</title>
     <meta
@@ -51,6 +52,17 @@
         ],
         "inLanguage": "pt-BR"
       }
+    </script>
+
+    <!-- O ThemeContext só escreve data-theme dentro de um efeito, ou seja
+         depois da primeira pintura: quem usa o tema claro via um flash do
+         tema escuro a cada carregamento. Ler o localStorage aqui resolve. -->
+    <script>
+      try {
+        if (localStorage.getItem("notary:theme") === "light") {
+          document.documentElement.dataset.theme = "light";
+        }
+      } catch {}
     </script>
 
     <script type="module" src="/src/main.tsx"></script>

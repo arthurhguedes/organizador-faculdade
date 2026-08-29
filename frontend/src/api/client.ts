@@ -27,11 +27,18 @@ const API_URL = import.meta.env.VITE_API_URL ?? (import.meta.env.PROD ? "" : "ht
 export class ApiError extends Error {}
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      ...options,
+    });
+  } catch {
+    // Sem isto o TypeError cru do fetch subia até a tela: as páginas mostram
+    // `err.message` direto, e o usuário via "Failed to fetch" em inglês.
+    throw new ApiError("Não foi possível falar com o servidor. Verifique sua conexão e tente de novo.");
+  }
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     throw new ApiError(data?.message ?? `Erro ${res.status}`);
