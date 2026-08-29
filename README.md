@@ -10,6 +10,7 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat&logo=postgresql&logoColor=white)](#stack)
 [![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F?style=flat&logo=drizzle&logoColor=black)](#stack)
 [![Better Auth](https://img.shields.io/badge/Auth-Better_Auth-black?style=flat)](#stack)
+[![CI](https://github.com/arthurhguedes/organizador-faculdade/actions/workflows/ci.yml/badge.svg)](https://github.com/arthurhguedes/organizador-faculdade/actions/workflows/ci.yml)
 
 ### [🔗 Acessar o Notary](https://notary-arthurhguedes-projects.vercel.app)
 

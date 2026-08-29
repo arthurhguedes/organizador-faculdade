@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Se chegar um push novo no mesmo branch/PR, cancela a execução anterior —
+# não adianta gastar runner conferindo um commit que já foi substituído.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Back-end (tsc + testes)
+    runs-on: ubuntu-latest
+
+    # `src/auth.test.ts` roda contra um Postgres de verdade (Better Auth grava
+    # usuário/sessão/conta), então o CI sobe um descartável em vez de apontar
+    # pro Neon de produção. É recriado do zero a cada execução, o que evita o
+    # problema de teste sujando o banco compartilhado.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: notary_test
+        ports:
+          - 5432:5432
+        # Sem o health check o job continua antes do Postgres aceitar conexão
+        # e o `drizzle-kit push` falha por connection refused.
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/notary_test
+      BETTER_AUTH_SECRET: ci-secret-descartavel-nao-usar-em-producao
+      FRONTEND_URL: http://localhost:5173
+      BACKEND_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - run: npm ci
+
+      - name: Checagem de tipos
+        run: npx tsc --noEmit
+
+      # A pasta `drizzle/` está no .gitignore (as tabelas foram criadas por
+      # `push`, não por migration), então o schema do banco de teste vem
+      # direto do `src/db/schema.ts`. `--force` porque o push é interativo
+      # por padrão e travaria esperando confirmação no runner.
+      - name: Criar o schema no Postgres de teste
+        run: npx drizzle-kit push --force
+
+      - name: Testes
+        run: npm test
+
+  frontend:
+    name: Front-end (tsc + lint + testes)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      # Mesmo `tsc -b` que o `npm run build` roda antes do vite — é o passo que
+      # pegaria o erro de build que já chegou na main uma vez.
+      - name: Checagem de tipos
+        run: npx tsc -b
+
+      - name: Lint
+        run: npm run lint
+
+      # `--if-present` + `--passWithNoTests`: os testes dos parsers estão sendo
+      # escritos em outra frente (item 6 do TODO). Enquanto não existirem, o
+      # passo passa em vez de reprovar o PR por "nenhum teste encontrado".
+      - name: Testes
+        run: npm run test --if-present -- --passWithNoTests
