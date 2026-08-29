@@ -1,4 +1,21 @@
-import { pgTable, serial, text, date, integer, real, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, date, integer, real, timestamp, boolean, index } from "drizzle-orm/pg-core";
+
+// Índices — o Postgres NÃO cria índice automático pra chave estrangeira (só
+// pra primary key e unique), então tudo abaixo é explícito. Três formatos,
+// cada um respondendo a um padrão de query real do app:
+//
+//   1. `(user_id)` sozinho, nas tabelas sem `subject_id`: toda listagem do app
+//      é um `WHERE user_id = ?` (o app é multi-tenant, ver `requireAuth`).
+//   2. `(user_id, subject_id)` composto, nas tabelas filhas de matéria: cobre
+//      tanto o `WHERE subject_id = ? AND user_id = ?` do detalhe da matéria
+//      quanto o `WHERE user_id = ?` da listagem — o Postgres usa um índice
+//      composto pela coluna da esquerda, então não precisa de um `(user_id)`
+//      separado, que só custaria escrita à toa.
+//   3. `(subject_id)`/`(period_id)`/`(professor_id)`/`(offering_id)`/
+//      `(schedule_id)` sozinhos: o composto do item 2 não serve aqui porque
+//      `user_id` vem na frente. Esses existem pela checagem de integridade que
+//      o Postgres roda ao apagar a linha-pai (apagar uma matéria faz ele
+//      procurar filhos em ~10 tabelas); sem índice, cada uma vira seq scan.
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -43,7 +60,9 @@ export const sessions = pgTable("sessions", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("sessions_user_id_idx").on(t.userId),
+]);
 
 export const accounts = pgTable("accounts", {
   id: serial("id").primaryKey(),
@@ -59,7 +78,9 @@ export const accounts = pgTable("accounts", {
   scope: text("scope"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("accounts_user_id_idx").on(t.userId),
+]);
 
 export const verifications = pgTable("verifications", {
   id: serial("id").primaryKey(),
@@ -68,7 +89,9 @@ export const verifications = pgTable("verifications", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, (t) => [
+  index("verifications_identifier_idx").on(t.identifier),
+]);
 
 export const periods = pgTable("periods", {
   id: serial("id").primaryKey(),
@@ -76,14 +99,18 @@ export const periods = pgTable("periods", {
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("periods_user_id_idx").on(t.userId),
+]);
 
 export const professors = pgTable("professors", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("professors_user_id_idx").on(t.userId),
+]);
 
 export const subjects = pgTable("subjects", {
   id: serial("id").primaryKey(),
@@ -96,7 +123,12 @@ export const subjects = pgTable("subjects", {
   // client como 25% da carga horária (regra padrão MEC), não armazenado aqui.
   absences: integer("absences").notNull().default(0),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("subjects_user_id_period_id_idx").on(t.userId, t.periodId),
+  index("subjects_user_id_professor_id_idx").on(t.userId, t.professorId),
+  index("subjects_period_id_idx").on(t.periodId),
+  index("subjects_professor_id_idx").on(t.professorId),
+]);
 
 export const schedules = pgTable("schedules", {
   id: serial("id").primaryKey(),
@@ -108,7 +140,10 @@ export const schedules = pgTable("schedules", {
   // porque nem todo horário cadastrado sabe a sala de antemão.
   room: text("room"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("schedules_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("schedules_subject_id_idx").on(t.subjectId),
+]);
 
 export const assignments = pgTable("assignments", {
   id: serial("id").primaryKey(),
@@ -118,7 +153,10 @@ export const assignments = pgTable("assignments", {
   weight: real("weight").notNull(),
   grade: real("grade"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("assignments_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("assignments_subject_id_idx").on(t.subjectId),
+]);
 
 export const exams = pgTable("exams", {
   id: serial("id").primaryKey(),
@@ -128,7 +166,10 @@ export const exams = pgTable("exams", {
   weight: real("weight").notNull(),
   grade: real("grade"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("exams_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("exams_subject_id_idx").on(t.subjectId),
+]);
 
 // Plano de ensino — cronograma importado do PDF que o professor disponibiliza.
 // Import = replace total por matéria, mesmo raciocínio de `course_offerings`:
@@ -149,7 +190,10 @@ export const syllabusEntries = pgTable("syllabus_entries", {
   periodLabel: text("period_label"), // weekly only, texto cru do intervalo, ex: "24-28/ago"
   content: text("content").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("syllabus_entries_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("syllabus_entries_subject_id_idx").on(t.subjectId),
+]);
 
 // Conteúdo programático do plano de ensino — lista hierárquica de tópicos da
 // matéria (ex: "1" "Sistema de equações lineares e matrizes", "1.1"
@@ -163,7 +207,10 @@ export const syllabusTopics = pgTable("syllabus_topics", {
   title: text("title").notNull(),
   position: integer("position").notNull(), // ordem de leitura no PDF
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("syllabus_topics_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("syllabus_topics_subject_id_idx").on(t.subjectId),
+]);
 
 // Tabela "Avaliação" do plano de ensino — puramente informativo/planejamento,
 // sem qualquer vínculo com `exams` (que continua sendo a fonte da verdade das
@@ -181,7 +228,10 @@ export const syllabusAssessments = pgTable("syllabus_assessments", {
   coverageLabel: text("coverage_label"),
   position: integer("position").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("syllabus_assessments_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("syllabus_assessments_subject_id_idx").on(t.subjectId),
+]);
 
 // Marca uma aula específica (matéria + data + horário, quando derivado de
 // `schedules`) como falta, clicada direto no Calendário. `scheduleId` é
@@ -204,7 +254,11 @@ export const attendanceMarks = pgTable("attendance_marks", {
   date: date("date").notNull(),
   kind: text("kind").notNull().default("falta"),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("attendance_marks_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("attendance_marks_subject_id_idx").on(t.subjectId),
+  index("attendance_marks_schedule_id_idx").on(t.scheduleId),
+]);
 
 // Blocos de estudo — registrados manualmente ou automaticamente ao completar
 // um ciclo de foco do Pomodoro. "topic" é texto livre (assunto dentro da
@@ -219,7 +273,10 @@ export const studySessions = pgTable("study_sessions", {
   durationMinutes: integer("duration_minutes").notNull(),
   source: text("source").notNull(), // "pomodoro" | "manual"
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("study_sessions_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("study_sessions_subject_id_idx").on(t.subjectId),
+]);
 
 // Anotações diárias soltas (ex: coisas para estudar) — múltiplas por dia,
 // estilo checklist. Sem vínculo com matéria: são notas gerais do dia.
@@ -229,7 +286,9 @@ export const dailyNotes = pgTable("daily_notes", {
   content: text("content").notNull(),
   done: boolean("done").notNull().default(false),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("daily_notes_user_id_idx").on(t.userId),
+]);
 
 // Catálogo de ofertas da faculdade (importado de planilha por semestre) —
 // separado das tabelas pessoais acima: é o universo de turmas disponíveis,
@@ -248,7 +307,9 @@ export const courseOfferings = pgTable("course_offerings", {
   practiceHours: real("practice_hours"),
   importedAt: timestamp("imported_at").defaultNow().notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("course_offerings_user_id_idx").on(t.userId),
+]);
 
 export const offeringSchedules = pgTable("offering_schedules", {
   id: serial("id").primaryKey(),
@@ -258,7 +319,10 @@ export const offeringSchedules = pgTable("offering_schedules", {
   endTime: text("end_time").notNull(),
   kind: text("kind").notNull(),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("offering_schedules_user_id_offering_id_idx").on(t.userId, t.offeringId),
+  index("offering_schedules_offering_id_idx").on(t.offeringId),
+]);
 
 // Matriz curricular — universo de matérias que o curso exige, independente
 // de `periods`/`subjects` (que são o que o usuário de fato cursou). Cadastro
@@ -284,7 +348,9 @@ export const curriculumSubjects = pgTable("curriculum_subjects", {
   kind: text("kind").notNull().default("obrigatoria"), // "obrigatoria" | "eletiva" | "atividade"
   completedHours: integer("completed_hours").notNull().default(0),
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("curriculum_subjects_user_id_idx").on(t.userId),
+]);
 
 // Requerimentos acadêmicos — pedidos formais feitos à faculdade (quebra de
 // pré-requisito, ajuste de matrícula, trancamento, aproveitamento de
@@ -301,4 +367,7 @@ export const academicRequests = pgTable("academic_requests", {
   resolvedAt: date("resolved_at"),
   rejectionReason: text("rejection_reason"), // só preenchido quando status = "recusado"
   userId: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-});
+}, (t) => [
+  index("academic_requests_user_id_subject_id_idx").on(t.userId, t.subjectId),
+  index("academic_requests_subject_id_idx").on(t.subjectId),
+]);
