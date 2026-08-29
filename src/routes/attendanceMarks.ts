@@ -3,6 +3,7 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema.js";
 import { and, eq, sql } from "drizzle-orm";
 import { parseId } from "../lib/http.js";
+import { ownsSubject } from "../lib/ownership.js";
 import { choice, optionalId, parseBody, requiredDate, requiredId, z } from "../lib/validate.js";
 
 const router = Router();
@@ -15,14 +16,6 @@ const attendanceMarkSchema = z.object({
   scheduleId: optionalId("scheduleId"),
   kind: choice("kind", ["falta", "sem_aula"]).default("falta"),
 });
-
-async function ownsSubject(userId: number, subjectId: number): Promise<boolean> {
-  const [subject] = await db
-    .select({ id: schema.subjects.id })
-    .from(schema.subjects)
-    .where(and(eq(schema.subjects.id, subjectId), eq(schema.subjects.userId, userId)));
-  return Boolean(subject);
-}
 
 router.get("/", async (req, res) => {
   try {
