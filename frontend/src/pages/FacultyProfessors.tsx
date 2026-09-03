@@ -1,67 +1,37 @@
-import { FileSpreadsheet } from "lucide-react";
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Building2, Users } from "lucide-react";
 import { usePageTitle } from "../context/PageTitleContext";
-import { useOfferings } from "../hooks/useOfferings";
-import { useGradeBuilder } from "../context/GradeBuilderContext";
 import { PageHeader } from "../components/ui/PageHeader";
-import { ErrorBanner } from "../components/ui/ErrorBanner";
-import { EmptyState } from "../components/ui/EmptyState";
-import { SkeletonRows } from "../components/ui/Skeleton";
-import { ImportPanel } from "./faculty/ImportPanel";
-import { OfferingsBrowser } from "./faculty/OfferingsBrowser";
-import { GradeBuilderPanel } from "./faculty/GradeBuilderPanel";
-import { EnrollmentImportButton } from "./faculty/EnrollmentImportButton";
+import { Tabs } from "../components/ui/Tabs";
+import { GradeBuilderTab } from "./faculty/GradeBuilderTab";
+import { ProfessorsTab } from "./faculty/ProfessorsTab";
+
+type Tab = "grade" | "professores";
+
+const TABS: Array<{ key: Tab; label: string; icon: typeof Building2 }> = [
+  { key: "grade", label: "Montar Grade", icon: Building2 },
+  { key: "professores", label: "Meus Professores", icon: Users },
+];
 
 export function FacultyProfessors() {
   usePageTitle("Montar Grade");
-  const { offerings, loading, error, importing, importOfferings, clearOfferings } = useOfferings();
-  const { selectedIds, isSelected, toggle, clear } = useGradeBuilder();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialTab = searchParams.get("tab") === "professores" ? "professores" : "grade";
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
-  const handleClearOfferings = async () => {
-    const ok = await clearOfferings();
-    if (ok) clear();
-    return ok;
+  const goToTab = (tab: Tab) => {
+    setActiveTab(tab);
+    setSearchParams(tab === "grade" ? {} : { tab }, { replace: true });
   };
-
-  const lastImportedAt = offerings[0]?.importedAt ?? null;
-  const selectedOfferings = offerings.filter((o) => selectedIds.has(o.id));
 
   return (
     <div>
-      <PageHeader
-        title="Montar Grade"
-        description="Catálogo de turmas ofertadas pela faculdade — busque por professor ou disciplina e monte sua grade sem conflito de horário."
-      />
+      <PageHeader title="Montar Grade" />
 
-      {error && <ErrorBanner message={error} />}
+      <Tabs tabs={TABS} active={activeTab} onChange={goToTab} ariaLabel="Seções de grade e professores" />
 
-      <ImportPanel
-        lastImportedAt={lastImportedAt}
-        importing={importing}
-        onImport={importOfferings}
-        onClear={handleClearOfferings}
-      />
-
-      {loading ? (
-        <SkeletonRows rows={5} />
-      ) : offerings.length === 0 ? (
-        <EmptyState
-          icon={FileSpreadsheet}
-          title="Nenhuma planilha importada ainda"
-          description="Importe a planilha de encargos que a faculdade disponibiliza (professor, disciplina, turma e horários) pra começar a montar sua grade."
-        />
-      ) : (
-        <div className="faculty-layout">
-          <div>
-            <EnrollmentImportButton offerings={offerings} />
-            <OfferingsBrowser offerings={offerings} isSelected={isSelected} onToggle={toggle} />
-          </div>
-          <GradeBuilderPanel
-            selectedOfferings={selectedOfferings}
-            onRemove={toggle}
-            onConfirmed={clear}
-          />
-        </div>
-      )}
+      {activeTab === "grade" ? <GradeBuilderTab /> : <ProfessorsTab />}
     </div>
   );
 }

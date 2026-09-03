@@ -227,7 +227,7 @@ export function Dashboard() {
                 onToggleAll={toggleAllFilterPeriods}
               />
             )}
-            <Link to="/materias" className="link-with-icon">
+            <Link to="/periodos?tab=materias" className="link-with-icon">
               Ver todas <ArrowRight size={14} strokeWidth={2} />
             </Link>
           </div>
@@ -241,7 +241,7 @@ export function Dashboard() {
             title="Nenhuma matéria cadastrada neste período ainda"
             description="Adicione suas matérias para acompanhar horários, atividades e provas."
             action={
-              <Link to="/materias">
+              <Link to="/periodos?tab=materias">
                 <Button variant="primary" icon={Plus}>
                   Adicionar matéria
                 </Button>
@@ -345,7 +345,7 @@ export function Dashboard() {
       <section className="dashboard__section">
         <div className="dashboard__section-header">
           <h3>Anotações de hoje</h3>
-          <Link to="/anotacoes" className="link-with-icon">
+          <Link to="/estudos?tab=anotacoes" className="link-with-icon">
             Ver todas <ArrowRight size={14} strokeWidth={2} />
           </Link>
         </div>
@@ -358,7 +358,7 @@ export function Dashboard() {
             title="Nenhuma anotação para hoje"
             description="Adicione o que você precisa estudar hoje na aba Anotações."
             action={
-              <Link to="/anotacoes">
+              <Link to="/estudos?tab=anotacoes">
                 <Button variant="primary" icon={Plus}>
                   Adicionar anotação
                 </Button>

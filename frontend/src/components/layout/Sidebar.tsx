@@ -1,16 +1,14 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
-  BookOpen,
   CalendarDays,
   CalendarRange,
   ClipboardCheck,
   FileText,
   GraduationCap,
-  StickyNote,
   Timer,
-  Users,
   Building2,
+  Upload,
   UserRound,
   Settings,
   Sun,
@@ -21,15 +19,13 @@ import { useTheme } from "../../context/ThemeContext";
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
   { to: "/calendario", label: "Calendário", icon: CalendarDays },
-  { to: "/materias", label: "Matérias", icon: BookOpen },
+  { to: "/periodos", label: "Períodos", icon: CalendarRange },
   { to: "/matriz-curricular", label: "Matriz Curricular", icon: GraduationCap },
   { to: "/requerimentos", label: "Requerimentos", icon: FileText },
   { to: "/avaliacoes", label: "Provas e Atividades", icon: ClipboardCheck },
   { to: "/estudos", label: "Estudos", icon: Timer },
-  { to: "/anotacoes", label: "Anotações", icon: StickyNote },
-  { to: "/periodos", label: "Períodos", icon: CalendarRange },
-  { to: "/professores", label: "Meus Professores", icon: Users },
   { to: "/faculdade", label: "Montar Grade", icon: Building2 },
+  { to: "/importar", label: "Importar", icon: Upload },
 ];
 
 const footerLinks = [

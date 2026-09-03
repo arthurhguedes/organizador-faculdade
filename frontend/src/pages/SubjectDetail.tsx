@@ -103,7 +103,7 @@ export function SubjectDetail() {
     try {
       await subjectsApi.remove(subjectId);
       notify("Matéria removida", "success");
-      navigate("/materias");
+      navigate("/periodos?tab=materias");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao remover matéria", "error");
     }
@@ -111,7 +111,7 @@ export function SubjectDetail() {
 
   return (
     <div>
-      <Link to="/materias" className="link-with-icon back-link">
+      <Link to="/periodos?tab=materias" className="link-with-icon back-link">
         <ChevronLeft size={15} strokeWidth={2} /> Matérias
       </Link>
 

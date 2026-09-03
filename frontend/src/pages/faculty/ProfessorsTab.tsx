@@ -1,19 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Users, Plus, X, Pencil } from "lucide-react";
-import { usePageTitle } from "../context/PageTitleContext";
-import { professorsApi } from "../api/client";
-import { useEntityList } from "../hooks/useEntityList";
-import { PageHeader } from "../components/ui/PageHeader";
-import { EmptyState } from "../components/ui/EmptyState";
-import { SkeletonRows } from "../components/ui/Skeleton";
-import { Button } from "../components/ui/Button";
-import { Field } from "../components/ui/Field";
-import { ConfirmDelete } from "../components/ui/ConfirmDelete";
-import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { professorsApi } from "../../api/client";
+import { useEntityList } from "../../hooks/useEntityList";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { SkeletonRows } from "../../components/ui/Skeleton";
+import { Button } from "../../components/ui/Button";
+import { Field } from "../../components/ui/Field";
+import { ConfirmDelete } from "../../components/ui/ConfirmDelete";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
 
-export function Professors() {
-  usePageTitle("Meus Professores");
+export function ProfessorsTab() {
   const { items: professors, loading, error, create, update, remove } = useEntityList(professorsApi);
   const [formOpen, setFormOpen] = useState(false);
   const [name, setName] = useState("");
@@ -52,7 +50,6 @@ export function Professors() {
   return (
     <div>
       <PageHeader
-        title="Meus Professores"
         description="Cadastre os professores para vincular às matérias."
         action={
           <Button variant="primary" icon={formOpen ? X : Plus} onClick={() => setFormOpen((v) => !v)}>

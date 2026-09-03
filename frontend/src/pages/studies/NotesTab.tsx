@@ -1,19 +1,15 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight, ListChecks, Plus, Trash2 } from "lucide-react";
-import { usePageTitle } from "../context/PageTitleContext";
-import { useEntityList } from "../hooks/useEntityList";
-import { dailyNotesApi } from "../api/client";
-import { formatDate, todayISO } from "../lib/grades";
-import type { DailyNote } from "../api/types";
-import { PageHeader } from "../components/ui/PageHeader";
-import { EmptyState } from "../components/ui/EmptyState";
-import { SkeletonRows } from "../components/ui/Skeleton";
-import { Button } from "../components/ui/Button";
-import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { useEntityList } from "../../hooks/useEntityList";
+import { dailyNotesApi } from "../../api/client";
+import { formatDate, todayISO } from "../../lib/grades";
+import type { DailyNote } from "../../api/types";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { SkeletonRows } from "../../components/ui/Skeleton";
+import { Button } from "../../components/ui/Button";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
 
-export function Notes() {
-  usePageTitle("Anotações");
-
+export function NotesTab() {
   const {
     items: notes,
     loading: notesLoading,
@@ -52,8 +48,6 @@ export function Notes() {
 
   return (
     <div>
-      <PageHeader title="Anotações" description="Anotações soltas do dia, estilo checklist." />
-
       <section className="hub-section">
         <div className="hub-section__header">
           <h3>Anotações</h3>

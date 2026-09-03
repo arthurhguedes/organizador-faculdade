@@ -14,17 +14,15 @@ import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
 import { Dashboard } from "./pages/Dashboard";
 import { Calendar } from "./pages/Calendar";
-import { Subjects } from "./pages/Subjects";
 import { SubjectDetail } from "./pages/SubjectDetail";
 import { CurriculumMatrix } from "./pages/CurriculumMatrix";
 import { AcademicRequests } from "./pages/AcademicRequests";
 import { Periods } from "./pages/Periods";
-import { Professors } from "./pages/Professors";
 import { ProfessorDetail } from "./pages/ProfessorDetail";
 import { Evaluations } from "./pages/Evaluations";
 import { Studies } from "./pages/Studies";
-import { Notes } from "./pages/Notes";
 import { FacultyProfessors } from "./pages/FacultyProfessors";
+import { Import } from "./pages/Import";
 import { Profile } from "./pages/Profile";
 import { Terms } from "./pages/Terms";
 import { Settings } from "./pages/Settings";
@@ -60,17 +58,15 @@ export default function App() {
                   <Route element={<AppShell />}>
                     <Route index element={<Dashboard />} />
                     <Route path="calendario" element={<Calendar />} />
-                    <Route path="materias" element={<Subjects />} />
                     <Route path="materias/:id" element={<SubjectDetail />} />
                     <Route path="matriz-curricular" element={<CurriculumMatrix />} />
                     <Route path="requerimentos" element={<AcademicRequests />} />
                     <Route path="avaliacoes" element={<Evaluations />} />
                     <Route path="estudos" element={<Studies />} />
-                    <Route path="anotacoes" element={<Notes />} />
                     <Route path="periodos" element={<Periods />} />
-                    <Route path="professores" element={<Professors />} />
                     <Route path="professores/:id" element={<ProfessorDetail />} />
                     <Route path="faculdade" element={<FacultyProfessors />} />
+                    <Route path="importar" element={<Import />} />
                     <Route path="perfil" element={<Profile />} />
                     <Route path="termos" element={<Terms />} />
                     <Route path="configuracoes" element={<Settings />} />

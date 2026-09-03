@@ -5,14 +5,14 @@ export function PageHeader({
   description,
   action,
 }: {
-  title: string;
+  title?: string;
   description?: string;
   action?: ReactNode;
 }) {
   return (
     <div className="page-header">
       <div>
-        <h2 className="page-header__title">{title}</h2>
+        {title && <h2 className="page-header__title">{title}</h2>}
         {description && <p className="page-header__description">{description}</p>}
       </div>
       {action}

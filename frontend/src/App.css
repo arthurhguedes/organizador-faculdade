@@ -3001,15 +3001,22 @@ button.month-calendar__event {
 
 /* Barra de abas da página de Perfil. Sublinhado (e não pílula) pra não se
    confundir com o .segmented, que neste app significa filtro de lista. */
-.profile-tabs {
+.profile-tabs,
+.tabs {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
   border-bottom: 1px solid var(--border);
-  grid-column: 1 / -1;
+  margin-bottom: var(--space-6);
 }
 
-.profile-tabs__tab {
+.profile-tabs {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.profile-tabs__tab,
+.tabs__tab {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -3025,20 +3032,24 @@ button.month-calendar__event {
   transition: color 150ms ease, border-color 150ms ease;
 }
 
-.profile-tabs__tab svg {
+.profile-tabs__tab svg,
+.tabs__tab svg {
   flex: none;
 }
 
-.profile-tabs__tab:hover {
+.profile-tabs__tab:hover,
+.tabs__tab:hover {
   color: var(--text);
 }
 
-.profile-tabs__tab--active {
+.profile-tabs__tab--active,
+.tabs__tab--active {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
 
-.profile-tabs__tab:focus-visible {
+.profile-tabs__tab:focus-visible,
+.tabs__tab:focus-visible {
   outline-offset: -2px;
 }
 
@@ -3073,12 +3084,14 @@ button.month-calendar__event {
 }
 
 @media (max-width: 480px) {
-  /* Só os rótulos: com os ícones as quatro abas ocupavam três linhas. */
-  .profile-tabs__tab {
+  /* Só os rótulos: com os ícones as abas ocupavam várias linhas. */
+  .profile-tabs__tab,
+  .tabs__tab {
     padding: var(--space-3) var(--space-2);
   }
 
-  .profile-tabs__tab svg {
+  .profile-tabs__tab svg,
+  .tabs__tab svg {
     display: none;
   }
 }

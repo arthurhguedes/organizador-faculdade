@@ -103,7 +103,7 @@ export function ProfessorDetail() {
     try {
       await professorsApi.remove(professorId);
       notify("Professor e matérias vinculadas removidos", "success");
-      navigate("/professores");
+      navigate("/faculdade?tab=professores");
     } catch (err) {
       notify(err instanceof ApiError ? err.message : "Erro ao remover professor", "error");
     }
@@ -111,7 +111,7 @@ export function ProfessorDetail() {
 
   return (
     <div>
-      <Link to="/professores" className="link-with-icon back-link">
+      <Link to="/faculdade?tab=professores" className="link-with-icon back-link">
         <ChevronLeft size={15} strokeWidth={2} /> Meus Professores
       </Link>
 

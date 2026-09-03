@@ -1,21 +1,19 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, CheckSquare, Plus, Square, Trash2, X } from "lucide-react";
-import { usePageTitle } from "../context/PageTitleContext";
-import { usePeriods } from "../context/PeriodContext";
-import { subjectsApi, professorsApi, ApiError } from "../api/client";
-import { useEntityList } from "../hooks/useEntityList";
-import { useToast } from "../context/ToastContext";
-import { PageHeader } from "../components/ui/PageHeader";
-import { EmptyState } from "../components/ui/EmptyState";
-import { SkeletonCards } from "../components/ui/Skeleton";
-import { Button } from "../components/ui/Button";
-import { Field } from "../components/ui/Field";
-import { ConfirmDelete } from "../components/ui/ConfirmDelete";
-import { ErrorBanner } from "../components/ui/ErrorBanner";
+import { usePeriods } from "../../context/PeriodContext";
+import { subjectsApi, professorsApi, ApiError } from "../../api/client";
+import { useEntityList } from "../../hooks/useEntityList";
+import { useToast } from "../../context/ToastContext";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { SkeletonCards } from "../../components/ui/Skeleton";
+import { Button } from "../../components/ui/Button";
+import { Field } from "../../components/ui/Field";
+import { ConfirmDelete } from "../../components/ui/ConfirmDelete";
+import { ErrorBanner } from "../../components/ui/ErrorBanner";
 
-export function Subjects() {
-  usePageTitle("Matérias");
+export function SubjectsTab() {
   const { selectedPeriod, selectedPeriodId } = usePeriods();
   const { items: subjects, loading, error, create, remove, reload } = useEntityList(subjectsApi);
   const { items: professors } = useEntityList(professorsApi);
@@ -93,8 +91,11 @@ export function Subjects() {
   return (
     <div>
       <PageHeader
-        title={selectedPeriod ? `Matérias de ${selectedPeriod.label}` : "Matérias"}
-        description="Toda matéria concentra seus horários, atividades e provas em um só lugar."
+        description={
+          selectedPeriod
+            ? `Matérias de ${selectedPeriod.label}. Toda matéria concentra seus horários, atividades e provas em um só lugar.`
+            : "Toda matéria concentra seus horários, atividades e provas em um só lugar."
+        }
         action={
           selectedPeriodId && (
             <div className="page-header__actions">
