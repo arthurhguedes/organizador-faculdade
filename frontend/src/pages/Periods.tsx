@@ -6,7 +6,7 @@ import { periodsApi, ApiError } from "../api/client";
 import { useEntityList } from "../hooks/useEntityList";
 import { useToast } from "../context/ToastContext";
 import { formatDate } from "../lib/grades";
-import { parseHistoricoPdf } from "../lib/historicoImport";
+import { parseHistoricoPdf, HistoricoReadError } from "../lib/historicoImport";
 import { applyHistorico } from "../lib/applyHistorico";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -46,7 +46,11 @@ export function Periods() {
       reload();
       refresh();
     } catch (err) {
-      notify(err instanceof ApiError ? err.message : "Não consegui ler esse PDF. Confira se é o histórico escolar.", "error");
+      if (err instanceof HistoricoReadError) {
+        notify(err.message, "error");
+      } else {
+        notify(err instanceof ApiError ? err.message : "Não consegui ler esse PDF. Confira se é o histórico escolar.", "error");
+      }
     } finally {
       setImportingHistorico(false);
       if (historicoInputRef.current) historicoInputRef.current.value = "";

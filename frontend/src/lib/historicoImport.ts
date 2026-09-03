@@ -22,13 +22,44 @@ const ENTRY_PATTERN =
   /^(\d{4}\/\d)\s+([A-Z]{2,6}[0-9]{2,4})\s*-\s*(.+?)\s+(\d+)\/(\d+)\s+([\d.]+)\s+(\d+\/\d+)\s+([A-Z]{2})$/;
 const PROFESSOR_PATTERN = /^(\d{4}\/\d)\s+([A-Z]{2,6}[0-9]{2,4})\s+(.+?)\s*(?:\([TP+]+\))?$/;
 
+// Um arquivo do iCloud/Google Drive selecionado antes de terminar de baixar
+// no aparelho chega aqui como um File "placeholder" quase vazio — vira PDF
+// inválido no pdf.js, indistinguível de corrupção real sem essa checagem.
+const MIN_VALID_PDF_BYTES = 1024;
+
+export class HistoricoReadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "HistoricoReadError";
+  }
+}
+
 async function extractLines(file: File): Promise<string[]> {
   const pdfjsLib = await import("pdfjs-dist");
   const PdfWorker = (await import("pdfjs-dist/build/pdf.worker.min.mjs?worker")).default;
   pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker();
 
   const buffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  if (buffer.byteLength < MIN_VALID_PDF_BYTES) {
+    throw new HistoricoReadError(
+      "O arquivo chegou vazio ou incompleto — se ele estiver no iCloud/Google Drive, abra-o no app de Arquivos pra baixar por completo antes de importar.",
+    );
+  }
+
+  let doc;
+  try {
+    doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  } catch (err) {
+    if (err instanceof pdfjsLib.PasswordException) {
+      throw new HistoricoReadError("Esse PDF está protegido por senha — remova a senha e tente importar de novo.");
+    }
+    if (err instanceof pdfjsLib.InvalidPDFException) {
+      throw new HistoricoReadError(
+        "Não consegui abrir esse arquivo como PDF — se ele veio do iCloud/Google Drive, confira se terminou de baixar por completo antes de importar.",
+      );
+    }
+    throw err;
+  }
 
   const lines: string[] = [];
 
