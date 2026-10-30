@@ -2,7 +2,6 @@ services:
   - type: web
     name: notary-api
     runtime: node
-    region: ohio
     plan: free
     autoDeploy: true
     buildCommand: npm install
